@@ -1,0 +1,128 @@
+[
+  {
+    "itemId": "wood",
+    "name": "Wood",
+    "type": "base",
+    "tradeValue": 1,
+    "rarity": "common",
+    "description": "A basic resource for building and crafting.",
+    "icon": "GiWoodStick",
+    "properties": { "stackable": true },
+    "obtainMethods": ["exploring", "cleaning", "trading"]
+  },
+  {
+    "itemId": "scrap",
+    "name": "Scrap Metal",
+    "type": "currency",
+    "tradeValue": 1,
+    "rarity": "common",
+    "description": "After currencies fell, we use this to trade.",
+    "icon": "GiMetalDisc",
+    "properties": { "stackable": true },
+    "obtainMethods": ["exploring", "cleaning", "trading"]
+  },
+  {
+    "itemId": "spear",
+    "name": "Spear",
+    "type": "crafted",
+    "tradeValue": 15,
+    "rarity": "common",
+    "description": "Better than your fist but not by much.",
+    "icon": "GiSpear",
+    "properties": { "damage": 6, "durability": 30 },
+    "recipe": [
+      { "itemId": "wood", "quantity": 4 },
+      { "itemId": "scrap", "quantity": 2 }
+    ],
+    "craftingTime": 5,
+    "obtainMethods": ["crafting", "trading"]
+  },
+  {
+    "itemId": "key_fragment",
+    "name": "Key Fragment",
+    "type": "quest",
+    "tradeValue": 0,
+    "rarity": "rare",
+    "description": "A fragment of a key that may unlock something valuable.",
+    "icon": "GiKey",
+    "properties": { "stackable": true },
+    "obtainMethods": ["tasks", "exploring"]
+  },
+  {
+    "itemId": "carrot_seeds",
+    "name": "Carrot Seeds",
+    "type": "farming",
+    "tradeValue": 2,
+    "rarity": "common",
+    "description": "Seeds for planting carrots.",
+    "icon": "GiCarrot",
+    "properties": { "stackable": true },
+    "obtainMethods": ["tasks", "trading"]
+  },
+  {
+    "itemId": "tomato_seeds",
+    "name": "Tomato Seeds",
+    "type": "farming",
+    "tradeValue": 2,
+    "rarity": "common",
+    "description": "Seeds for planting tomatoes.",
+    "icon": "GiTomato",
+    "properties": { "stackable": true },
+    "obtainMethods": ["tasks", "trading"]
+  },
+  {
+    "itemId": "fertilizer",
+    "name": "Fertilizer",
+    "type": "farming",
+    "tradeValue": 2,
+    "rarity": "common",
+    "description": "Improves soil fertility for better crop yields.",
+    "icon": "GiFertilizerBag",
+    "properties": { "stackable": true },
+    "obtainMethods": ["tasks", "trading"]
+  },
+  {
+    "itemId": "map",
+    "name": "Wasteland Map",
+    "type": "quest",
+    "tradeValue": 0,
+    "rarity": "uncommon",
+    "description": "A basic map of the surrounding area.",
+    "icon": "GiMap",
+    "properties": { "stackable": false },
+    "obtainMethods": ["tasks"]
+  },
+  {
+    "itemId": "tool",
+    "name": "Workshop Tool",
+    "type": "crafted",
+    "tradeValue": 5,
+    "rarity": "uncommon",
+    "description": "Useful for repairs and crafting.",
+    "icon": "GiHammer",
+    "properties": { "durability": 20 },
+    "obtainMethods": ["tasks", "crafting", "trading"]
+  },
+  {
+    "itemId": "trap",
+    "name": "Basic Trap",
+    "type": "defence",
+    "tradeValue": 4,
+    "rarity": "uncommon",
+    "description": "Can be set up to protect your homestead.",
+    "icon": "GiBearTrap",
+    "properties": { "durability": 5, "stackable": true },
+    "obtainMethods": ["tasks", "crafting"]
+  },
+  {
+    "itemId": "metal",
+    "name": "Metal",
+    "type": "base",
+    "tradeValue": 2,
+    "rarity": "common",
+    "description": "A basic material for crafting and reinforcement.",
+    "icon": "GiMetalBar",
+    "properties": { "stackable": true },
+    "obtainMethods": ["tasks", "trading", "exploring"]
+  }
+]

@@ -1,0 +1,49 @@
+World & Lore
+
+How detailed will the lore be? Do you plan to deliver it mostly through events and flavor text, or will there be a broader narrative arc? The lore isn't the driving force of the application. It is just a backend to make things slightly more interesting.
+
+Are the settlers from a shared background (e.g., one faction/culture) or from diverse origins with unique traits and histories? Settlers are random. At the beginning the user can pick one settler out of three (I am still looking for good lore reasons why. We only have anough food / resources for one?)
+
+Gameplay Scope
+
+Will this be single-player only, or do you have plans for multiplayer/competitive colonies? It is definetly going to be multiplayer. That is the major draw of the app. Eventually people will be able to attack each other (while out scavenging) or attack bases. Players will also be allowed to trade items (possibly colonists) and chat.
+
+Is the focus more on narrative immersion (e.g., choices shaping a story) or on simulation depth (e.g., detailed systems for food, morale, and defence)? Simulation depth.
+
+Notoriety System
+
+How will notoriety interact with other systems—will it attract raiders, inspire allies, or change trade opportunities? The notoriety system is to bring darker elements to the game. Cannibalism, slavery, torture is all allowed and bring great rewards. But it also increases your notoriety which comes with downsides (shorter shield after attacks. Colonist lose morale faster)
+
+Does notoriety have a positive side (fame/influence) or is it always a liability? It comes with rewards - food, resources, exploration, etc.
+
+Settler Management
+
+Will settlers have relationships, morale, and psychological traits, or will they mainly be stat-driven? They currently have morale, energy and health (I should probably add something like hunger?). 4 stats (strength, speed, intelligence, resilience). These are picked randomly (out of 10) and can't be changed. 6 skills (scavenging, farming, combat, crafting, medical, engineering - tbc - we will probably need more in future like mining and research) - these are also picked randomly (out of 20) and increases as a settler does activities. They have two interests which will increase the speed of their skill increasing. They also have one positive trait (e.g hardy) and one negative trait (pacifist, lazy, etc.) 
+
+Are injuries, diseases, or permanent changes (e.g., scars, lost limbs) planned? Yes, and settlers with high medical skill can heal injuries. Permanent changes makes sense in future.
+
+Map & Exploration
+
+Will the map be static per world, procedurally generated, or hybrid (fixed core with random edges)? - I'm thinking the map can be generated. It's a simple map with an x, y and (what's there).  Each time a player joins the map is expanded and they are placed (x) spots from a current user. 
+
+Will exploration be turn-based (player chooses when to move) or event-driven (e.g., time passes as you explore)?
+
+Player Progression
+
+Is there an endgame or “win state” envisioned (e.g., build a thriving city, escape the wasteland, dominate regionally)?
+
+How punishing will failure be? Will a bad winter mean colony death, or just a setback?
+
+Tech & Future Plans
+
+Why MAUI for mobile? Is cross-platform a core priority, or just a possible future expansion?
+
+How tightly coupled will backend and frontend be? Will the React app be more like a client or just a visual wrapper?
+
+Miscellaneous
+
+Are events mostly deterministic based on player actions, or will there be significant randomness (to encourage replayability)?
+
+How granular do you want the crafting and inventory systems to be (e.g., survival-game detail or higher-level abstraction)?
+
+Will players interact with NPC factions beyond raiders—like trade caravans, allies, or rival colonies?

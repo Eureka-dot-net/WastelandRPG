@@ -1,0 +1,47 @@
+import request from 'supertest';
+import { app } from '../src/app'; // We'll refactor server entry to export app
+
+describe('Auth API', () => {
+    it('should return 200 on GET /', async () => {
+        const res = await request(app).get('/api/');
+        console.log(res.status, res.body);
+    });
+
+    const testUser = { email: 'test@example.com', password: 'password123' };
+
+    it('should register a user', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(testUser)
+            .expect(201);
+
+        expect(res.body.message).toBe('User created successfully');
+    });
+
+    it('should not register the same user twice', async () => {
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(testUser)
+            .expect(400);
+
+        expect(res.body.message).toBe('User already exists');
+    });
+
+    it('should login a user and return JWT', async () => {
+        const res = await request(app)
+            .post('/api/auth/login')
+            .send(testUser)
+            .expect(200);
+
+        expect(res.body.token).toBeDefined();
+    });
+
+    it('should reject invalid credentials', async () => {
+        const res = await request(app)
+            .post('/api/auth/login')
+            .send({ ...testUser, password: 'wrongpass' })
+            .expect(400);
+
+        expect(res.body.message).toBe('Invalid credentials');
+    });
+});

@@ -1,0 +1,26 @@
+[
+  {
+    "statId": "strength",
+    "name": "Strength",
+    "description": "Increases carrying capacity for scavenging, boosts melee damage, and improves endurance for physical tasks like cleanup.",
+    "icon": "GiMuscleUp"
+  },
+  {
+    "statId": "speed",
+    "name": "Speed",
+    "description": "Reduces action and travel time for tasks like exploration, improves dodge chance in combat, and aids in escaping dangers.",
+    "icon": "GiRunningShoe"
+  },
+  {
+    "statId": "intelligence",
+    "name": "Intelligence",
+    "description": "Speeds up skill learning, unlocks advanced tasks like complex crafting, and improves problem-solving efficiency.",
+    "icon": "GiBrain"
+  },
+  {
+    "statId": "resilience",
+    "name": "Resilience",
+    "description": "Increases health, reduces injury and disease risks, and slows morale loss from low food or harsh conditions.",
+    "icon": "GiHeartShield"
+  }
+]

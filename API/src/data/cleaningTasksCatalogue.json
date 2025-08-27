@@ -1,0 +1,93 @@
+[
+  {
+    "taskId": "salvage_gate_ruins",
+    "name": "Salvage Gate Ruins",
+    "description": "Dismantle the collapsed gate to gather materials and open the homestead entrance.",
+    "unlocks": "entrance",
+    "duration": 12000,
+    "difficulty": "Easy",
+    "rewards": {
+      "scrap": { "min": 15, "max": 25, "chance": 1 },
+      "wood": { "min": 5, "max": 10, "chance": 1 },
+      "key_fragment": { "min": 1, "max": 1, "chance": 0.3 }
+    },
+    "requiredStats": { "strength": 2 },
+    "icon": "GiGate"
+  },
+  {
+    "taskId": "clear_out_ruins",
+    "name": "Clear Out Ruins",
+    "description": "Excavate the collapsed ruins to create space for sleeping quarters.",
+    "unlocks": "sleeping_area",
+    "duration": 18000,
+    "difficulty": "Medium",
+    "dependsOn": "salvage_gate_ruins",
+    "rewards": {
+      "scrap": { "min": 15, "max": 25, "chance": 1 },
+      "wood": { "min": 5, "max": 10, "chance": 1 }
+    },
+    "requiredStats": { "crafting": 1, "strength": 1 },
+    "icon": "GiRuins"
+  },
+  {
+    "taskId": "clear_farm_land",
+    "name": "Clear Farm Land",
+    "description": "Remove rocks and weeds to prepare soil for planting.",
+    "unlocks": "farming",
+    "duration": 20000,
+    "difficulty": "Medium",
+    "dependsOn": "clear_out_ruins",
+    "rewards": {
+      "scrap": { "min": 10, "max": 20, "chance": 1 },
+      "carrot_seeds": { "min": 1, "max": 3, "chance": 1 },
+      "tomato_seeds": { "min": 1, "max": 2, "chance": 0.6 },
+      "fertilizer": { "min": 1, "max": 2, "chance": 0.4 }
+    },
+    "requiredStats": { "strength": 2, "endurance": 1 },
+    "icon": "GiFarmTractor"
+  },
+  {
+    "taskId": "scout_surrounding_area",
+    "name": "Scout Surrounding Area",
+    "description": "Explore the nearby wasteland to chart a basic map.",
+    "unlocks": "map",
+    "duration": 22000,
+    "difficulty": "Hard",
+    "dependsOn": "clear_farm_land",
+    "rewards": { "map": { "min": 1, "max": 1, "chance": 1 } },
+    "requiredStats": { "perception": 2, "speed": 1 },
+    "icon": "GiMap"
+  },
+  {
+    "taskId": "clean_out_workshop",
+    "name": "Clean Out Workshop",
+    "description": "Clear debris and salvage materials to restore the workshop.",
+    "unlocks": "crafting",
+    "duration": 25000,
+    "difficulty": "Hard",
+    "dependsOn": "scout_surrounding_area",
+    "rewards": {
+      "wood": { "min": 15, "max": 20, "chance": 1 },
+      "scrap": { "min": 5, "max": 8, "chance": 1 },
+      "tool": { "min": 1, "max": 1, "chance": 0.3 }
+    },
+    "requiredStats": { "crafting": 2, "strength": 1 },
+    "icon": "GiWorkbench"
+  },
+  {
+    "taskId": "scavenge_perimeter_debris",
+    "name": "Scavenge Perimeter Debris",
+    "description": "Collect materials from the outer wreckage to strengthen homestead defenses.",
+    "unlocks": "defence",
+    "duration": 30000,
+    "difficulty": "Hard",
+    "dependsOn": "clean_out_workshop",
+    "rewards": {
+      "scrap": { "min": 10, "max": 20, "chance": 1 },
+      "metal": { "min": 5, "max": 10, "chance": 1 },
+      "trap": { "min": 1, "max": 2, "chance": 0.35 }
+    },
+    "requiredStats": { "strength": 3, "crafting": 1 },
+    "icon": "GiBrickWall"
+  }
+]

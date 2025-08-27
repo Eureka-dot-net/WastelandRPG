@@ -1,0 +1,357 @@
+[
+  {
+    "traitId": "tough",
+    "name": "Tough",
+    "type": "positive",
+    "description": "This settler is durable, with higher health and better endurance for physical tasks.",
+    "effects": [
+      { "target": "stat", "key": "resilience", "modifier": "+2", "stack": "additive" },
+      { "target": "damage", "key": "melee", "modifier": "+5%", "stack": "multiplicative" }
+    ],
+    "icon": "GiStrong",
+    "rarity": "common"
+  },
+  {
+    "traitId": "quick",
+    "name": "Quick",
+    "type": "positive",
+    "description": "This settler moves swiftly, completing tasks faster and dodging attacks.",
+    "effects": [
+      { "target": "stat", "key": "speed", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "exploration", "modifier": "-10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiRunningShoe",
+    "rarity": "common"
+  },
+  {
+    "traitId": "clever",
+    "name": "Clever",
+    "type": "positive",
+    "description": "This settler learns quickly, gaining skills faster across all tasks.",
+    "effects": [
+      { "target": "skill", "key": "all", "modifier": "+20%", "stack": "multiplicative" }
+    ],
+    "icon": "GiBrain",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "resilient",
+    "name": "Resilient",
+    "type": "positive",
+    "description": "This settler shrugs off harsh conditions, maintaining morale longer.",
+    "effects": [
+      { "target": "morale", "key": "loss", "modifier": "-15%", "stack": "multiplicative" }
+    ],
+    "icon": "GiHeartShield",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "scavenger",
+    "name": "Scavenger",
+    "type": "positive",
+    "description": "This settler excels at finding loot, bringing back more resources.",
+    "effects": [
+      { "target": "skill", "key": "scavenging", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "cleanup", "modifier": "+10% yield", "stack": "multiplicative" }
+    ],
+    "icon": "GiPickaxe",
+    "rarity": "common"
+  },
+  {
+    "traitId": "hardy",
+    "name": "Hardy",
+    "type": "positive",
+    "description": "This settler is built for labor, carrying more and working longer.",
+    "effects": [
+      { "target": "stat", "key": "strength", "modifier": "+2", "stack": "additive" },
+      { "target": "carry", "key": "all", "modifier": "+10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiMuscleUp",
+    "rarity": "common"
+  },
+  {
+    "traitId": "brawler",
+    "name": "Brawler",
+    "type": "positive",
+    "description": "This settler thrives in close combat, dealing extra melee damage.",
+    "effects": [
+      { "target": "skill", "key": "combat", "modifier": "+3", "stack": "additive" },
+      { "target": "damage", "key": "melee", "modifier": "+10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiFist",
+    "rarity": "common"
+  },
+  {
+    "traitId": "green_thumb",
+    "name": "Green Thumb",
+    "type": "positive",
+    "description": "This settler has a knack for farming, boosting crop and livestock yields.",
+    "effects": [
+      { "target": "skill", "key": "farming", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "plant_quickweed,milk_cow", "modifier": "+15% yield", "stack": "multiplicative" }
+    ],
+    "icon": "GiPlantRoots",
+    "rarity": "common"
+  },
+  {
+    "traitId": "tinkerer",
+    "name": "Tinkerer",
+    "type": "positive",
+    "description": "This settler excels at crafting, producing higher-quality items.",
+    "effects": [
+      { "target": "skill", "key": "crafting", "modifier": "+2", "stack": "additive" },
+      { "target": "task", "key": "crafting", "modifier": "+10% quality", "stack": "multiplicative" }
+    ],
+    "icon": "GiHammerNails",
+    "rarity": "common"
+  },
+  {
+    "traitId": "healer",
+    "name": "Healer",
+    "type": "positive",
+    "description": "This settler is adept at medical tasks, improving healing efficiency.",
+    "effects": [
+      { "target": "skill", "key": "medical", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "healing", "modifier": "-15% time", "stack": "multiplicative" }
+    ],
+    "icon": "GiMedicalPack",
+    "rarity": "common"
+  },
+  {
+    "traitId": "engineer",
+    "name": "Engineer",
+    "type": "positive",
+    "description": "This settler is skilled at building tech, speeding up engineering tasks.",
+    "effects": [
+      { "target": "skill", "key": "engineering", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "build_generator", "modifier": "-10% time", "stack": "multiplicative" }
+    ],
+    "icon": "GiGearHammer",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "genius",
+    "name": "Genius",
+    "type": "positive",
+    "description": "This settler is exceptionally smart, unlocking advanced tasks early.",
+    "effects": [
+      { "target": "stat", "key": "intelligence", "modifier": "+5", "stack": "additive" },
+      { "target": "task", "key": "craft_pipe_rifle", "modifier": "unlock", "stack": "absolute" }
+    ],
+    "icon": "GiBrainFreeze",
+    "rarity": "rare"
+  },
+  {
+    "traitId": "survivor",
+    "name": "Survivor",
+    "type": "positive",
+    "description": "This settler endures hardships, resisting disease and injury.",
+    "effects": [
+      { "target": "stat", "key": "resilience", "modifier": "+3", "stack": "additive" },
+      { "target": "task", "key": "all", "modifier": "-10% injury", "stack": "multiplicative" }
+    ],
+    "icon": "GiHealthPotion",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "sharpshooter",
+    "name": "Sharpshooter",
+    "type": "positive",
+    "description": "This settler excels at ranged combat, improving accuracy.",
+    "effects": [
+      { "target": "skill", "key": "combat", "modifier": "+2", "stack": "additive" },
+      { "target": "damage", "key": "ranged", "modifier": "+15%", "stack": "multiplicative" }
+    ],
+    "icon": "GiCrossbow",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "resourceful",
+    "name": "Resourceful",
+    "type": "positive",
+    "description": "This settler makes the most of resources, boosting scavenging yields.",
+    "effects": [
+      { "target": "task", "key": "cleanup", "modifier": "+15% yield", "stack": "multiplicative" },
+      { "target": "carry", "key": "all", "modifier": "+10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiBackpack",
+    "rarity": "common"
+  },
+  {
+    "traitId": "clumsy",
+    "name": "Clumsy",
+    "type": "negative",
+    "description": "This settler fumbles often, moving slower and risking crafting mishaps.",
+    "effects": [
+      { "target": "stat", "key": "speed", "modifier": "-3", "stack": "additive" },
+      { "target": "task", "key": "crafting", "modifier": "+10% failure", "stack": "additive" }
+    ],
+    "icon": "GiTripping",
+    "rarity": "common"
+  },
+  {
+    "traitId": "pacifist",
+    "name": "Pacifist",
+    "type": "negative",
+    "description": "This settler avoids violence, struggling in combat and refusing war crimes.",
+    "effects": [
+      { "target": "skill", "key": "combat", "modifier": "-5", "stack": "additive" },
+      { "target": "task", "key": "slaughter_cow,cannibalism", "modifier": "block", "stack": "absolute" }
+    ],
+    "icon": "GiPeaceDove",
+    "rarity": "common"
+  },
+  {
+    "traitId": "fragile",
+    "name": "Fragile",
+    "type": "negative",
+    "description": "This settler is prone to injury, taking more damage and losing morale faster.",
+    "effects": [
+      { "target": "stat", "key": "resilience", "modifier": "-3", "stack": "additive" },
+      { "target": "morale", "key": "loss", "modifier": "+10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiBrokenBone",
+    "rarity": "common"
+  },
+  {
+    "traitId": "lazy",
+    "name": "Lazy",
+    "type": "negative",
+    "description": "This settler shirks work, slowing down all tasks and losing morale faster from boredom.",
+    "effects": [
+      { "target": "task", "key": "all", "modifier": "+10%", "stack": "multiplicative", "condition": "morale<50" },
+      { "target": "morale", "key": "loss", "modifier": "+5%", "stack": "multiplicative" }
+    ],
+    "icon": "GiLyingDown",
+    "rarity": "common"
+  },
+  {
+    "traitId": "bloodthirsty",
+    "name": "Bloodthirsty",
+    "type": "negative",
+    "description": "This settler thrives on violence but grows restless without it, losing morale.",
+    "effects": [
+      { "target": "skill", "key": "combat", "modifier": "+3", "stack": "additive", "condition": "task=slaughter_cow,cannibalism" },
+      { "target": "morale", "key": "base", "modifier": "-10", "stack": "additive" }
+    ],
+    "icon": "GiBloodySword",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "squeamish",
+    "name": "Squeamish",
+    "type": "negative",
+    "description": "This settler avoids gore, struggling with medical and slaughter tasks.",
+    "effects": [
+      { "target": "skill", "key": "medical", "modifier": "-3", "stack": "additive" },
+      { "target": "task", "key": "slaughter_cow", "modifier": "+15% failure", "stack": "additive" }
+    ],
+    "icon": "GiNauseous",
+    "rarity": "common"
+  },
+  {
+    "traitId": "coward",
+    "name": "Coward",
+    "type": "negative",
+    "description": "This settler panics in combat, reducing effectiveness and risking flight.",
+    "effects": [
+      { "target": "skill", "key": "combat", "modifier": "-3", "stack": "additive" },
+      { "target": "task", "key": "combat", "modifier": "+10% failure", "stack": "additive", "condition": "raid" }
+    ],
+    "icon": "GiRun",
+    "rarity": "common"
+  },
+  {
+    "traitId": "weak",
+    "name": "Weak",
+    "type": "negative",
+    "description": "This settler struggles with physical tasks, carrying less and tiring quickly.",
+    "effects": [
+      { "target": "stat", "key": "strength", "modifier": "-3", "stack": "additive" },
+      { "target": "carry", "key": "all", "modifier": "-10%", "stack": "multiplicative" }
+    ],
+    "icon": "GiWeakness",
+    "rarity": "common"
+  },
+  {
+    "traitId": "slow_learner",
+    "name": "Slow Learner",
+    "type": "negative",
+    "description": "This settler struggles to learn, gaining skills slower.",
+    "effects": [
+      { "target": "skill", "key": "all", "modifier": "-15%", "stack": "multiplicative" }
+    ],
+    "icon": "GiBrainLeak",
+    "rarity": "common"
+  },
+  {
+    "traitId": "sickly",
+    "name": "Sickly",
+    "type": "negative",
+    "description": "This settler is prone to illness, increasing injury risks.",
+    "effects": [
+      { "target": "stat", "key": "resilience", "modifier": "-2", "stack": "additive" },
+      { "target": "task", "key": "all", "modifier": "+10% injury", "stack": "multiplicative" }
+    ],
+    "icon": "GiSick",
+    "rarity": "common"
+  },
+  {
+    "traitId": "reckless",
+    "name": "Reckless",
+    "type": "negative",
+    "description": "This settler takes risks, increasing combat damage but also injuries.",
+    "effects": [
+      { "target": "damage", "key": "melee", "modifier": "+10%", "stack": "multiplicative" },
+      { "target": "task", "key": "combat", "modifier": "+15% injury", "stack": "multiplicative" }
+    ],
+    "icon": "GiSpikedShoulderArmor",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "sadist",
+    "name": "Sadist",
+    "type": "negative",
+    "description": "This settler enjoys cruelty, excelling at evil tasks but unsettling others.",
+    "effects": [
+      { "target": "task", "key": "slaughter_cow,cannibalism", "modifier": "-10% time", "stack": "multiplicative" },
+      { "target": "morale", "key": "base", "modifier": "-15", "stack": "additive", "condition": "not task=slaughter_cow,cannibalism" }
+    ],
+    "icon": "GiSkullCrack",
+    "rarity": "uncommon"
+  },
+  {
+    "traitId": "clueless",
+    "name": "Clueless",
+    "type": "negative",
+    "description": "This settler struggles with complex tasks, slowing engineering work.",
+    "effects": [
+      { "target": "skill", "key": "engineering", "modifier": "-3", "stack": "additive" },
+      { "target": "task", "key": "build_generator", "modifier": "+15% time", "stack": "multiplicative" }
+    ],
+    "icon": "GiBrainTentacle",
+    "rarity": "common"
+  },
+  {
+    "traitId": "greedy",
+    "name": "Greedy",
+    "type": "negative",
+    "description": "This settler hoards resources, reducing scavenging yields.",
+    "effects": [
+      { "target": "task", "key": "cleanup", "modifier": "-10% yield", "stack": "multiplicative" }
+    ],
+    "icon": "GiMoneyStack",
+    "rarity": "common"
+  },
+  {
+    "traitId": "paranoid",
+    "name": "Paranoid",
+    "type": "negative",
+    "description": "This settler is jumpy, losing morale during raids or exploration.",
+    "effects": [
+      { "target": "morale", "key": "loss", "modifier": "+15%", "stack": "multiplicative", "condition": "task=exploration,raid" }
+    ],
+    "icon": "GiSuspicious",
+    "rarity": "uncommon"
+  }
+]

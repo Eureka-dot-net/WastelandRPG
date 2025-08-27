@@ -1,0 +1,38 @@
+[
+  {
+    "skillId": "combat",
+    "name": "Combat",
+    "description": "Skill in fighting with weapons and bare hands, boosting hit chance, damage, and special moves like riposte.",
+    "icon": "GiSpearhead"
+  },
+  {
+    "skillId": "scavenging",
+    "name": "Scavenging",
+    "description": "Skill in finding valuable resources during exploration and cleanup, increasing loot quality and speed.",
+    "icon": "GiPickaxe"
+  },
+  {
+    "skillId": "farming",
+    "name": "Farming",
+    "description": "Skill in growing crops and managing livestock, improving food yields and reducing task times.",
+    "icon": "GiPlantRoots"
+  },
+  {
+    "skillId": "crafting",
+    "name": "Crafting",
+    "description": "Skill in crafting items and building structures, reducing crafting time and improving item quality.",
+    "icon": "GiHammerNails"
+  },
+  {
+    "skillId": "medical",
+    "name": "Medical",
+    "description": "Skill in healing injuries and treating diseases, enhancing health restoration and reducing treatment failures.",
+    "icon": "GiMedicalPack"
+  },
+  {
+    "skillId": "engineering",
+    "name": "Engineering",
+    "description": "Skill in constructing and maintaining advanced technology, speeding up building and unlocking complex devices.",
+    "icon": "GiGearHammer"
+  }
+]
