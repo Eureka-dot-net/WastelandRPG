@@ -4,7 +4,7 @@ import { agent } from "../api/agent";
 
 export function useColony(serverId: string = "server-1") {
 
-    return useQuery<Colony>({
+    const { data : colony, isLoading : colonyLoading, error: colonyError, refetch } = useQuery<Colony>({
         queryKey: ["colony", serverId],
         queryFn: async () => {
             const res = await agent.get(`/servers/${serverId}/colony`);
@@ -14,4 +14,11 @@ export function useColony(serverId: string = "server-1") {
         staleTime: 3600000, // 1 hour
         gcTime: 3600000, // 1 hour
     });
+
+    return { 
+        colony, 
+        colonyLoading, 
+        colonyError ,
+        refetch
+    };
 }

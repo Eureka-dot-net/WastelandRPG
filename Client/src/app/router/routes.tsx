@@ -6,11 +6,10 @@ import Register from "../../features/account/Register";
 import App from "../layout/App";
 import SettlerSelection from "../../features/settlerSelection/SettlerSelectionPage";
 import DashboardLayout from "../layout/DashboardLayout"; // Import the layout component
-import HomesteadTaskPage from "../../features/homestead/HomesteadTaskPage";
+import AssignmentPage from "../../features/Assignments/AssignmentPage";
 
 const router = createBrowserRouter([
     {
-        path: "/",
         element: <App />,
         children: [
             // Public routes
@@ -25,8 +24,9 @@ const router = createBrowserRouter([
                     {
                         element: <DashboardLayout />, // This is the shared layout
                         children: [
-                            { index: true, element: <HomesteadTaskPage /> }, 
+                            { path: "/assignments", element: <AssignmentPage serverId={"server-1"} /> }, 
                             { path: "/map", element: <MapPage /> },
+                            { path: "/", element: <AssignmentPage serverId={"server-1"} /> },
                             // Add all other protected routes that need the DashboardLayout here
                         ]
                     },

@@ -5,10 +5,11 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import serverRoutes from './routes/server';
 import settlerRoutes from './routes/settler';
-import assignmentRoutes from './routes/assignmentRoutes';
+import assignmentRoutes from './routes/assignment';
 
 import { authenticate } from './middleware/auth';
 import { requireColonyOwnership } from './middleware/colonyOwnership';
+import { updateCompletedTasks } from './middleware/updateCompletedTasks';
 
 
 export const app = express();
@@ -44,5 +45,5 @@ app.get('/api/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
-app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership, settlerRoutes);
-app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, assignmentRoutes);
+app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership, updateCompletedTasks, settlerRoutes);
+app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, updateCompletedTasks, assignmentRoutes);

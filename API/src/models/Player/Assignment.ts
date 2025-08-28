@@ -1,5 +1,5 @@
 // models/assignment.model.ts
-import { Schema, model, Types } from 'mongoose';
+import { Schema, model, Types, HydratedDocument } from 'mongoose';
 
 export type AssignmentType =
   | 'general'
@@ -13,10 +13,11 @@ export interface IAssignment {
   colonyId: Types.ObjectId;
   taskId: string; // from TaskDefinition
   type: AssignmentType;
-  state: 'available' | 'in_progress' | 'completed' | 'locked';
+  state: 'available' | 'in-progress' | 'completed' | 'locked';
   settlerId?: Types.ObjectId;
   startedAt?: Date;
   completedAt?: Date;
+  dependsOn?: string;
   name?: string;
   description?: string;
   duration?: number;
@@ -24,13 +25,14 @@ export interface IAssignment {
   plannedRewards?: Record<string, number>;
 }
 
-const AssignmentSchema = new Schema<IAssignment>(
+const AssignmentSchema = new Schema(
   {
     colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', index: true, required: true },
     taskId: { type: String, required: false },
     type: { type: String,  required: true },
     state: { type: String, default: 'available', index: true },
     settlerId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
+    dependsOn: {type: String, required: false },
     startedAt: Date,
     completedAt: Date,
     name: String,
@@ -48,4 +50,6 @@ AssignmentSchema.index(
   { unique: true, sparse: true }
 );
 
-export const Assignment = model<IAssignment>('Assignment', AssignmentSchema);
+export type AssignmentDoc = HydratedDocument<IAssignment>;
+
+export const Assignment = model<AssignmentDoc>('Assignment', AssignmentSchema);

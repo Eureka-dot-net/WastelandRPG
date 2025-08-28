@@ -7,22 +7,19 @@ import type { Settler } from '../../lib/types/settler';
 import { useColony } from '../../lib/hooks/useColony';
 import { useSettler } from '../../lib/hooks/useSettler';
 
-// Mock hooks - replace with your actual imports
-// import { usePlayer } from '../hooks/usePlayer';
-// import { useSettler } from '../hooks/useSettler';
-// import type { Player, Settler } from '../types';
-
 
 interface SettlerSelectionProps {
   serverId?: string;
 }
 
 function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
+  console.log('settler selection loaded');
   const [selectedSettler, setSelectedSettler] = useState<Settler | null>(null);
   const [settlers, setSettlers] = useState<Settler[]>([]);
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
+  const [settlerError, setSettlerError] = useState<string | null>(null);
 
-  const { data: colony, isLoading: colonyLoading, error: colonyError } = useColony(serverId);
+  const { colony, colonyLoading, colonyError } = useColony(serverId);
 
   const { onboardSettler, selectSettler } = useSettler();
 
@@ -46,14 +43,24 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
     if (colony && settlers.length === 0 && !isOnboarding) {
       fetchSettlers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colony]);
 
   const handleSelectSettler = (settler: Settler) => {
-    setSelectedSettler(settler);
+
     if (colony) {
       selectSettler.mutate({
         colonyId: colony._id,
         settlerId: settler._id
+      }, {
+        onError: (error) => {
+          console.error("Error selecting settler:", error);
+          setSettlerError("Failed to select settler. Please try again.");
+        },
+        onSuccess: (data) => {
+          console.log("Settler selected successfully:", data);
+          setSelectedSettler(data);
+        }
       });
     }
   };
@@ -106,7 +113,7 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
     return (
       <Container maxWidth="lg">
         <Alert severity="error" sx={{ mt: 2 }}>
-          Failed to load player data. Please try again.
+          Failed to load colony data. Please try again.
         </Alert>
       </Container>
     );
@@ -175,6 +182,23 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
                 </Typography>
               </CardContent>
             </Card>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ mt: 4 }}
+                component="a"
+                href="/assignments"
+              >
+                Continue
+              </Button>
+            </Box>
           </Paper>
         </Box>
       </Container>
@@ -191,6 +215,11 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
         py={4}
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+          {settlerError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {settlerError}
+            </Alert>
+          )}
           <Box textAlign="center" mb={4}>
             <Typography variant="h4" gutterBottom>
               👥 Choose Your First Settler
@@ -291,18 +320,20 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
                             <Chip
                               avatar={<Avatar sx={{ width: 20, height: 20, bgcolor: 'transparent' }}><DynamicIcon name={trait.icon || 'GiQuestionMark'} /></Avatar>}
                               label={trait.traitId}
-                            
+
                               color={trait.type === "positive" ? "success" : "error"}
                               variant="outlined"
                               sx={{
                                 borderRadius: 2,
-                                bgcolor: trait.type === "positive" ? "#2a3d2a" : "#3d2a2a" ,
+                                bgcolor: trait.type === "positive" ? "#2a3d2a" : "#3d2a2a",
                                 color: '#fff',
-                                borderColor: trait.type === "positive" ? "#4a704a" : "#704a4a" ,
+                                borderColor: trait.type === "positive" ? "#4a704a" : "#704a4a",
                                 fontSize: '0.75rem',
                                 height: 26,
-                                '&:hover': { bgcolor: trait.type === "positive" ? "#3a4d3a" : "#4d3a3a" , 
-                                  borderColor: trait.type === "positive" ? "#6a906a" : "#905a5a"  },
+                                '&:hover': {
+                                  bgcolor: trait.type === "positive" ? "#3a4d3a" : "#4d3a3a",
+                                  borderColor: trait.type === "positive" ? "#6a906a" : "#905a5a"
+                                },
                                 '& .MuiChip-avatar': { width: 20, height: 20 },
                               }}
                             />

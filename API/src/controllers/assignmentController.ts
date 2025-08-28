@@ -57,6 +57,7 @@ export const getAssignments = async (req: Request, res: Response) => {
         state: 'available',
         name: taskTemplate.name,
         description: taskTemplate.description,
+        dependsOn: taskTemplate.dependsOn,
         duration: taskTemplate.duration,
         unlocks: Array.isArray(taskTemplate.unlocks)
           ? taskTemplate.unlocks
@@ -77,7 +78,7 @@ export const getAssignments = async (req: Request, res: Response) => {
       };
     });
 
-    res.json(assignmentsWithRewardDetails);
+    res.json({ assignments: assignmentsWithRewardDetails });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch assignments' });
@@ -89,7 +90,11 @@ export const startAssignment = async (req: Request, res: Response) => {
   const { colonyId, assignmentId } = req.params;
   const { settlerId } = req.body;
 
-  if (!Types.ObjectId.isValid(colonyId) || !Types.ObjectId.isValid(assignmentId)) {
+  if (!settlerId) {
+    return res.status(400).json({ error: 'settlerId is required' });
+  }
+
+  if (!Types.ObjectId.isValid(colonyId) || !Types.ObjectId.isValid(assignmentId) || (settlerId && !Types.ObjectId.isValid(settlerId))) {
     return res.status(400).json({ error: 'Invalid IDs' });
   }
 
@@ -101,7 +106,7 @@ export const startAssignment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Assignment already started or completed' });
     }
 
-    assignment.state = 'in_progress';
+    assignment.state = 'in-progress';
     assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
     assignment.startedAt = new Date();
     assignment.completedAt = new Date(Date.now() + (assignment.duration || 0));
@@ -115,38 +120,5 @@ export const startAssignment = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to start assignment' });
-  }
-};
-
-// POST /api/colonies/:colonyId/assignments/:assignmentId/complete
-export const completeAssignment = async (req: Request, res: Response) => {
-  const { assignmentId } = req.params;
-
-  if (!Types.ObjectId.isValid(assignmentId)) {
-    return res.status(400).json({ error: 'Invalid assignmentId' });
-  }
-
-  try {
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
-
-    if (assignment.state === 'completed') {
-      return res.status(400).json({ error: 'Assignment already completed' });
-    }
-
-    assignment.state = 'completed';
-    assignment.completedAt = new Date();
-
-    await assignment.save();
-
-    // TODO: Add plannedRewards to inventory here
-
-    res.json({
-      ...assignment.toObject(),
-      plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to complete assignment' });
   }
 };

@@ -92,16 +92,16 @@ function rollSkills(): ISettler['skills'] {
     return skills;
 }
 
-// Get unused names for a player
-async function getAvailableNames(playerId: string): Promise<typeof nameCatalogue> {
-    const existingSettlers = await Settler.find({ playerId });
+// Get unused names for a colony
+async function getAvailableNames(colonyId: string): Promise<typeof nameCatalogue> {
+    const existingSettlers = await Settler.find({ colonyId });
     const usedNameIds = new Set(existingSettlers.map(settler => settler.nameId));
     return nameCatalogue.filter(n => !usedNameIds.has(n.nameId));
 }
 
 // Pick N unique names for onboarding or single for recruit
-async function pickUniqueNames(playerId: string, count: number): Promise<any[]> {
-    const availableNames = await getAvailableNames(playerId);
+async function pickUniqueNames(colonyId: string, count: number): Promise<any[]> {
+    const availableNames = await getAvailableNames(colonyId);
     if (availableNames.length < count) {
         throw new Error('Not enough unique names available.');
     }
@@ -118,17 +118,17 @@ async function pickUniqueNames(playerId: string, count: number): Promise<any[]> 
 }
 
 // Generate one settler
-export async function generateSettler(playerId: string, options?: { assignInterests?: boolean, isActive?: boolean, nameObj?: any }): Promise<ISettler> {
+export async function generateSettler(colonyId: string, options?: { assignInterests?: boolean, isActive?: boolean, nameObj?: any }): Promise<ISettler> {
     const stats = rollStats();
     const skills = rollSkills();
     const traits = assignTraits();
 
     // Use provided nameObj for deterministic selection, or pick unique
-    const pickedName = options?.nameObj || (await pickUniqueNames(playerId, 1))[0];
+    const pickedName = options?.nameObj || (await pickUniqueNames(colonyId, 1))[0];
     const interests = options?.assignInterests ? assignInterests(2) : [];
 
     const settler = new Settler({
-        playerId: new Types.ObjectId(playerId),
+        colonyId: new Types.ObjectId(colonyId),
         nameId: pickedName.nameId,
         name: pickedName.name,
         backstory: pickedName.backstory,
@@ -139,24 +139,23 @@ export async function generateSettler(playerId: string, options?: { assignIntere
         traits,
         status: 'idle',
         health: 100,
-        morale: 50,
+        morale: 90,
         carry: [],
         equipment: {},
         maxCarrySlots: 8,
         isActive: options?.isActive ?? false,
         createdAt: new Date(),
     });
-    await settler.save();
-    return settler;
+    return await settler.save();
 }
 
 // Generate three unique onboarding choices (names)
-export async function generateSettlerChoices(playerId: string): Promise<ISettler[]> {
-    // Pick 3 unused names for this player
-    const pickedNames = await pickUniqueNames(playerId, 3);
+export async function generateSettlerChoices(colonyId: string): Promise<ISettler[]> {
+    // Pick 3 unused names for this colony
+    const pickedNames = await pickUniqueNames(colonyId, 3);
 
     const settlerPromises = pickedNames.map(nameObj =>
-        generateSettler(playerId, { assignInterests: true, isActive: false, nameObj })
+        generateSettler(colonyId, { assignInterests: true, isActive: false, nameObj })
     );
     const newSettlers = await Promise.all(settlerPromises);
     return newSettlers;

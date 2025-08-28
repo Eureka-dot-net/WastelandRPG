@@ -1,18 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
-import { IColony, Colony } from '../models/Player/Colony';
+import { Colony, ColonyDoc } from '../models/Player/Colony';
 
-// Extend Express Request type globally for playerId/player
+// Extend Express Request type globally for colonyId/colony
 declare module 'express-serve-static-core' {
   interface Request {
     colonyId?: string;
-    colony: IColony;
+    colony: ColonyDoc;
   }
 }
 
 export const requireColonyOwnership = async (req: Request, res: Response, next: NextFunction) => {
-  // Assume playerId comes from URL: /players/:colonyId/...
+  // Assume colonyid comes from URL: /players/:colonyId/...
   const { colonyId } = req.params;
-  if (!colonyId) return res.status(400).json({ error: 'Missing playerId' });
+  if (!colonyId) return res.status(400).json({ error: 'Missing colonyId' });
 
   // req.userId set by authenticate middleware
   const userId = req.userId;

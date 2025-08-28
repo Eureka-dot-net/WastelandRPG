@@ -1,3 +1,5 @@
+import type { Settler } from "./settler";
+
 export interface Colony {
   _id: string;
   userId: string;              // ObjectId as string
@@ -5,7 +7,14 @@ export interface Colony {
   colonyName: string;
   level: number;
   notoriety: number;
-  settlers: string[];          // Array of Settler ObjectId strings
+  settlers: Settler[];          // Array of Settler ObjectId strings
   inventory: string;           // Inventory ObjectId as string
   createdAt?: string;          // ISO date string
+  hasSettlers: boolean;
+  homeUnlocked: boolean;
+  mapUnlocked: boolean;
+  craftingUnlocked: boolean;
+  sleepingQuartersUnlocked: boolean;
+  farmingUnlocked: boolean;
+  defenceUnlocked: boolean;
 }

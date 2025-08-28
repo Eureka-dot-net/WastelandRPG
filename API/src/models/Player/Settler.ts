@@ -26,7 +26,7 @@ export const equipmentSchema = new Schema<IEquipment>({
 
 // Main Settler interface
 export interface ISettler extends Document {
-  playerId: Types.ObjectId;
+  colonyId: Types.ObjectId;
   isActive: boolean;
   nameId: string;
   name: string;
@@ -74,7 +74,7 @@ export interface ISettler extends Document {
 
 // Mongoose schema/model
 export const settlerSchema = new Schema<ISettler>({
-  playerId: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true },
   nameId: { type: String, required: true },
   name: { type: String, required: true },
   isActive: { type: Boolean, default: false },
@@ -106,7 +106,7 @@ export const settlerSchema = new Schema<ISettler>({
   ],
   status: { type: String, default: "idle" },
   health: { type: Number, default: 100 },
-  morale: { type: Number, default: 50 },
+  morale: { type: Number, default: 90 },
   carry: [settlerItemSchema],
   equipment: equipmentSchema,
   maxCarrySlots: { type: Number, default: 8 },

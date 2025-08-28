@@ -7,14 +7,15 @@ import { Settler } from '../models/Player/Settler';
 import { generateSettlerChoices } from '../services/settlerGenerator';
 
 router.post('/onboard',  async (req, res) => {
-    const playerId = req.colonyId;
+    const colonyId = req.colonyId;
+
 
     // Step 1: Find all settlers for the player, regardless of their status.
-    const existingSettlers = await Settler.find({ playerId });
+    const existingSettlers = await Settler.find({ colonyId });
 
     // Step 2: Check for existing settlers and their status
     if (existingSettlers.length > 0) {
-        // If the player has exactly three settlers...
+        // If the colony has exactly three settlers...
         if (existingSettlers.length === 3) {
             // ...check if ALL of them are currently inactive.
             const allInactive = existingSettlers.every(settler => !settler.isActive);
@@ -32,15 +33,16 @@ router.post('/onboard',  async (req, res) => {
     }
 
     // Step 3: If no settlers exist at all, generate and save three new choices.
-    const newSettlers = await generateSettlerChoices(playerId!);
+    const newSettlers = await generateSettlerChoices(colonyId!);
     res.json({ settlers: newSettlers });
 });
 
-import mongoose from 'mongoose'; // You may need to import this at the top
+import mongoose, { Types } from 'mongoose'; // You may need to import this at the top
 
 router.post('/:settlerId/select', async (req, res) => {
     const { settlerId } = req.params;
-    const playerId = req.colonyId;
+    const colonyId = req.colonyId;
+    const colony = req.colony;
 
     // Check if the provided settlerId is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(settlerId)) {
@@ -51,7 +53,7 @@ router.post('/:settlerId/select', async (req, res) => {
     // We also verify that it belongs to the player and is currently inactive.
     const chosenSettler = await Settler.findOne({
         _id: settlerId,
-        playerId: playerId,
+        colonyId: colonyId,
         isActive: false
     });
 
@@ -63,15 +65,18 @@ router.post('/:settlerId/select', async (req, res) => {
     chosenSettler.isActive = true;
     await chosenSettler.save();
 
+    colony.settlers.push(chosenSettler._id as Types.ObjectId);
+    await colony.save();
+
     // Step 3: Delete the other two.
     // Find all other inactive settlers for this player and delete them.
     await Settler.deleteMany({
         _id: { $ne: chosenSettler._id }, // Not equal to the chosen settler's ID
-        playerId: playerId,
+        colonyId: colonyId,
         isActive: false
     });
 
-    res.json({ settler: chosenSettler });
+    res.json(chosenSettler);
 });
 
 export default router;

@@ -10,7 +10,7 @@ interface IInventoryItem {
 }
 
 interface IInventory {
-  playerId: Types.ObjectId;
+  colonyId: Types.ObjectId;
   items: IInventoryItem[];
 }
 
@@ -23,7 +23,7 @@ const inventoryItemSchema = new Schema<IInventoryItem>({
 });
 
 const inventorySchema = new Schema<IInventory>({
-  playerId: { type: Schema.Types.ObjectId, ref: 'Player', required: true, unique: true },
+  colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true, unique: true },
   items: [inventoryItemSchema],
 });
 

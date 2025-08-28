@@ -1,8 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Settler } from "../types/settler";
 import { agent } from "../api/agent";
 
 export function useSettler() {
+  const queryClient = useQueryClient();
   // Onboard Settler
   const onboardSettler = useMutation({
     mutationFn: async (colonyId: string) => {
@@ -24,11 +25,16 @@ export function useSettler() {
     }) => {
       const res = await agent.post(
         `/colonies/${colonyId}/settlers/${settlerId}/select`,
+        {}, // body is empty
         {
           headers: { "Content-Type": "application/json" },
         }
       );
-      return res.data  as Promise<Settler>;
+      return res.data as Settler;
+    },
+    onSuccess: (_, variables) => async () => {
+      // Invalidate the colony query so it refetches updated settlers
+      await queryClient.invalidateQueries({ queryKey: ["colony", variables.colonyId] });
     },
   });
 

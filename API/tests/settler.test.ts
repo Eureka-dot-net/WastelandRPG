@@ -26,13 +26,27 @@ describe('Player endpoints', () => {
       .post(`/api/colonies/${colony._id}/settlers/onboard`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    // Check the returned data as you expect
+    expect(Array.isArray(res.body.settlers)).toBe(true);
+    expect(res.body.settlers).toHaveLength(3);
+    for (const settler of res.body.settlers) {
+      expect(settler).toHaveProperty('_id');
+      expect(settler).toHaveProperty('name');
+      expect(settler).toHaveProperty('theme');
+      expect(settler).toHaveProperty('stats');
+      expect(settler).toHaveProperty('skills');
+      expect(settler).toHaveProperty('status', 'idle');
+      expect(settler).toHaveProperty('health', 100);
+      expect(settler).toHaveProperty('morale', 90);
+    }
+    for (const settler of res.body.settlers) {
+      expect(settler.colonyId).toBe(String(colony._id)); 
+    }
   });
 
-  it('should fail onboarding with wrong playerId', async () => {
-    const fakePlayerId = new mongoose.Types.ObjectId().toString();
+  it('should fail onboarding with wrong colonyId', async () => {
+    const fakeColonyId = new mongoose.Types.ObjectId().toString();
     const res = await request(app)
-      .post(`/api/players/${fakePlayerId}/settlers/onboard`)
+      .post(`/api/colonies/${fakeColonyId}/settlers/onboard`)
       .set('Authorization', `Bearer ${token}`);
     expect([403, 404]).toContain(res.status);
   });

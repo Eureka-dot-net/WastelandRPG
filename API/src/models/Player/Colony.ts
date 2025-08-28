@@ -1,25 +1,39 @@
-import { Schema, model, Types } from 'mongoose';
+import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
 
+// 1️⃣ Interface describing the shape of your data
 export interface IColony {
   userId: Types.ObjectId;
   serverId: string;
   colonyName: string;
-  level: number;         // Progression level
-  notoriety: number;     // Infamy, 0-100
-  settlers: Types.ObjectId[];  // references to Settler model
-  inventory: Types.ObjectId;   // reference to Inventory model
+  level: number;
+  notoriety: number;
+  settlers: Types.ObjectId[];
+  inventory?: Types.ObjectId;
   createdAt?: Date;
 }
 
-const colonySchema = new Schema<IColony>({
+// 2️⃣ Document type: combines interface + Mongoose document methods
+export type ColonyDoc = HydratedDocument<IColony>;
+
+// 3️⃣ Schema: no generic type specified
+const colonySchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   serverId: { type: String, required: true },
   colonyName: { type: String, required: true },
-  level: { type: Number, default: 1 },
+  level: { type: Number, default: 1, min: 1 }, // Added min constraint for level
   notoriety: { type: Number, default: 0, min: 0, max: 100 },
   settlers: [{ type: Schema.Types.ObjectId, ref: 'Settler' }],
-  inventory: { type: Schema.Types.ObjectId, ref: 'Inventory' },
-  createdAt: { type: Date, default: Date.now },
+  inventory: { type: Schema.Types.ObjectId, ref: 'Inventory' }, // Not required
+}, {
+  // Optional: Add schema options for better functionality
+  timestamps: true, // Automatically manages createdAt and updatedAt
+  versionKey: false, // Removes __v field
 });
 
-export const Colony = model<IColony>('Colony', colonySchema);
+// 4️⃣ Add indexes for better query performance
+colonySchema.index({ userId: 1, serverId: 1 }); // Compound index for user-server queries
+colonySchema.index({ serverId: 1 }); // Index for server-wide queries
+colonySchema.index({ colonyName: 1 }); // Index for name searches
+
+// 5️⃣ Model: generic is **ColonyDoc**
+export const Colony = model<ColonyDoc>('Colony', colonySchema);

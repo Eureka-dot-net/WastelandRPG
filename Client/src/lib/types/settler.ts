@@ -18,7 +18,7 @@ export interface SettlerTrait {
 
 export interface Settler {
   _id: string;                      // Settler ObjectId as string
-  playerId: string;                 // ObjectId as string
+  colonyId: string;                 // ObjectId as string
   isActive: boolean;
   nameId: string;
   name: string;
