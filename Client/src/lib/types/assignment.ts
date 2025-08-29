@@ -22,7 +22,7 @@ export interface Assignment {
   colonyId: string;
   taskId: string;
   type: string;
-  state: 'available' | 'in-progress' | 'completed';
+  state: 'available' | 'in-progress' | 'completed' | 'informed';
   dependsOn?: string;
   name: string;
   settlerId: string;

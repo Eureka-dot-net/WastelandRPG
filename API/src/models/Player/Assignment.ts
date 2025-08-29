@@ -13,7 +13,7 @@ export interface IAssignment {
   colonyId: Types.ObjectId;
   taskId: string; // from TaskDefinition
   type: AssignmentType;
-  state: 'available' | 'in-progress' | 'completed' | 'locked';
+  state: 'available' | 'in-progress' | 'completed' | 'informed';
   settlerId?: Types.ObjectId;
   startedAt?: Date;
   completedAt?: Date;

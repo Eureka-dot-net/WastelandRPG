@@ -1,17 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import { showTaskCompletionToast } from "../../app/shared/components/toast/toastHelpers";
 
 export function useAssignment(serverId: string, colonyId?: string) {
     const queryClient = useQueryClient();
-    const prevAssignmentsRef = useRef<Assignment[]>([]);
-
+    console.log(serverId);
     // Fetch assignments
     const { data: assignments, error: errorAssignment, isLoading: loadingAssignment, refetch } = useQuery<Assignment[]>({
         queryKey: ["assignments", colonyId],
         queryFn: async () => {
+            console.log("Fetching assignments for colony:", colonyId);
             const response = await agent.get(`/colonies/${colonyId}/assignments`);
             return response.data.assignments as Assignment[];
         },
@@ -35,13 +35,28 @@ export function useAssignment(serverId: string, colonyId?: string) {
         },
     });
 
+    const informAssignment = useMutation({
+        mutationFn: async (assignmentId: string) => {
+            // Call PATCH endpoint
+            const response = await agent.patch(`/colonies/${colonyId}/assignments/${assignmentId}/informed`);
+            return response.data; // returns updated assignment or just state
+        },
+        onSuccess: (data) => {
+            // Update cache for just this assignment
+            console.log("new state: " + data.state);
+            console.log("new id: " + data._id);
+            queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
+                old?.map(a => a._id === data._id ? { ...a, state: data.state } : a) ?? [] //this isn't working
+            );
+             console.log("Assignments after cache update:", queryClient.getQueryData(["assignments", colonyId]));
+        }
+    });
+
     useEffect(() => {
         if (!assignments) return;
 
-        const prevAssignments = prevAssignmentsRef.current;
         const newlyCompleted = assignments.filter(
-            a => a.state === "completed" && !prevAssignments.some(pa => pa._id === a._id && pa.state === "completed")
-        );
+            a => a.state === "completed");
         console.log('starting assignment completion')
 
         for (const assignment of newlyCompleted) {
@@ -59,23 +74,32 @@ export function useAssignment(serverId: string, colonyId?: string) {
                     rewards[key] = reward.amount;
                 });
 
-                showTaskCompletionToast(
-                    { name: assignment.name, purpose: assignment.description },
-                    { name: settler.name },
-                    rewards
-                );
-            }
-        }
+                informAssignment.mutateAsync(assignment._id)
+                .then((data) => {
+                   if (data.state === "informed") {
+                       showTaskCompletionToast(
+                           { name: assignment.name, purpose: assignment.description },
+                           { name: settler.name },
+                           rewards
+                       );
+                   }
+               })
+               .catch((error) => {
+                   console.error("Inform assignment error:", error);
+               });
 
-        prevAssignmentsRef.current = assignments;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [assignments]);
+           }
+       }
 
-    return {
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [assignments]);
+
+   return {
         assignments,
         errorAssignment,
         loadingAssignment,
         startAssignment,
+        informAssignment,
         refetch
     };
 }

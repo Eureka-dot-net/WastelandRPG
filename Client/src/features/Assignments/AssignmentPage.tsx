@@ -3,7 +3,7 @@ import {
 } from "@mui/icons-material";
 import {
   Container, Paper, Typography, Alert, Box, LinearProgress, Avatar, Chip, Grid, Card, CardContent, Divider,
-  CardActions, Button, Dialog, DialogTitle, DialogContent, DialogActions,  CircularProgress, Link
+  CardActions, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Link
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import "react-toastify/dist/ReactToastify.css";
@@ -27,7 +27,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const { colony, colonyLoading, refetch: refetchColony } = useColony(serverId);
 
   const colonyId = colony?._id;
- 
+
   const queryClient = useQueryClient();
   const { assignments, loadingAssignment, startAssignment, refetch: refetchAssignments } = useAssignment(serverId, colonyId);
 
@@ -54,6 +54,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
             if (newTimeRemaining === 0 && prev[assignmentId] > 0) {
               // Use setTimeout to avoid state update during render
               setTimeout(() => {
+
                 handleTaskCompletion(assignmentId);
               }, 100);
             }
@@ -72,15 +73,11 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
     return () => {
       intervalIds.forEach(clearInterval);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTimers]);
 
   const handleTaskCompletion = async (assignmentId: string) => {
     try {
-      // Refetch assignments to get the latest state
-      await refetchAssignments();
-
-      await refetchColony();
 
       // Remove the timer for this assignment
       setActiveTimers(prev => {
@@ -88,9 +85,20 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
         delete newTimers[assignmentId];
         return newTimers;
       });
+      const assignment = assignments?.find(a => a._id === assignmentId);
+      if (assignment?.state === "in-progress") {
+        queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
+          old?.map(a => a._id === assignmentId ? { ...a, state: "completed" } : a) ?? []
+        );
+      }
+
     } catch (error) {
-      console.error("Error handling task completion:", error);
-      // Remove timer even if there's an error to prevent infinite loops
+      console.error("Error notifying server about task completion:", error);
+
+      // Fallback: refetch everything to resync state
+      await refetchAssignments();
+      await refetchColony();
+
       setActiveTimers(prev => {
         const newTimers = { ...prev };
         delete newTimers[assignmentId];
@@ -160,9 +168,9 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   // Check if a task's dependencies are met
   const isDependencyMet = (assignment: Assignment) => {
     if (!assignment.dependsOn) return true;
-    
+
     const dependentTask = assignments?.find(a => a.taskId === assignment.dependsOn);
-    return dependentTask?.state === "completed";
+    return dependentTask?.state === "informed";
   };
 
   // Get navigation link for unlocked functionality
@@ -175,7 +183,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
       'crafting': '/crafting',
       'defence': '/defence'
     };
-    
+
     return linkMap[unlocks] || `/${unlocks}`;
   };
 
@@ -195,7 +203,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
     );
   }
 
-  const completedTasks = assignments.filter(a => a.state === "completed").length;
+  const completedTasks = assignments.filter(a => a.state === "informed").length;
   const availableSettlers = getAvailableSettlers();
 
   return (
@@ -241,7 +249,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           // Determine task states
           const isAvailable = assignment.state === "available";
           const isInProgress = assignment.state === "in-progress";
-          const isCompleted = assignment.state === "completed";
+          const isCompleted = assignment.state === "informed";
           const dependencyMet = isDependencyMet(assignment);
           const isBlocked = isAvailable && !dependencyMet;
 
@@ -382,15 +390,15 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
               // Generate different colors for each settler
               const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
               const avatarColor = avatarColors[index % avatarColors.length];
-              
+
               return (
-                <Card 
+                <Card
                   key={settler._id}
-                  sx={{ 
+                  sx={{
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     border: '1px solid #333',
-                    '&:hover': { 
+                    '&:hover': {
                       transform: 'translateY(-2px)',
                       boxShadow: 4,
                       borderColor: 'primary.main'
@@ -400,10 +408,10 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                 >
                   <CardContent sx={{ p: 2 }}>
                     <Box display="flex" alignItems="center" gap={2} mb={2}>
-                      <Avatar 
-                        sx={{ 
+                      <Avatar
+                        sx={{
                           bgcolor: avatarColor,
-                          width: 48, 
+                          width: 48,
                           height: 48,
                           fontSize: '1.25rem',
                           fontWeight: 'bold'
@@ -420,9 +428,9 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                         </Typography>
                       </Box>
                     </Box>
-                    
+
                     <Divider sx={{ mb: 2 }} />
-                    
+
                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                       Skills:
                     </Typography>
@@ -443,7 +451,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
               );
             })}
           </Box>
-          
+
           {availableSettlers.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="body1" color="text.secondary">

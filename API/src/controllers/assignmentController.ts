@@ -84,14 +84,14 @@ export const getAssignments = async (req: Request, res: Response) => {
 
 // POST /api/colonies/:colonyId/assignments/:assignmentId/start
 export const startAssignment = async (req: Request, res: Response) => {
-  const { colonyId, assignmentId } = req.params;
+  const { assignmentId } = req.params;
   const { settlerId } = req.body;
 
   if (!settlerId) {
     return res.status(400).json({ error: 'settlerId is required' });
   }
 
-  if (!Types.ObjectId.isValid(colonyId) || !Types.ObjectId.isValid(assignmentId) || (settlerId && !Types.ObjectId.isValid(settlerId))) {
+  if (!Types.ObjectId.isValid(assignmentId) || (settlerId && !Types.ObjectId.isValid(settlerId))) {
     return res.status(400).json({ error: 'Invalid IDs' });
   }
 
@@ -117,5 +117,35 @@ export const startAssignment = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to start assignment' });
+  }
+};
+
+export const informAssignment = async (req: Request, res: Response) => {
+  const { assignmentId } = req.params;
+
+  try {
+    // Find and update the assignment
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Only allow if assignment is 'completed'
+    if (assignment.state !== 'completed') {
+      return res.status(400).json({ error: 'Assignment is not completed' });
+    }
+
+    assignment.state = 'informed';
+    await assignment.save();
+
+    // Optionally enrich rewards or return just state
+    res.json({
+      _id: assignment._id,
+      state: assignment.state,
+      // You can add more fields if needed
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
