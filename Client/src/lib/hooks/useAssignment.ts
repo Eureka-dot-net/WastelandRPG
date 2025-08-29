@@ -68,6 +68,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
         }
 
         prevAssignmentsRef.current = assignments;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [assignments]);
 
     return {

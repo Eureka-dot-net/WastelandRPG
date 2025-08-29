@@ -72,6 +72,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
     return () => {
       intervalIds.forEach(clearInterval);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTimers]);
 
   const handleTaskCompletion = async (assignmentId: string) => {
