@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { Assignment, IAssignment } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import itemsCatalogue from '../data/itemsCatalogue.json';
+import { Settler } from '../models/Player/Settler';
 
 function generateRewards(taskTemplate: any) {
   const rewards: Record<string, number> = {};
@@ -102,6 +103,8 @@ export const startAssignment = async (req: Request, res: Response) => {
     if (assignment.state !== 'available') {
       return res.status(400).json({ error: 'Assignment already started or completed' });
     }
+
+    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' });
 
     assignment.state = 'in-progress';
     assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;

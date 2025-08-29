@@ -63,7 +63,7 @@ export interface ISettler extends Document {
     icon: string;
   }[];
 
-  status: string;
+  status: "idle" | "busy" | "resting";
   health: number;
   morale: number;
   carry: ISettlerItem[];

@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { Assignment, AssignmentDoc } from "../models/Player/Assignment";
 import { Request, Response, NextFunction } from "express";
+import { Settler } from "../models/Player/Settler";
 
 
 function addRewardsToSettlerInventory(settlerId: Types.ObjectId | undefined, rewards: any) {
@@ -19,6 +20,8 @@ export const updateCompletedTasks =  async (req: Request, res: Response, next: N
 
   for (const assignment of assignmentToComplete) {
     assignment.state = 'completed';
+
+    await Settler.findByIdAndUpdate(assignment.settlerId, { status: 'idle' });
 
     // Add rewards to inventory
     await addRewardsToSettlerInventory(assignment.settlerId, assignment.plannedRewards);

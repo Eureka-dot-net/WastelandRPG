@@ -45,7 +45,7 @@ export interface Settler {
 
   traits: SettlerTrait[];
 
-  status: string;
+  status: "idle" | "busy" | "resting";
   health: number;
   morale: number;
   carry: SettlerItem[];

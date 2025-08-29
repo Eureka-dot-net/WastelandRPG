@@ -3,6 +3,7 @@ import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
 import { useEffect } from "react";
 import { showTaskCompletionToast } from "../../app/shared/components/toast/toastHelpers";
+import type { Colony } from "../types/colony";
 
 export function useAssignment(serverId: string, colonyId?: string) {
     const queryClient = useQueryClient();
@@ -32,6 +33,18 @@ export function useAssignment(serverId: string, colonyId?: string) {
             queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
                 old?.map((a) => (a._id === updatedAssignment._id ? updatedAssignment : a)) ?? []
             );
+            queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                if (!old) return;
+
+                // Update the colony's state or any other relevant data
+                return {
+                    ...old,
+                    // Example: update the colony's active assignment count
+                    settlers: old.settlers.map(
+                        s => s._id === updatedAssignment.settlerId ?
+                            { ...s, status: 'busy' } : s)
+                };
+            });
         },
     });
 
@@ -43,12 +56,30 @@ export function useAssignment(serverId: string, colonyId?: string) {
         },
         onSuccess: (data) => {
             // Update cache for just this assignment
-            console.log("new state: " + data.state);
-            console.log("new id: " + data._id);
+
             queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
                 old?.map(a => a._id === data._id ? { ...a, state: data.state } : a) ?? [] //this isn't working
             );
-             console.log("Assignments after cache update:", queryClient.getQueryData(["assignments", colonyId]));
+            queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                if (!old) return old;
+
+                // Get assignments from cache
+                const assignments = queryClient.getQueryData<Assignment[]>(["assignments", colonyId]);
+                // Find the assignment you just updated
+                const updatedAssignment = assignments?.find(a => a._id === data._id);
+
+                // If no settlerId, nothing to do
+                if (!updatedAssignment?.settlerId) return old;
+
+                return {
+                    ...old,
+                    settlers: old.settlers.map(settler =>
+                        settler._id === updatedAssignment.settlerId
+                            ? { ...settler, status: "idle" }
+                            : settler
+                    )
+                };
+            });
         }
     });
 
@@ -75,26 +106,26 @@ export function useAssignment(serverId: string, colonyId?: string) {
                 });
 
                 informAssignment.mutateAsync(assignment._id)
-                .then((data) => {
-                   if (data.state === "informed") {
-                       showTaskCompletionToast(
-                           { name: assignment.name, purpose: assignment.description },
-                           { name: settler.name },
-                           rewards
-                       );
-                   }
-               })
-               .catch((error) => {
-                   console.error("Inform assignment error:", error);
-               });
+                    .then((data) => {
+                        if (data.state === "informed") {
+                            showTaskCompletionToast(
+                                { name: assignment.name, purpose: assignment.description },
+                                { name: settler.name },
+                                rewards
+                            );
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Inform assignment error:", error);
+                    });
 
-           }
-       }
+            }
+        }
 
-   // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [assignments]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignments]);
 
-   return {
+    return {
         assignments,
         errorAssignment,
         loadingAssignment,
