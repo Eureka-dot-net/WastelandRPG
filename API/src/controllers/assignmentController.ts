@@ -49,7 +49,6 @@ export const getAssignments = async (req: Request, res: Response) => {
     const createdAssignments: IAssignment[] = [];
 
     for (const taskTemplate of tasksToCreate) {
-      console.log("Creating assignment for task:", taskTemplate.taskId);
       const plannedRewards = generateRewards(taskTemplate);
       const assignment = await Assignment.create({
         colonyId,

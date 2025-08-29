@@ -7,6 +7,7 @@ import App from "../layout/App";
 import SettlerSelection from "../../features/settlerSelection/SettlerSelectionPage";
 import DashboardLayout from "../layout/DashboardLayout"; // Import the layout component
 import AssignmentPage from "../../features/Assignments/AssignmentPage";
+import UnderConstruction from "../layout/UnderConstruction";
 
 const router = createBrowserRouter([
     {
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
                             { path: "/assignments", element: <AssignmentPage serverId={"server-1"} /> }, 
                             { path: "/map", element: <MapPage /> },
                             { path: "/", element: <AssignmentPage serverId={"server-1"} /> },
+                             { path: "*", element: <UnderConstruction /> },
                             // Add all other protected routes that need the DashboardLayout here
                         ]
                     },
