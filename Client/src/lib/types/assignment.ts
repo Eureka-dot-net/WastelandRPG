@@ -28,7 +28,8 @@ export interface Assignment {
   settlerId: string;
   description: string;
   duration: number;
-  unlocks: string[];
+  unlocks: string;
+  completionMessage?: string;
   plannedRewards: PlannedRewards;
   createdAt: string;      // ISO date string
   updatedAt: string;      // ISO date string

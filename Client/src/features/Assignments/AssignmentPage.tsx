@@ -1,20 +1,19 @@
 import {
-  Nature, Build, Restaurant, Science, LocalHospital, CheckCircle, Assignment as AssignmentIcon, Timer
+  Nature, Build, Restaurant, Science, LocalHospital, CheckCircle, Assignment as AssignmentIcon, Timer, Lock, Launch
 } from "@mui/icons-material";
 import {
   Container, Paper, Typography, Alert, Box, LinearProgress, Avatar, Chip, Grid, Card, CardContent, Divider,
-  CardActions, Button, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemButton,
-  ListItemAvatar, CircularProgress
+  CardActions, Button, Dialog, DialogTitle, DialogContent, DialogActions,  CircularProgress, Link
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import "react-toastify/dist/ReactToastify.css";
-import { showTaskCompletionToast } from "../../app/shared/components/toast/toastHelpers";
 import { ToastContainer } from "react-toastify";
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import type { Settler } from "../../lib/types/settler";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Assignment } from "../../lib/types/assignment";
+
 
 type Props = {
   serverId: string;
@@ -30,7 +29,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const colonyId = colony?._id;
  
   const queryClient = useQueryClient();
-  const { data: assignments, loadingAssignment, startAssignment, refetch: refetchAssignments } = useAssignment(colonyId);
+  const { assignments, loadingAssignment, startAssignment, refetch: refetchAssignments } = useAssignment(serverId, colonyId);
 
   useEffect(() => {
     if (colonyId) {
@@ -81,30 +80,6 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
       await refetchAssignments();
 
       await refetchColony();
-
-      // Get the updated assignment data
-      const updatedAssignments = queryClient.getQueryData<Assignment[]>([
-        "assignments",
-        colony?._id,
-      ]);
-
-      const assignment = updatedAssignments?.find(a => a._id === assignmentId);
-
-      if (assignment?.state === "completed") {
-        const settler = colony?.settlers.find(s => s._id === assignment.settlerId);
-        if (settler && assignment.plannedRewards) {
-          const rewards: Record<string, number> = {};
-          Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
-            rewards[key] = reward.amount;
-          });
-
-          showTaskCompletionToast(
-            { name: assignment.name, purpose: assignment.description },
-            { name: settler.name },
-            rewards
-          );
-        }
-      }
 
       // Remove the timer for this assignment
       setActiveTimers(prev => {
@@ -181,6 +156,28 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
     return colony.settlers.filter(settler => !assignedSettlerIds.includes(settler._id));
   };
 
+  // Check if a task's dependencies are met
+  const isDependencyMet = (assignment: Assignment) => {
+    if (!assignment.dependsOn) return true;
+    
+    const dependentTask = assignments?.find(a => a.taskId === assignment.dependsOn);
+    return dependentTask?.state === "completed";
+  };
+
+  // Get navigation link for unlocked functionality
+  const getUnlockLink = (unlocks: string) => {
+    const linkMap: Record<string, string> = {
+      'homestead': '/homestead',
+      'sleepingQuarters': '/sleeping-quarters',
+      'farming': '/farming',
+      'map': '/map',
+      'crafting': '/crafting',
+      'defence': '/defence'
+    };
+    
+    return linkMap[unlocks] || `/${unlocks}`;
+  };
+
   if (colonyLoading || loadingAssignment) {
     return (
       <Container maxWidth="lg" sx={{ mt: 20, display: 'flex', justifyContent: 'center' }}>
@@ -240,10 +237,12 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
             ? colony.settlers.find(s => s._id === assignment.settlerId)
             : null;
 
-          // Determine if task is available (not blocked by dependencies)
+          // Determine task states
           const isAvailable = assignment.state === "available";
           const isInProgress = assignment.state === "in-progress";
           const isCompleted = assignment.state === "completed";
+          const dependencyMet = isDependencyMet(assignment);
+          const isBlocked = isAvailable && !dependencyMet;
 
           return (
             <Grid size={{ xs: 12, md: 6 }} key={assignment._id}>
@@ -251,18 +250,19 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                opacity: isCompleted ? 0.7 : 1,
-                border: isInProgress ? '2px solid #4caf50' : '1px solid #333',
+                opacity: isCompleted ? 0.7 : (isBlocked ? 0.5 : 1),
+                border: isInProgress ? '2px solid #4caf50' : (isBlocked ? '1px solid #666' : '1px solid #333'),
               }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                     <Box display="flex" alignItems="center" gap={1}>
+                      {isBlocked && <Lock color="disabled" fontSize="small" />}
                       {getRewardIcon(Object.keys(assignment.plannedRewards || {})[0] || "scrap")}
                       <Typography variant="h6">{assignment.name}</Typography>
                     </Box>
                     <Box display="flex" gap={1}>
                       {assignment.unlocks && assignment.unlocks.length > 0 && (
-                        <Chip size="small" label={`Unlocks: ${assignment.unlocks.join(", ")}`} variant="outlined" />
+                        <Chip size="small" label={`Unlocks: ${assignment.unlocks}`} variant="outlined" />
                       )}
                       {isCompleted && <CheckCircle color="success" />}
                     </Box>
@@ -271,6 +271,36 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     {assignment.description}
                   </Typography>
+
+                  {/* Show dependency message if blocked */}
+                  {isBlocked && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        Requires completion of: {assignments?.find(a => a.taskId === assignment.dependsOn)?.name || assignment.dependsOn}
+                      </Typography>
+                    </Alert>
+                  )}
+
+                  {/* Show completion message and unlock button */}
+                  {isCompleted && assignment.completionMessage && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="success.main" sx={{ fontStyle: 'italic', mb: 2 }}>
+                        {assignment.completionMessage}
+                      </Typography>
+                      {assignment.unlocks && (
+                        <Button
+                          variant="outlined"
+                          color="success"
+                          startIcon={<Launch />}
+                          component={Link}
+                          href={getUnlockLink(assignment.unlocks)}
+                          sx={{ mb: 1 }}
+                        >
+                          Go to {assignment.unlocks.charAt(0).toUpperCase() + assignment.unlocks.slice(1)}
+                        </Button>
+                      )}
+                    </Box>
+                  )}
 
                   {isInProgress && assignedSettler && (
                     <Box sx={{ mb: 2 }}>
@@ -290,20 +320,10 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                       />
                     </Box>
                   )}
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Typography variant="subtitle2" gutterBottom color="text.secondary">Rewards:</Typography>
-                  <Box display="flex" flexWrap="wrap" gap={1}>
-                    {assignment.plannedRewards && Object.entries(assignment.plannedRewards).map(([type, reward]) => (
-                      <Chip key={type} size="small" icon={getRewardIcon(type)} label={`${reward.amount} ${reward.name}`} variant="outlined"
-                        sx={{ color: '#ffc107', borderColor: '#ffc107' }} />
-                    ))}
-                  </Box>
                 </CardContent>
 
                 <CardActions sx={{ p: 2 }}>
-                  {isAvailable && availableSettlers.length > 0 && (
+                  {isAvailable && dependencyMet && availableSettlers.length > 0 && (
                     <Button
                       variant="contained"
                       fullWidth
@@ -314,9 +334,15 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
                       Assign Settler
                     </Button>
                   )}
-                  {isAvailable && availableSettlers.length === 0 && (
+                  {isAvailable && dependencyMet && availableSettlers.length === 0 && (
                     <Button variant="outlined" fullWidth disabled sx={{ fontWeight: 600 }}>
                       No Available Settlers
+                    </Button>
+                  )}
+                  {isBlocked && (
+                    <Button variant="outlined" fullWidth disabled sx={{ fontWeight: 600 }}>
+                      <Lock fontSize="small" sx={{ mr: 1 }} />
+                      Dependency Required
                     </Button>
                   )}
                   {isInProgress && (
@@ -346,54 +372,92 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           sx: { bgcolor: 'background.paper', border: '1px solid #333' }
         }}
       >
-        <DialogTitle sx={{ color: 'primary.main' }}>
+        <DialogTitle sx={{ color: 'primary.main', pb: 1 }}>
           Select Settler to Assign
         </DialogTitle>
-        <DialogContent>
-          <List>
-            {availableSettlers.map(settler => (
-              <ListItem key={settler._id} disablePadding>
-                <ListItemButton
+        <DialogContent sx={{ pt: 2, maxHeight: '60vh', overflowY: 'auto' }}>
+          <Box display="flex" flexDirection="column" gap={2}>
+            {availableSettlers.map((settler, index) => {
+              // Generate different colors for each settler
+              const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
+              const avatarColor = avatarColors[index % avatarColors.length];
+              
+              return (
+                <Card 
+                  key={settler._id}
+                  sx={{ 
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: '1px solid #333',
+                    '&:hover': { 
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4,
+                      borderColor: 'primary.main'
+                    }
+                  }}
                   onClick={() => handleSettlerSelect(settler)}
-                  sx={{ borderRadius: 1, mb: 1 }}
                 >
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
-                      {settler.name.charAt(0)}
-                    </Avatar>
-                  </ListItemAvatar>
-
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body1" fontWeight={600}>
-                      {settler.name}
+                  <CardContent sx={{ p: 2 }}>
+                    <Box display="flex" alignItems="center" gap={2} mb={2}>
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: avatarColor,
+                          width: 48, 
+                          height: 48,
+                          fontSize: '1.25rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {settler.name.charAt(0)}
+                      </Avatar>
+                      <Box flex={1}>
+                        <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                          {settler.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                          {settler.backstory}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Divider sx={{ mb: 2 }} />
+                    
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                      Skills:
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      {settler.backstory}
-                    </Typography>
-                    <Box display="flex" gap={1}>
-                      {Object.entries(settler.skills).slice(0, 3).map(([skill, level]) => (
+                    <Box display="flex" flexWrap="wrap" gap={0.5}>
+                      {Object.entries(settler.skills).map(([skill, level]) => (
                         <Chip
                           key={skill}
                           size="small"
                           label={`${skill}: ${level}`}
-                          variant="outlined"
+                          variant="filled"
                           color="secondary"
+                          sx={{ fontSize: '0.75rem' }}
                         />
                       ))}
                     </Box>
-                  </Box>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+          
           {availableSettlers.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-              No available settlers. All settlers are currently assigned to other tasks.
-            </Typography>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body1" color="text.secondary">
+                No available settlers
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                All settlers are currently assigned to other tasks.
+              </Typography>
+            </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettlerDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setSettlerDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
         </DialogActions>
       </Dialog>
 

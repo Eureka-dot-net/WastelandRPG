@@ -49,6 +49,7 @@ export const getAssignments = async (req: Request, res: Response) => {
     const createdAssignments: IAssignment[] = [];
 
     for (const taskTemplate of tasksToCreate) {
+      console.log("Creating assignment for task:", taskTemplate.taskId);
       const plannedRewards = generateRewards(taskTemplate);
       const assignment = await Assignment.create({
         colonyId,
@@ -59,11 +60,8 @@ export const getAssignments = async (req: Request, res: Response) => {
         description: taskTemplate.description,
         dependsOn: taskTemplate.dependsOn,
         duration: taskTemplate.duration,
-        unlocks: Array.isArray(taskTemplate.unlocks)
-          ? taskTemplate.unlocks
-          : taskTemplate.unlocks
-          ? [taskTemplate.unlocks]
-          : [],
+        completionMessage: taskTemplate.completionMessage,
+        unlocks: taskTemplate.unlocks,
         plannedRewards,
       });
       createdAssignments.push(assignment);

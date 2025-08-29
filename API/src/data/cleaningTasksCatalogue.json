@@ -12,22 +12,24 @@
       "key_fragment": { "min": 1, "max": 1, "chance": 0.3 }
     },
     "requiredStats": { "strength": 2 },
-    "icon": "GiGate"
+    "icon": "GiGate",
+    "completionMessage": "With a final shove, the gate collapses! Dust settles as your homestead finally breathes again. The Wasteland Spirits snicker—'Home sweet rust pile,' they say."
   },
   {
     "taskId": "clear_out_ruins",
     "name": "Clear Out Ruins",
     "description": "Excavate the collapsed ruins to create space for sleeping quarters.",
-    "unlocks": "sleeping_area",
+    "unlocks": "sleepingQuarters",
     "duration": 18000,
     "difficulty": "Medium",
     "dependsOn": "salvage_gate_ruins",
     "rewards": {
-      "scrap": { "min": 15, "max": 25, "chance": 1 },
-      "wood": { "min": 5, "max": 10, "chance": 1 }
+     "scrap": { "min": 25, "max": 35, "chance": 1 },
+      "wood": { "min": 15, "max": 20, "chance": 1 }
     },
     "requiredStats": { "crafting": 1, "strength": 1 },
-    "icon": "GiRuins"
+    "icon": "GiRuins",
+    "completionMessage": "Rubble gone, dreams incoming! You've carved out a corner fit for snoozing—or plotting your next big move."
   },
   {
     "taskId": "clear_farm_land",
@@ -44,7 +46,8 @@
       "fertilizer": { "min": 1, "max": 2, "chance": 0.4 }
     },
     "requiredStats": { "strength": 2, "endurance": 1 },
-    "icon": "GiFarmTractor"
+    "icon": "GiFarmTractor",
+    "completionMessage": "The soil’s free of rocks and grudges. Seeds in hand, your future menu looks less 'ration paste' and more 'rustic feast.'"
   },
   {
     "taskId": "scout_surrounding_area",
@@ -56,7 +59,8 @@
     "dependsOn": "salvage_gate_ruins",
     "rewards": { "map": { "min": 1, "max": 1, "chance": 1 } },
     "requiredStats": { "perception": 2, "speed": 1 },
-    "icon": "GiMap"
+    "icon": "GiMap",
+    "completionMessage": "You chart the wasteland like a post-apocalyptic cartographer. Now at least when you get lost, you’ll know exactly *where* you’re lost."
   },
   {
     "taskId": "clean_out_workshop",
@@ -72,7 +76,8 @@
       "tool": { "min": 1, "max": 1, "chance": 0.3 }
     },
     "requiredStats": { "crafting": 2, "strength": 1 },
-    "icon": "GiWorkbench"
+    "icon": "GiWorkbench",
+    "completionMessage": "Dust swept, tools found, and possibilities unlocked. This workshop smells like ambition… and maybe mold."
   },
   {
     "taskId": "scavenge_perimeter_debris",
@@ -88,6 +93,7 @@
       "trap": { "min": 1, "max": 2, "chance": 0.35 }
     },
     "requiredStats": { "strength": 3, "crafting": 1 },
-    "icon": "GiBrickWall"
+    "icon": "GiBrickWall",
+     "completionMessage": "Debris hauled, defenses beefed. The homestead now says: ‘Welcome… but only if you’re invited.’"
   }
 ]
