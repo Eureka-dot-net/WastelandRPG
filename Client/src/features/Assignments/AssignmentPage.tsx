@@ -115,22 +115,32 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const handleSettlerSelect = (settler: Settler) => {
     if (selectedTaskId) {
       startAssignment.mutate(
-        { assignmentId: selectedTaskId, settlerId: settler._id },
-        {
-          onSuccess: (updatedAssignment) => {
-            console.log("starting timer: ", updatedAssignment.duration);
-            // Start timer for this assignment
-            setActiveTimers(prev => ({
-              ...prev,
-              [updatedAssignment._id]: updatedAssignment.duration
-            }));
-          }
-        }
+        { assignmentId: selectedTaskId, settlerId: settler._id }
+        // No onSuccess needed for timer!
       );
     }
     setSettlerDialogOpen(false);
     setSelectedTaskId(null);
   };
+
+  // Timer initialization effect:
+  useEffect(() => {
+    if (!assignments) return;
+
+    setActiveTimers(() => {
+      const timers: Record<string, number> = {};
+      assignments.forEach(a => {
+        if (a.state === "in-progress" && a.startedAt && a.duration) {
+          const now = Date.now();
+          const startedAt = new Date(a.startedAt).getTime();
+          const timeElapsed = now - startedAt;
+          const timeRemaining = Math.max(a.duration - timeElapsed, 0);
+          timers[a._id] = timeRemaining;
+        }
+      });
+      return timers;
+    });
+  }, [assignments]);
 
   const formatTime = (ms: number) => {
     const seconds = Math.ceil(ms / 1000);
@@ -233,11 +243,14 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           // Calculate progress correctly: 0% at start, 100% when complete
           let progress = 0;
           if (assignment.state === "in-progress" && assignment.duration) {
-            if (timeRemaining > 0) {
-              // Timer is active - calculate based on remaining time
+            if (assignment.startedAt && timeRemaining > 0) {
               progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
+            } else if (!assignment.startedAt) {
+              progress = 0;
+            } else if (timeRemaining <= 0 && Date.now() - new Date(assignment.startedAt).getTime() < assignment.duration) {
+              // We just started this, but timeRemaining is 0 due to clock sync/race condition
+              progress = 0;
             } else {
-              // Timer finished but assignment might not be updated yet
               progress = 100;
             }
           }
