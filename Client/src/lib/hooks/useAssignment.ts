@@ -83,6 +83,30 @@ export function useAssignment(serverId: string, colonyId?: string) {
         }
     });
 
+    function updateColonyResource(
+        old: Colony | undefined,
+        key: string,
+        amount: number
+    ): Colony | undefined {
+        if (!old) return old;
+
+        if (key === "food") {
+            // Calculate daysFood based on settlers
+            const settlerCount = Array.isArray(old.settlers) ? old.settlers.length : (old.settlers || 1);
+            const currentFood = (old.daysFood || 0) * (settlerCount || 1);
+            const newFood = currentFood + amount;
+            return { ...old, daysFood: Math.floor(newFood / (settlerCount || 1)) };
+        }
+
+        if (key === "scrap") {
+            return { ...old, scrapMetal: (old.scrapMetal || 0) + amount };
+        }
+
+        if (key === "wood") {
+            return { ...old, wood: (old.wood || 0) + amount };
+        }
+    }
+
     useEffect(() => {
         if (!assignments) return;
 
@@ -102,6 +126,9 @@ export function useAssignment(serverId: string, colonyId?: string) {
             if (assignment.plannedRewards && settler) {
                 const rewards: Record<string, number> = {};
                 Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
+                    queryClient.setQueryData(["colony", serverId], (old: Colony | undefined) =>
+                        updateColonyResource(old, key, reward.amount)
+                    );
                     rewards[key] = reward.amount;
                 });
 

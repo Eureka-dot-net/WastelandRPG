@@ -17,4 +17,7 @@ export interface Colony {
   sleepingQuartersUnlocked: boolean;
   farmingUnlocked: boolean;
   defenceUnlocked: boolean;
+  daysFood: number;
+  scrapMetal: number;
+  wood: number;
 }

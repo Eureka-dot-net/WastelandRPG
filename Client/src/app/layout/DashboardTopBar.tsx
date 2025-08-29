@@ -161,19 +161,19 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     {
       icon: <GiHorseshoe fontSize="inherit" />,
       label: "Scrap",
-      value: "247", // This would come from inventory
+      value: colony?.scrapMetal || 0, // This would come from inventory
       color: "text.secondary",
     },
     {
       icon: <GiWoodStick fontSize="inherit"  />,
       label: "Wood",
-      value: "89", // This would come from inventory
+      value: colony?.wood || 0, // This would come from inventory
       color: "success.main",
     },
     {
       icon: <GiCorn fontSize="inherit"  />,
       label: "Food",
-      value: "12d", // This would be calculated from food supplies
+      value: colony?.daysFood || 0 + "d",
       color: "warning.main",
       tooltip: "12 days of food remaining",
     },
