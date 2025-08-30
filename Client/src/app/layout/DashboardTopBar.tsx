@@ -112,14 +112,14 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     ];
 
     const conditionalItems = [
-      { label: "Homestead", href: "/homestead", condition: colony.homeUnlocked, icon: <HomeIcon /> },
+      { label: "Homestead", href: "/homestead", condition: colony.unlocks.homestead, icon: <HomeIcon /> },
       { label: "Settlers", href: "/settlers", condition: colony.hasSettlers, icon: <SelfImprovementIcon /> },
-      { label: "Map", href: "/map", condition: colony.mapUnlocked, icon: <VisibilityIcon /> },
-      { label: "Inventory", href: "/inventory", condition: true, icon: <BuildIcon /> },
-      { label: "Crafting", href: "/crafting", condition: colony.craftingUnlocked, icon: <BuildIcon /> },
-      { label: "Sleeping Quarters", href: "/sleeping-quarters", condition: colony.sleepingQuartersUnlocked, icon: <HomeIcon /> },
-      { label: "Farming", href: "/farming", condition: colony.farmingUnlocked, icon: <NatureIcon /> },
-      { label: "Defence", href: "/defence", condition: colony.defenceUnlocked, icon: <ShieldIcon /> },
+      { label: "Map", href: "/map", condition: colony.unlocks.map, icon: <VisibilityIcon /> },
+      { label: "Inventory", href: "/inventory", condition: colony.unlocks.inventory, icon: <BuildIcon /> },
+      { label: "Crafting", href: "/crafting", condition: colony.unlocks.crafting, icon: <BuildIcon /> },
+      { label: "Sleeping Quarters", href: "/lodgings", condition: colony.unlocks.lodgings, icon: <HomeIcon /> },
+      { label: "Farming", href: "/farming", condition: colony.unlocks.farming, icon: <NatureIcon /> },
+      { label: "Defence", href: "/defence", condition: colony.unlocks.defence, icon: <ShieldIcon /> },
     ];
 
     return [
@@ -175,7 +175,7 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
       label: "Food",
       value: colony?.daysFood || 0 + "d",
       color: "warning.main",
-      tooltip: "12 days of food remaining",
+      tooltip: `${colony?.daysFood || 0} days of food remaining`,
     },
   ];
 

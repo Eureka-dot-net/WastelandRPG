@@ -7,27 +7,99 @@
     "duration": 12000,
     "difficulty": "Easy",
     "rewards": {
-      "scrap": { "min": 15, "max": 25, "chance": 1 },
-      "wood": { "min": 5, "max": 10, "chance": 1 },
-      "key_fragment": { "min": 1, "max": 1, "chance": 0.3 }
+      "scrap": {
+        "min": 15,
+        "max": 25,
+        "chance": 1
+      },
+      "wood": {
+        "min": 5,
+        "max": 10,
+        "chance": 1
+      },
+      "tinned_food": {
+        "min": 2,
+        "max": 4,
+        "chance": 1
+      },
+      "key_fragment": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.3
+      }
     },
-    "requiredStats": { "strength": 2 },
+    "requiredStats": {
+      "strength": 2
+    },
     "icon": "GiGate",
     "completionMessage": "With a final shove, the gate collapses! Dust settles as your homestead finally breathes again. The Wasteland Spirits snicker—'Home sweet rust pile,' they say."
+  },
+  {
+    "taskId": "organize_storeroom",
+    "name": "Organize Storeroom",
+    "description": "Clear debris and set up a basic storeroom to manage your supplies.",
+    "unlocks": "inventory",
+    "duration": 15000,
+    "difficulty": "Easy",
+    "dependsOn": "salvage_gate_ruins",
+    "rewards": {
+      "scrap": {
+        "min": 10,
+        "max": 20,
+        "chance": 1
+      },
+      "wood": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.8
+      },
+      "tinned_food": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.5
+      }
+    },
+    "requiredStats": {
+      "strength": 1,
+      "crafting": 1
+    },
+    "icon": "GiStorageCrate",
+    "completionMessage": "You’ve cleared a dusty corner and laid down some makeshift shelves. It’s not much, but it’s a start!"
   },
   {
     "taskId": "clear_out_ruins",
     "name": "Clear Out Ruins",
     "description": "Excavate the collapsed ruins to create space for sleeping quarters.",
-    "unlocks": "sleepingQuarters",
+    "unlocks": "lodgings",
     "duration": 18000,
     "difficulty": "Medium",
     "dependsOn": "salvage_gate_ruins",
     "rewards": {
-     "scrap": { "min": 25, "max": 35, "chance": 1 },
-      "wood": { "min": 15, "max": 20, "chance": 1 }
+      "scrap": {
+        "min": 25,
+        "max": 35,
+        "chance": 1
+      },
+      "wood": {
+        "min": 15,
+        "max": 20,
+        "chance": 1
+      },
+      "canned_beans": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.8
+      },
+      "tinned_food": {
+        "min": 2,
+        "max": 5,
+        "chance": 1
+      }
     },
-    "requiredStats": { "crafting": 1, "strength": 1 },
+    "requiredStats": {
+      "crafting": 1,
+      "strength": 1
+    },
     "icon": "GiRuins",
     "completionMessage": "Rubble gone, dreams incoming! You've carved out a corner fit for snoozing—or plotting your next big move."
   },
@@ -40,12 +112,36 @@
     "difficulty": "Medium",
     "dependsOn": "salvage_gate_ruins",
     "rewards": {
-      "scrap": { "min": 10, "max": 20, "chance": 1 },
-      "carrot_seeds": { "min": 1, "max": 3, "chance": 1 },
-      "tomato_seeds": { "min": 1, "max": 2, "chance": 0.6 },
-      "fertilizer": { "min": 1, "max": 2, "chance": 0.4 }
+      "scrap": {
+        "min": 10,
+        "max": 20,
+        "chance": 1
+      },
+      "carrot_seeds": {
+        "min": 1,
+        "max": 3,
+        "chance": 1
+      },
+      "tomato_seeds": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.6
+      },
+      "fertilizer": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.4
+      },
+      "hen_egg": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.5
+      }
     },
-    "requiredStats": { "strength": 2, "endurance": 1 },
+    "requiredStats": {
+      "strength": 2,
+      "endurance": 1
+    },
     "icon": "GiFarmTractor",
     "completionMessage": "The soil’s free of rocks and grudges. Seeds in hand, your future menu looks less 'ration paste' and more 'rustic feast.'"
   },
@@ -57,8 +153,22 @@
     "duration": 22000,
     "difficulty": "Hard",
     "dependsOn": "salvage_gate_ruins",
-    "rewards": { "map": { "min": 1, "max": 1, "chance": 1 } },
-    "requiredStats": { "perception": 2, "speed": 1 },
+    "rewards": {
+      "map": {
+        "min": 1,
+        "max": 1,
+        "chance": 1
+      },
+      "stale_bread": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.4
+      }
+    },
+    "requiredStats": {
+      "perception": 2,
+      "speed": 1
+    },
     "icon": "GiMap",
     "completionMessage": "You chart the wasteland like a post-apocalyptic cartographer. Now at least when you get lost, you’ll know exactly *where* you’re lost."
   },
@@ -71,11 +181,31 @@
     "difficulty": "Hard",
     "dependsOn": "salvage_gate_ruins",
     "rewards": {
-      "wood": { "min": 15, "max": 20, "chance": 1 },
-      "scrap": { "min": 5, "max": 8, "chance": 1 },
-      "tool": { "min": 1, "max": 1, "chance": 0.3 }
+      "wood": {
+        "min": 15,
+        "max": 20,
+        "chance": 1
+      },
+      "scrap": {
+        "min": 5,
+        "max": 8,
+        "chance": 1
+      },
+      "dried_meat": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.35
+      },
+      "tool": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.3
+      }
     },
-    "requiredStats": { "crafting": 2, "strength": 1 },
+    "requiredStats": {
+      "crafting": 2,
+      "strength": 1
+    },
     "icon": "GiWorkbench",
     "completionMessage": "Dust swept, tools found, and possibilities unlocked. This workshop smells like ambition… and maybe mold."
   },
@@ -88,12 +218,32 @@
     "difficulty": "Hard",
     "dependsOn": "salvage_gate_ruins",
     "rewards": {
-      "scrap": { "min": 10, "max": 20, "chance": 1 },
-      "metal": { "min": 5, "max": 10, "chance": 1 },
-      "trap": { "min": 1, "max": 2, "chance": 0.35 }
+      "scrap": {
+        "min": 10,
+        "max": 20,
+        "chance": 1
+      },
+      "metal": {
+        "min": 5,
+        "max": 10,
+        "chance": 1
+      },
+      "trap": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.35
+      },
+      "canned_beans": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.5
+      }
     },
-    "requiredStats": { "strength": 3, "crafting": 1 },
+    "requiredStats": {
+      "strength": 3,
+      "crafting": 1
+    },
     "icon": "GiBrickWall",
-     "completionMessage": "Debris hauled, defenses beefed. The homestead now says: ‘Welcome… but only if you’re invited.’"
+    "completionMessage": "Debris hauled, defenses beefed. The homestead now says: ‘Welcome… but only if you’re invited.’"
   }
 ]

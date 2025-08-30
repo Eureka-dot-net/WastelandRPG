@@ -62,22 +62,29 @@ export function useAssignment(serverId: string, colonyId?: string) {
             );
             queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                 if (!old) return old;
+                //update unlocks
 
                 // Get assignments from cache
                 const assignments = queryClient.getQueryData<Assignment[]>(["assignments", colonyId]);
                 // Find the assignment you just updated
                 const updatedAssignment = assignments?.find(a => a._id === data._id);
 
+                const unlockKey = updatedAssignment?.unlocks; // e.g., "inventory"
+                if (unlockKey) {
+                    old.unlocks = { ...old.unlocks, [unlockKey]: true };
+                }
+
                 // If no settlerId, nothing to do
                 if (!updatedAssignment?.settlerId) return old;
 
                 return {
                     ...old,
-                    settlers: old.settlers.map(settler =>
-                        settler._id === updatedAssignment.settlerId
-                            ? { ...settler, status: "idle" }
-                            : settler
-                    )
+                    unlocks: unlockKey ? { ...old.unlocks, [unlockKey]: true } : old.unlocks,
+                    settlers: updatedAssignment?.settlerId
+                        ? old.settlers.map(s =>
+                            s._id === updatedAssignment.settlerId ? { ...s, status: "idle" } : s
+                        )
+                        : old.settlers
                 };
             });
         }
@@ -86,16 +93,19 @@ export function useAssignment(serverId: string, colonyId?: string) {
     function updateColonyResource(
         old: Colony | undefined,
         key: string,
-        amount: number
+        type: string,
+        amount: number,
+        properties: Record<string, unknown> = {}
     ): Colony | undefined {
         if (!old) return old;
 
-        if (key === "food") {
+        if (type === "food") {
             // Calculate daysFood based on settlers
             const settlerCount = Array.isArray(old.settlers) ? old.settlers.length : (old.settlers || 1);
             const currentFood = (old.daysFood || 0) * (settlerCount || 1);
-            const newFood = currentFood + amount;
-            return { ...old, daysFood: Math.floor(newFood / (settlerCount || 1)) };
+            const addedFood = amount * (properties["foodValue"] as number || 0);
+            const newFood = currentFood + addedFood;
+            return { ...old, daysFood: Math.round((newFood / (settlerCount || 1)) * 10) / 10 };
         }
 
         if (key === "scrap") {
@@ -127,7 +137,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
                 const rewards: Record<string, number> = {};
                 Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
                     queryClient.setQueryData(["colony", serverId], (old: Colony | undefined) =>
-                        updateColonyResource(old, key, reward.amount)
+                        updateColonyResource(old, key, reward.type, reward.amount, reward.properties)
                     );
                     rewards[key] = reward.amount;
                 });

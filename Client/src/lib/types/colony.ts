@@ -11,12 +11,7 @@ export interface Colony {
   inventory: string;           // Inventory ObjectId as string
   createdAt?: string;          // ISO date string
   hasSettlers: boolean;
-  homeUnlocked: boolean;
-  mapUnlocked: boolean;
-  craftingUnlocked: boolean;
-  sleepingQuartersUnlocked: boolean;
-  farmingUnlocked: boolean;
-  defenceUnlocked: boolean;
+  unlocks: Record<string, boolean>;
   daysFood: number;
   scrapMetal: number;
   wood: number;

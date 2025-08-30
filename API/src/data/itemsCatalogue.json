@@ -22,6 +22,76 @@
     "obtainMethods": ["exploring", "cleaning", "trading"]
   },
   {
+    "itemId": "tinned_food",
+    "name": "Tinned Food",
+    "type": "food",
+    "tradeValue": 3,
+    "rarity": "common",
+    "description": "A sealed can of vaguely edible rations. Keeps forever, tastes like rust.",
+    "icon": "GiMeal",
+    "properties": {
+      "stackable": true,
+      "foodValue": 1
+    },
+    "obtainMethods": ["exploring", "cleaning", "trading"]
+  },
+  {
+    "itemId": "canned_beans",
+    "name": "Canned Beans",
+    "type": "food",
+    "tradeValue": 2,
+    "rarity": "common",
+    "description": "Half-filled can of protein. Better than nothing, worse than everything else.",
+    "icon": "GiCampCookingPot",
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.5
+    },
+    "obtainMethods": ["scavenging", "cleaning", "trading"]
+  },
+  {
+    "itemId": "stale_bread",
+    "name": "Stale Bread",
+    "type": "food",
+    "tradeValue": 1,
+    "rarity": "common",
+    "description": "Hard as a brick, but it fills a corner of your stomach.",
+    "icon": "GiMeal",
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.25
+    },
+    "obtainMethods": ["trading", "cleaning", "exploring"]
+  },
+  {
+    "itemId": "dried_meat",
+    "name": "Dried Meat",
+    "type": "food",
+    "tradeValue": 5,
+    "rarity": "uncommon",
+    "description": "Salty, chewy, but calorie-dense and keeps for months.",
+    "icon": "GiMeat",
+    "properties": {
+      "stackable": true,
+      "foodValue": 1.5
+    },
+    "obtainMethods": ["scavenging", "cleaning", "trading"]
+  },
+  {
+    "itemId": "hen_egg",
+    "name": "Hen’s Egg",
+    "type": "food",
+    "tradeValue": 1,
+    "rarity": "common",
+    "description": "Small, fragile, but better scrambled than shattered.",
+    "icon": "GiEggClutch",
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.2
+    },
+    "obtainMethods": ["farming", "trading"]
+  },
+  {
     "itemId": "spear",
     "name": "Spear",
     "type": "crafted",
