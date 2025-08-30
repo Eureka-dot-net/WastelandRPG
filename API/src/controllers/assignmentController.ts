@@ -87,6 +87,7 @@ export const getAssignments = async (req: Request, res: Response) => {
 export const startAssignment = async (req: Request, res: Response) => {
   const { assignmentId } = req.params;
   const { settlerId } = req.body;
+  const colony = req.colony;
 
   if (!settlerId) {
     return res.status(400).json({ error: 'settlerId is required' });
@@ -113,6 +114,7 @@ export const startAssignment = async (req: Request, res: Response) => {
 
     await assignment.save();
 
+    await colony.addLogEntry("assignment", `Assignment '${assignment.name}' started.`, { assignmentId: assignment._id });
     res.json({
       ...assignment.toObject(),
       plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),

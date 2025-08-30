@@ -70,6 +70,7 @@ export interface ISettler extends Document {
   energy: number;
   carry: ISettlerItem[];
   equipment: IEquipment;
+  foodConsumption: number;
   maxCarrySlots: number;
   createdAt: Date;
 }
@@ -111,6 +112,7 @@ export const settlerSchema = new Schema({
   morale: { type: Number, default: 90 },
   hunger: { type: Number, default: 0 },
   energy: { type: Number, default: 100 },
+  foodConsumption: { type: Number, default: 1 },
   carry: [settlerItemSchema],
   equipment: equipmentSchema,
   maxCarrySlots: { type: Number, default: 8 },

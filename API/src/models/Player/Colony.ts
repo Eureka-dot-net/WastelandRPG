@@ -14,11 +14,20 @@ export interface IColony {
   settlers: SettlerDoc[];
   inventory?: Types.ObjectId;
   createdAt?: Date;
+  logs: IColonyLog[];
+}
+
+interface IColonyLog {
+  timestamp: Date;
+  type: string; // e.g. "food", "combat", "construction", "general"
+  message: string;
+  meta?: Record<string, any>; // optional structured data
 }
 
 export interface IColonyMethods {
   getUnlocks(): Promise<Record<string, boolean>>;
   getResources(): Promise<{ daysFood: number; scrapMetal: number; wood: number }>;
+  addLogEntry(type: string, message: string, meta?: Record<string, any>): Promise<void>;
 }
 
 // 2️⃣ Document type: combines interface + Mongoose document methods
@@ -35,6 +44,12 @@ const colonySchema = new Schema({
   inventorySize: { type: Number, default: 50, min: 0 },
   settlers: [{ type: Schema.Types.ObjectId, ref: 'Settler' }],
   inventory: { type: Schema.Types.ObjectId, ref: 'Inventory' }, // Not required
+  logs: [{
+    timestamp: { type: Date, default: Date.now },
+    type: { type: String, required: true },
+    message: { type: String, required: true },
+    meta: { type: Schema.Types.Mixed, default: {} }
+  }]
 }, {
   // Optional: Add schema options for better functionality
   timestamps: true, // Automatically manages createdAt and updatedAt
@@ -66,16 +81,18 @@ colonySchema.methods.getUnlocks = async function (): Promise<Record<string, bool
   return unlocks;
 };
 
-colonySchema.methods.getResources = async function() {
+colonySchema.methods.getResources = async function () {
   const [foodAgg, scrapDoc, woodDoc] = await Promise.all([
     Inventory.aggregate([
       { $match: { colonyId: this._id } },
       { $unwind: "$items" },
       { $match: { "items.type": "food" } },
-      { $group: { 
+      {
+        $group: {
           _id: "$colonyId",
-          totalFood: { $sum: { $multiply: ["$items.quantity", "$items.properties.foodValue"] } } 
-      }}
+          totalFood: { $sum: { $multiply: ["$items.quantity", "$items.properties.foodValue"] } }
+        }
+      }
     ]),
     Inventory.findOne({ colonyId: this._id, "items.itemId": "scrap" }, { "items.$": 1 }).lean(),
     Inventory.findOne({ colonyId: this._id, "items.itemId": "wood" }, { "items.$": 1 }).lean()
@@ -89,6 +106,14 @@ colonySchema.methods.getResources = async function() {
     scrapMetal: scrapDoc?.items?.[0]?.quantity || 0,
     wood: woodDoc?.items?.[0]?.quantity || 0
   };
+};
+
+colonySchema.methods.addLogEntry = async function (type: string, message: string, meta?: Record<string, any>) {
+  this.logs.push({ type, message, meta });
+  if (this.logs.length > 50) {
+    this.logs = this.logs.slice(-50); // keep only latest 50
+  }
+  await this.save();
 };
 
 
