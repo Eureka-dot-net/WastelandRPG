@@ -7,6 +7,7 @@ interface IInventoryItem {
   quantity: number;      // count
   type: string;          // "base" | "crafted"
   properties?: any;      // optional: { damage: 10, durability: 50, ... }
+  icon: string;
 }
 
 interface IInventory {
@@ -19,6 +20,7 @@ export type InventoryDoc = HydratedDocument<IInventory>;
 const inventoryItemSchema = new Schema<IInventoryItem>({
   itemId: { type: String, required: true },
   name: { type: String, required: true },
+  icon: { type: String, required: true },
   quantity: { type: Number, required: true, default: 0 },
   type: { type: String, required: true, enum: ['base', 'crafted','currency', 'farming', 'food', 'medicine', 'quest'] },
   properties: { type: Schema.Types.Mixed },

@@ -1,4 +1,4 @@
-// File: src/shared/components/ui/ErrorDisplay.tsx
+// File: src/shared/components/ErrorDisplay.tsx
 import React from 'react';
 import { Alert, Container, Box, type SxProps } from '@mui/material';
 

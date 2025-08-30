@@ -11,6 +11,7 @@ export interface Colony {
   inventory: string;           // Inventory ObjectId as string
   createdAt?: string;          // ISO date string
   hasSettlers: boolean;
+  inventorySize?: number;
   unlocks: Record<string, boolean>;
   daysFood: number;
   scrapMetal: number;

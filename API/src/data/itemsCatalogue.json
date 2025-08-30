@@ -17,7 +17,7 @@
     "tradeValue": 1,
     "rarity": "common",
     "description": "After currencies fell, we use this to trade.",
-    "icon": "GiMetalDisc",
+    "icon": "GiHorseshoe",
     "properties": { "stackable": true },
     "obtainMethods": ["exploring", "cleaning", "trading"]
   },
@@ -28,7 +28,7 @@
     "tradeValue": 3,
     "rarity": "common",
     "description": "A sealed can of vaguely edible rations. Keeps forever, tastes like rust.",
-    "icon": "GiMeal",
+    "icon": "GiOpenedFoodCan",
     "properties": {
       "stackable": true,
       "foodValue": 1
@@ -36,13 +36,13 @@
     "obtainMethods": ["exploring", "cleaning", "trading"]
   },
   {
-    "itemId": "canned_beans",
-    "name": "Canned Beans",
+    "itemId": "canned_fish",
+    "name": "Canned Fish",
     "type": "food",
     "tradeValue": 2,
     "rarity": "common",
     "description": "Half-filled can of protein. Better than nothing, worse than everything else.",
-    "icon": "GiCampCookingPot",
+    "icon": "GiCannedFish",
     "properties": {
       "stackable": true,
       "foodValue": 0.5
@@ -56,7 +56,7 @@
     "tradeValue": 1,
     "rarity": "common",
     "description": "Hard as a brick, but it fills a corner of your stomach.",
-    "icon": "GiMeal",
+    "icon": "GiBreadSlice",
     "properties": {
       "stackable": true,
       "foodValue": 0.25
@@ -98,7 +98,7 @@
     "tradeValue": 15,
     "rarity": "common",
     "description": "Better than your fist but not by much.",
-    "icon": "GiSpear",
+    "icon": "GiSpearHook",
     "properties": { "damage": 6, "durability": 30 },
     "recipe": [
       { "itemId": "wood", "quantity": 4 },

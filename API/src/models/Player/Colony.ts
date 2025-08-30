@@ -7,6 +7,7 @@ export interface IColony {
   colonyName: string;
   level: number;
   notoriety: number;
+  inventorySize: number;
   settlers: Types.ObjectId[];
   inventory?: Types.ObjectId;
   createdAt?: Date;
@@ -22,6 +23,7 @@ const colonySchema = new Schema({
   colonyName: { type: String, required: true },
   level: { type: Number, default: 1, min: 1 }, // Added min constraint for level
   notoriety: { type: Number, default: 0, min: 0, max: 100 },
+  inventorySize: { type: Number, default: 50, min: 0 },
   settlers: [{ type: Schema.Types.ObjectId, ref: 'Settler' }],
   inventory: { type: Schema.Types.ObjectId, ref: 'Inventory' }, // Not required
 }, {

@@ -36,6 +36,7 @@ async function addRewardsToColonyInventory(colonyId: string, rewards: Record<str
       inventory.items.push({
         itemId,
         name: catalogueItem.name,
+        icon: catalogueItem.icon,
         quantity: qty,
         type: catalogueItem.type,
         properties: catalogueItem.properties || {},
