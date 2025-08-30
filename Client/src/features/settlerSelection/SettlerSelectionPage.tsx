@@ -4,10 +4,10 @@ import { Container, Box, Paper } from '@mui/material';
 import type { Settler } from '../../lib/types/settler';
 import { useColony } from '../../lib/hooks/useColony';
 import { useSettler } from '../../lib/hooks/useSettler';
-import ErrorDisplay from '../../app/shared/components/ErrorDisplay';
-import LoadingDisplay from '../../app/shared/components/LoadingDisplay';
-import PageHeader from '../../app/shared/components/PageHeader';
-import SuccessCompletion from '../../app/shared/components/SuccessCompletion';
+import ErrorDisplay from '../../app/shared/components/ui/ErrorDisplay';
+import LoadingDisplay from '../../app/shared/components/ui/LoadingDisplay';
+import PageHeader from '../../app/shared/components/ui/PageHeader';
+import SuccessCompletion from '../../app/shared/components/ui/SuccessCompletion';
 import SettlerGrid from '../settlers/SettlerGrid';
 
 

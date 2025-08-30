@@ -7,9 +7,9 @@ import { useState } from "react";
 import { useInventory } from "../../lib/hooks/useInventory";
 import { useColony } from "../../lib/hooks/useColony";
 import type { InventoryItem } from "../../lib/types/inventory";
-import LoadingDisplay from "../../app/shared/components/LoadingDisplay";
+import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
-import ErrorDisplay from "../../app/shared/components/ErrorDisplay";
+import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 
 type Props = {
   serverId: string;
