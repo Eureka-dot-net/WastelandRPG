@@ -8,32 +8,39 @@ export const ProtectedRoute = () => {
   const { colony, colonyLoading } = useColony("server-1");
   const location = useLocation();
 
-  // 1. Auth guard
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  const routeUnlockMap: Record<string, string> = {
+    "/homestead": "homestead",
+    "/inventory": "inventory",
+    "/map": "map",
+    "/lodgings": "lodgings",
+    "/crafting": "crafting",
+    "/farming": "farming",
+    "/defence": "defence",
+};
 
-  // 2. Colony loading guard
-  if (colonyLoading) {
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (colonyLoading)
     return (
       <Container maxWidth="lg" sx={{ mt: 20, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Container>
     );
-  }
-
-  // 3. Colony not found (shouldn't happen, but fallback)
   if (!colony) return <Navigate to="/login" replace />;
 
-  // 4. Onboarding guards
-  if (!colony.hasSettlers && location.pathname !== "/settler-selection") {
-    return <Navigate to="/settler-selection" replace />;
-  }
+  const path = location.pathname;
 
-  if (colony.hasSettlers && !colony.homeUnlocked && location.pathname !== "/assignments") {
+  // Whitelist onboarding pages
+  const onboardingPages = ["/settler-selection"];
+  if (onboardingPages.includes(path)) return <Outlet />;
+
+  // Check for settlers
+  if (!colony.hasSettlers) return <Navigate to="/settler-selection" replace />;
+
+  // Check unlocks dynamically
+  const requiredUnlock = routeUnlockMap[location.pathname];
+if (requiredUnlock && !colony.unlocks[requiredUnlock]) {
     return <Navigate to="/assignments" replace />;
-  }
-
-  // 5. Allow intended route
+}
   return <Outlet />;
 };
