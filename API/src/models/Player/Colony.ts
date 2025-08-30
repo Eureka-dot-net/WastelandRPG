@@ -1,4 +1,6 @@
 import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
+import { Assignment } from './Assignment';
+import { Inventory } from './Inventory';
 
 // 1️⃣ Interface describing the shape of your data
 export interface IColony {
@@ -13,8 +15,14 @@ export interface IColony {
   createdAt?: Date;
 }
 
+export interface IColonyMethods {
+  getUnlocks(): Promise<Record<string, boolean>>;
+  getResources(): Promise<{ daysFood: number; scrapMetal: number; wood: number }>;
+}
+
 // 2️⃣ Document type: combines interface + Mongoose document methods
-export type ColonyDoc = HydratedDocument<IColony>;
+export type ColonyDoc = HydratedDocument<IColony, IColonyMethods>;
+
 
 // 3️⃣ Schema: no generic type specified
 const colonySchema = new Schema({
@@ -36,6 +44,52 @@ const colonySchema = new Schema({
 colonySchema.index({ userId: 1, serverId: 1 }); // Compound index for user-server queries
 colonySchema.index({ serverId: 1 }); // Index for server-wide queries
 colonySchema.index({ colonyName: 1 }); // Index for name searches
+
+colonySchema.methods.getUnlocks = async function (): Promise<Record<string, boolean>> {
+  const assignments = await Assignment.find({
+    colonyId: this._id,
+    type: "general",
+    state: { $in: ['completed', 'informed'] }
+  });
+
+  const unlocks: Record<string, boolean> = {};
+  for (const a of assignments) {
+    if (a.unlocks) {
+      if (Array.isArray(a.unlocks)) {
+        for (const key of a.unlocks) unlocks[key] = true;
+      } else {
+        unlocks[a.unlocks] = true;
+      }
+    }
+  }
+  return unlocks;
+};
+
+colonySchema.methods.getResources = async function() {
+  const [foodAgg, scrapDoc, woodDoc] = await Promise.all([
+    Inventory.aggregate([
+      { $match: { colonyId: this._id } },
+      { $unwind: "$items" },
+      { $match: { "items.type": "food" } },
+      { $group: { 
+          _id: "$colonyId",
+          totalFood: { $sum: { $multiply: ["$items.quantity", "$items.properties.foodValue"] } } 
+      }}
+    ]),
+    Inventory.findOne({ colonyId: this._id, "items.itemId": "scrap" }, { "items.$": 1 }).lean(),
+    Inventory.findOne({ colonyId: this._id, "items.itemId": "wood" }, { "items.$": 1 }).lean()
+  ]);
+
+  const settlerCount = this.settlers?.length || 1;
+  const daysFood = foodAgg.length > 0 ? Number((foodAgg[0].totalFood / settlerCount).toFixed(1)) : 0;
+
+  return {
+    daysFood,
+    scrapMetal: scrapDoc?.items?.[0]?.quantity || 0,
+    wood: woodDoc?.items?.[0]?.quantity || 0
+  };
+};
+
 
 // 5️⃣ Model: generic is **ColonyDoc**
 export const Colony = model<ColonyDoc>('Colony', colonySchema);

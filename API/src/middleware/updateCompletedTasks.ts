@@ -11,6 +11,7 @@ function getItemCatalogue(itemId: string) {
 
 
 async function addRewardsToColonyInventory(colonyId: string, rewards: Record<string, number>) {
+  //todo: inventory should not exceed max size
   if (!colonyId) throw new Error("colonyId required!");
 
   let inventory = await Inventory.findOne({ colonyId });
