@@ -65,7 +65,7 @@ router.post('/:settlerId/select', async (req, res) => {
     chosenSettler.isActive = true;
     await chosenSettler.save();
 
-    colony.settlers.push(chosenSettler._id as Types.ObjectId);
+    colony.settlers.push(chosenSettler);
     await colony.save();
 
     // Step 3: Delete the other two.

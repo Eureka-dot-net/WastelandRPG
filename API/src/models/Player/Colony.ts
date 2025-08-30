@@ -1,6 +1,7 @@
 import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
 import { Assignment } from './Assignment';
 import { Inventory } from './Inventory';
+import { SettlerDoc } from './Settler';
 
 // 1️⃣ Interface describing the shape of your data
 export interface IColony {
@@ -10,7 +11,7 @@ export interface IColony {
   level: number;
   notoriety: number;
   inventorySize: number;
-  settlers: Types.ObjectId[];
+  settlers: SettlerDoc[];
   inventory?: Types.ObjectId;
   createdAt?: Date;
 }

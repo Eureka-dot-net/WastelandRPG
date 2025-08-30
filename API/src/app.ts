@@ -1,16 +1,19 @@
 // app.ts
 import express from 'express';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
 
 import authRoutes from './routes/auth';
 import serverRoutes from './routes/server';
 import settlerRoutes from './routes/settler';
 import assignmentRoutes from './routes/assignment';
 import inventoryRoutes from './routes/inventory';
+import devRoutes from './routes/dev';
 
 import { authenticate } from './middleware/auth';
 import { requireColonyOwnership } from './middleware/colonyOwnership';
 import { updateCompletedTasks } from './middleware/updateCompletedTasks';
+import { dailyBatch } from './jobs/daillyBatch';
 
 
 export const app = express();
@@ -38,12 +41,18 @@ app.use((req, res, next) => {
   next();
 });
 
+cron.schedule('0 0 * * *', () => {
+  // Your batch process code here
+  dailyBatch();
+});
+
 
 // Add a basic route for your test
 app.get('/api/', (req, res) => {
     res.json({ message: 'API is running' });
 });
 
+app.use('/api/dev', devRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership, updateCompletedTasks, settlerRoutes);

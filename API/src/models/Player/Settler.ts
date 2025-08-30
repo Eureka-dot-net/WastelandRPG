@@ -1,4 +1,4 @@
-import { Schema, model, Types, Document } from 'mongoose';
+import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
 
 // Carrying items
 export interface ISettlerItem {
@@ -66,6 +66,8 @@ export interface ISettler extends Document {
   status: "idle" | "busy" | "resting";
   health: number;
   morale: number;
+  hunger: number;
+  energy: number;
   carry: ISettlerItem[];
   equipment: IEquipment;
   maxCarrySlots: number;
@@ -73,7 +75,7 @@ export interface ISettler extends Document {
 }
 
 // Mongoose schema/model
-export const settlerSchema = new Schema<ISettler>({
+export const settlerSchema = new Schema({
   colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true },
   nameId: { type: String, required: true },
   name: { type: String, required: true },
@@ -107,10 +109,14 @@ export const settlerSchema = new Schema<ISettler>({
   status: { type: String, default: "idle" },
   health: { type: Number, default: 100 },
   morale: { type: Number, default: 90 },
+  hunger: { type: Number, default: 0 },
+  energy: { type: Number, default: 100 },
   carry: [settlerItemSchema],
   equipment: equipmentSchema,
   maxCarrySlots: { type: Number, default: 8 },
   createdAt: { type: Date, default: Date.now },
 });
 
-export const Settler = model<ISettler>('Settler', settlerSchema);
+export type SettlerDoc = HydratedDocument<ISettler>;
+
+export const Settler = model<SettlerDoc>('Settler', settlerSchema);
