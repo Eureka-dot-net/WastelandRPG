@@ -7,7 +7,7 @@ import {
   Container, Paper, Typography, Grid
 } from "@mui/material";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
+
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useCountdownTimer } from "../../lib/hooks/useCountdownTimer";
@@ -190,7 +190,6 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
 
   return (
     <Container maxWidth="lg">
-      <ToastContainer />
 
       <ProgressHeader
         title="Homestead Cleanup"
