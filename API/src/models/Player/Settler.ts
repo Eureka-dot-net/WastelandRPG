@@ -25,7 +25,7 @@ export const equipmentSchema = new Schema<IEquipment>({
 });
 
 // Main Settler interface
-export interface ISettler extends Document {
+export interface ISettler {
   colonyId: Types.ObjectId;
   isActive: boolean;
   nameId: string;

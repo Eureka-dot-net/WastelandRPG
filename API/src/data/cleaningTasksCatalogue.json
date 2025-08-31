@@ -28,11 +28,22 @@
         "chance": 0.3
       }
     },
+    "specialRewards": {
+      "findSettler": {
+        "scaling": [
+          {
+            "minSettlers": 1,
+            "maxSettlers": 1,
+            "chance": 0.2
+          }
+        ]
+      }
+    },
     "requiredStats": {
       "strength": 2
     },
     "icon": "GiGate",
-    "completionMessage": "With a final shove, the gate collapses! Dust settles as your homestead finally breathes again. The Wasteland Spirits snicker—'Home sweet rust pile,' they say."
+    "completionMessage": "With a final shove, the gate collapses! Dust settles as your homestead finally breathes again. 'Home sweet rust pile,' they say."
   },
   {
     "taskId": "organize_storeroom",
@@ -57,6 +68,22 @@
         "min": 1,
         "max": 2,
         "chance": 0.5
+      }
+    },
+    "specialRewards": {
+      "findSettler": {
+        "scaling": [
+          {
+            "minSettlers": 1,
+            "maxSettlers": 1,
+            "chance": 0.2
+          },
+          {
+            "minSettlers": 2,
+            "maxSettlers": 2,
+            "chance": 0.05
+          }
+        ]
       }
     },
     "requiredStats": {
@@ -96,21 +123,64 @@
         "chance": 1
       }
     },
+    "specialRewards": {
+      "findSettler": {
+        "scaling": [
+          {
+            "minSettlers": 1,
+            "maxSettlers": 1,
+            "chance": 0.2
+          },
+          {
+            "minSettlers": 2,
+            "maxSettlers": 2,
+            "chance": 0.05
+          }
+        ]
+      }
+    },
     "requiredStats": {
       "crafting": 1,
       "strength": 1
     },
     "icon": "GiRuins",
-    "completionMessage": "Rubble gone, dreams incoming! You've carved out a corner fit for snoozing—or plotting your next big move."
+    "completionMessage": "Rubble gone, dreams incoming! You've carved out a corner fit for snoozing. Or plotting your next big move."
+  },
+  {
+    "taskId": "scout_surrounding_area",
+    "name": "Scout Surrounding Area",
+    "description": "Explore the nearby wasteland to chart a basic map.",
+    "unlocks": "map",
+    "duration": 22000,
+    "difficulty": "Hard",
+    "dependsOn": "salvage_gate_ruins",
+    "rewards": {
+      "map": {
+        "min": 1,
+        "max": 1,
+        "chance": 1
+      },
+      "stale_bread": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.4
+      }
+    },
+    "requiredStats": {
+      "perception": 2,
+      "speed": 1
+    },
+    "icon": "GiMap",
+    "completionMessage": "You chart the wasteland like a post-apocalyptic cartographer. Now at least when you get lost, you’ll know exactly *where* you’re lost."
   },
   {
     "taskId": "clear_farm_land",
     "name": "Clear Farm Land",
     "description": "Remove rocks and weeds to prepare soil for planting.",
     "unlocks": "farming",
-    "duration": 20000,
+    "duration": 1200000,
     "difficulty": "Medium",
-    "dependsOn": "salvage_gate_ruins",
+    "dependsOn": "scout_surrounding_area",
     "rewards": {
       "scrap": {
         "min": 10,
@@ -146,40 +216,13 @@
     "completionMessage": "The soil’s free of rocks and grudges. Seeds in hand, your future menu looks less 'ration paste' and more 'rustic feast.'"
   },
   {
-    "taskId": "scout_surrounding_area",
-    "name": "Scout Surrounding Area",
-    "description": "Explore the nearby wasteland to chart a basic map.",
-    "unlocks": "map",
-    "duration": 22000,
-    "difficulty": "Hard",
-    "dependsOn": "salvage_gate_ruins",
-    "rewards": {
-      "map": {
-        "min": 1,
-        "max": 1,
-        "chance": 1
-      },
-      "stale_bread": {
-        "min": 1,
-        "max": 2,
-        "chance": 0.4
-      }
-    },
-    "requiredStats": {
-      "perception": 2,
-      "speed": 1
-    },
-    "icon": "GiMap",
-    "completionMessage": "You chart the wasteland like a post-apocalyptic cartographer. Now at least when you get lost, you’ll know exactly *where* you’re lost."
-  },
-  {
     "taskId": "clean_out_workshop",
     "name": "Clean Out Workshop",
     "description": "Clear debris and salvage materials to restore the workshop.",
     "unlocks": "crafting",
-    "duration": 25000,
+    "duration": 2400000,
     "difficulty": "Hard",
-    "dependsOn": "salvage_gate_ruins",
+    "dependsOn": "scout_surrounding_area",
     "rewards": {
       "wood": {
         "min": 15,
@@ -214,9 +257,9 @@
     "name": "Scavenge Perimeter Debris",
     "description": "Collect materials from the outer wreckage to strengthen homestead defenses.",
     "unlocks": "defence",
-    "duration": 30000,
+    "duration": 2400000,
     "difficulty": "Hard",
-    "dependsOn": "salvage_gate_ruins",
+    "dependsOn": "scout_surrounding_area",
     "rewards": {
       "scrap": {
         "min": 10,

@@ -1,3 +1,5 @@
+import type { Settler } from "./settler";
+
 export interface AssignmentRewardItem {
   itemId: string;
   name: string;
@@ -29,6 +31,7 @@ export interface Assignment {
   description: string;
   duration: number;
   unlocks: string;
+  settlerFound?: Settler;
   completionMessage?: string;
   plannedRewards: PlannedRewards;
   createdAt: string;      // ISO date string

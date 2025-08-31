@@ -132,6 +132,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
             console.log('settlerId: ' + assignment.settlerId);
             console.log('dependson: ' + (assignment.dependsOn || 'none'));
             console.log('dependson: ' + (assignment.dependsOn || 'none'));
+         
             console.log('completion message: ' + (assignment.completionMessage || 'none'));
             if (assignment.plannedRewards && settler) {
                 const rewards: Record<string, number> = {};
@@ -144,6 +145,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
 
                 informAssignment.mutateAsync(assignment._id)
                     .then((data) => {
+                        console.log('foundSettlerId: ' + (data.foundSettler?._id || 'none'));
                         if (data.state === "informed") {
                             showTaskCompletionToast(
                                 { name: assignment.name, purpose: assignment.description },
@@ -151,6 +153,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
                                 rewards
                             );
                         }
+
                     })
                     .catch((error) => {
                         console.error("Inform assignment error:", error);

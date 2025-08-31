@@ -113,7 +113,7 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
 
     const conditionalItems = [
       { label: "Homestead", href: "/homestead", condition: colony.unlocks.homestead, icon: <HomeIcon /> },
-      { label: "Settlers", href: "/settlers", condition: colony.hasSettlers, icon: <SelfImprovementIcon /> },
+      { label: "Settlers", href: "/settlers", condition: colony.settlerCount > 0, icon: <SelfImprovementIcon /> },
       { label: "Map", href: "/map", condition: colony.unlocks.map, icon: <VisibilityIcon /> },
       { label: "Inventory", href: "/inventory", condition: colony.unlocks.inventory, icon: <BuildIcon /> },
       { label: "Crafting", href: "/crafting", condition: colony.unlocks.crafting, icon: <BuildIcon /> },

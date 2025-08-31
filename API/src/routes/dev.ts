@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === 'development') {
 
     // Optionally, reset colony too
     await Settler.deleteMany({ colonyId });
-    await Colony.updateMany({ _id: colonyId }, { $set: { settlers: [], logs: [], level: 1 } });
+    await Colony.updateMany({ _id: colonyId }, { $set: { settlers: [], logs: [], level: 1, hasInitialSettlers: false } });
 
     res.json({ message: 'Test data reset!' });
   });

@@ -9,14 +9,21 @@ const router = Router();
 // Register
 router.post('/register', async (req: Request, res: Response) => {
     const { email, password } = req.body;
+    const session = await User.startSession();
+    session.startTransaction();
 
     try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: 'User already exists' });
+        const existingUser = await User.findOne({ email }).session(session);
+        if (existingUser) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: 'User already exists' });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ email, password: hashedPassword });
-        await user.save();
+
+        await user.save({ session });
 
         const colony = new Colony({
             userId: user._id,
@@ -24,10 +31,15 @@ router.post('/register', async (req: Request, res: Response) => {
             colonyName: 'First Colony',
             level: 1,
         });
-        await colony.save();
+        await colony.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
 
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         res.status(500).json({ message: 'Server error', error });
     }
 });

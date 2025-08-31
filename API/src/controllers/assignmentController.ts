@@ -1,10 +1,11 @@
 // controllers/assignmentController.ts
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { Assignment, IAssignment } from '../models/Player/Assignment';
+import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import { Settler } from '../models/Player/Settler';
+import { ColonyManager } from '../managers/ColonyManager';
 
 function generateRewards(taskTemplate: any) {
   const rewards: Record<string, number> = {};
@@ -38,20 +39,24 @@ export const getAssignments = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid colonyId' });
   }
 
+  // Start a session for transaction
+  const session = await Assignment.startSession();
+  session.startTransaction();
+
   try {
     // Fetch existing assignments for this colony
-    const existingAssignments = await Assignment.find({ colonyId });
+    const existingAssignments = await Assignment.find({ colonyId }).session(session);
 
     // Only auto-create cleanup assignments if they don't exist yet
     const tasksToCreate = cleaningTasksCatalogue.filter(
       task => !existingAssignments.some(a => a.taskId === task.taskId)
     );
 
-    const createdAssignments: IAssignment[] = [];
+    const createdAssignments: AssignmentDoc[] = [];
 
     for (const taskTemplate of tasksToCreate) {
       const plannedRewards = generateRewards(taskTemplate);
-      const assignment = await Assignment.create({
+      const assignment = await Assignment.create([{
         colonyId,
         taskId: taskTemplate.taskId,
         type: 'general',
@@ -63,12 +68,12 @@ export const getAssignments = async (req: Request, res: Response) => {
         completionMessage: taskTemplate.completionMessage,
         unlocks: taskTemplate.unlocks,
         plannedRewards,
-      });
-      createdAssignments.push(assignment);
+      }], { session });
+      createdAssignments.push(assignment[0]);
     }
 
     // Return all assignments for this colony with enriched reward metadata
-    const allAssignments = await Assignment.find({ colonyId });
+    const allAssignments = await Assignment.find({ colonyId }).session(session);
     const assignmentsWithRewardDetails = allAssignments.map(a => {
       return {
         ...a.toObject(),
@@ -76,8 +81,13 @@ export const getAssignments = async (req: Request, res: Response) => {
       };
     });
 
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({ assignments: assignmentsWithRewardDetails });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch assignments' });
   }
@@ -97,29 +107,49 @@ export const startAssignment = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid IDs' });
   }
 
+  const session = await Assignment.startSession();
+  session.startTransaction();
   try {
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+    const assignment = await Assignment.findById(assignmentId).session(session);
+    if (!assignment) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
 
     if (assignment.state !== 'available') {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ error: 'Assignment already started or completed' });
     }
 
-    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' });
+    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
 
     assignment.state = 'in-progress';
     assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
     assignment.startedAt = new Date();
     assignment.completedAt = new Date(Date.now() + (assignment.duration || 0));
 
-    await assignment.save();
+    await assignment.save({ session });
 
-    await colony.addLogEntry("assignment", `Assignment '${assignment.name}' started.`, { assignmentId: assignment._id });
+    const colonyManager = new ColonyManager(colony);
+    await colonyManager.addLogEntry(
+      session,
+      "assignment",
+      `Assignment '${assignment.name}' started.`,
+      { assignmentId: assignment._id }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({
       ...assignment.toObject(),
       plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
     });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(err);
     res.status(500).json({ error: 'Failed to start assignment' });
   }
@@ -143,11 +173,15 @@ export const informAssignment = async (req: Request, res: Response) => {
     assignment.state = 'informed';
     await assignment.save();
 
-    // Optionally enrich rewards or return just state
+    let foundSettler = null;
+    if (assignment.settlerFoundId) {
+      foundSettler = await Settler.findById(assignment.settlerFoundId).lean();
+    }
+
     res.json({
       _id: assignment._id,
       state: assignment.state,
-      // You can add more fields if needed
+      foundSettler,
     });
   } catch (err) {
     console.error(err);

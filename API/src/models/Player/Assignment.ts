@@ -19,6 +19,7 @@ export interface IAssignment {
   completedAt?: Date;
   dependsOn?: string;
   name?: string;
+  settlerFoundId?: Types.ObjectId;
   description?: string;
   completionMessage?: string;
   duration?: number;
@@ -35,13 +36,14 @@ const AssignmentSchema = new Schema(
     settlerId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
     dependsOn: {type: String, required: false },
     completionMessage: { type: String, required: false },
-    startedAt: Date,
-    completedAt: Date,
-    name: String,
-    description: String,
-    duration: Number,
-    unlocks: String,
-    plannedRewards: { type: Schema.Types.Mixed },
+    startedAt: {type: Date, required: false},
+    completedAt: {type: Date, required: false},
+    name: {type: String, required: false},
+    settlerFoundId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
+    description: {type: String, required: false},
+    duration: {type: Number, required: false},
+    unlocks: {type: String, required: false},
+    plannedRewards: { type: Schema.Types.Mixed, required: false },
   },
   { timestamps: true, versionKey: false },
   

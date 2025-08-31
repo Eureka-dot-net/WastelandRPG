@@ -625,8 +625,8 @@
     "effects": [
       {
         "target": "hunger",
-        "key": "dailyConsumption",
-        "modifier": "+100%",
+        "key": "foodSatiationRate",
+        "modifier": "-50%",
         "stack": "additive"
       }
     ],
@@ -641,8 +641,8 @@
     "effects": [
       {
         "target": "hunger",
-        "key": "dailyConsumption",
-        "modifier": "-50%",
+        "key": "foodSatiationRate",
+        "modifier": "+50%",
         "stack": "additive"
       }
     ],

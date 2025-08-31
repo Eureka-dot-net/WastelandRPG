@@ -1,5 +1,5 @@
-import { Types } from 'mongoose';
-import { ISettler, Settler } from '../models/Player/Settler';
+import { ClientSession, Types } from 'mongoose';
+import { ISettler, Settler, SettlerDoc } from '../models/Player/Settler';
 import nameCatalogue from '../data/namesCatalogue.json';
 import statsCatalogue from '../data/statsCatalogue.json';
 import skillsCatalogue from '../data/skillsCatalogue.json';
@@ -118,7 +118,7 @@ async function pickUniqueNames(colonyId: string, count: number): Promise<any[]> 
 }
 
 // Generate one settler
-export async function generateSettler(colonyId: string, options?: { assignInterests?: boolean, isActive?: boolean, nameObj?: any }): Promise<ISettler> {
+export async function generateSettler(colonyId: string, session: ClientSession, options?: { assignInterests?: boolean, isActive?: boolean, nameObj?: any }): Promise<SettlerDoc> {
     const stats = rollStats();
     const skills = rollSkills();
     const traits = assignTraits();
@@ -146,16 +146,16 @@ export async function generateSettler(colonyId: string, options?: { assignIntere
         isActive: options?.isActive ?? false,
         createdAt: new Date(),
     });
-    return await settler.save();
+    return await settler.save({ session });
 }
 
 // Generate three unique onboarding choices (names)
-export async function generateSettlerChoices(colonyId: string): Promise<ISettler[]> {
+export async function generateSettlerChoices(colonyId: string, session: ClientSession): Promise<ISettler[]> {
     // Pick 3 unused names for this colony
     const pickedNames = await pickUniqueNames(colonyId, 3);
 
     const settlerPromises = pickedNames.map(nameObj =>
-        generateSettler(colonyId, { assignInterests: true, isActive: false, nameObj })
+        generateSettler(colonyId, session, { assignInterests: true, isActive: false, nameObj })
     );
     const newSettlers = await Promise.all(settlerPromises);
     return newSettlers;

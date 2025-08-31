@@ -6,38 +6,66 @@ import { Settler } from '../models/Player/Settler';
 
 import { generateSettlerChoices } from '../services/settlerGenerator';
 
-router.post('/onboard',  async (req, res) => {
+router.post('/onboard', async (req, res) => {
     const colonyId = req.colonyId;
 
+    const session = await Settler.startSession();
+    session.startTransaction();
+    
+    try {
+        // Atomic check-and-set: only succeed if hasInitialSettlers is still false
+        const colonyUpdate = await Colony.findOneAndUpdate(
+            { 
+                _id: colonyId, 
+                hasInitialSettlers: false  // Only match if flag is still false
+            },
+            { 
+                hasInitialSettlers: true   // Set flag to true atomically
+            },
+            { 
+                new: true,
+                session: session  // Within transaction
+            }
+        );
 
-    // Step 1: Find all settlers for the player, regardless of their status.
-    const existingSettlers = await Settler.find({ colonyId });
+        // If update succeeded, we won the race - create settlers
+        if (colonyUpdate) {
+            const newSettlers = await generateSettlerChoices(colonyId!, session);
+            await session.commitTransaction();
+            return res.json({ settlers: newSettlers });
+        }
 
-    // Step 2: Check for existing settlers and their status
-    if (existingSettlers.length > 0) {
-        // If the colony has exactly three settlers...
+        // If update failed (returned null), settlers already exist
+        // Find existing settlers for this colony
+        const existingSettlers = await Settler.find({ colonyId }).session(session);
+        
+        // Handle the special case where all 3 settlers are inactive
         if (existingSettlers.length === 3) {
-            // ...check if ALL of them are currently inactive.
             const allInactive = existingSettlers.every(settler => !settler.isActive);
-
             if (allInactive) {
-                // If all three are inactive, return them for the user to select again.
-                // This handles cases where the user closed the page before selecting a settler.
+                await session.commitTransaction();
                 return res.json({ settlers: existingSettlers });
             }
         }
-        
-        // If the player has any active settlers, or an unexpected number of settlers,
-        // it means they have already completed this part of the onboarding.
-        return res.status(403).json({ error: "Player already has settlers. This operation cannot be repeated." });
-    }
 
-    // Step 3: If no settlers exist at all, generate and save three new choices.
-    const newSettlers = await generateSettlerChoices(colonyId!);
-    res.json({ settlers: newSettlers });
+        // Default case: settlers exist and operation cannot be repeated
+        await session.commitTransaction();
+        return res.status(403).json({ 
+            error: "Player already has settlers. This operation cannot be repeated." 
+        });
+
+    } catch (err) {
+        await session.abortTransaction();
+        console.error('Onboard error:', err);
+        return res.status(500).json({ error: "Internal server error" });
+    } finally {
+        session.endSession();
+    }
 });
 
 import mongoose, { Types } from 'mongoose'; // You may need to import this at the top
+import { ColonyManager } from '../managers/ColonyManager';
+import { Colony } from '../models/Player/Colony';
 
 router.post('/:settlerId/select', async (req, res) => {
     const { settlerId } = req.params;
@@ -49,34 +77,53 @@ router.post('/:settlerId/select', async (req, res) => {
         return res.status(400).json({ error: 'Invalid Settler ID.' });
     }
 
-    // Step 1: Find the chosen settler directly by its ID.
-    // We also verify that it belongs to the player and is currently inactive.
-    const chosenSettler = await Settler.findOne({
-        _id: settlerId,
-        colonyId: colonyId,
-        isActive: false
-    });
+    const session = await Settler.startSession();
+    session.startTransaction();
 
-    if (!chosenSettler) {
-        return res.status(404).json({ error: 'Settler not found or already activated.' });
+    try {
+        // Step 1: Find the chosen settler directly by its ID.
+        // We also verify that it belongs to the player and is currently inactive.
+        const chosenSettler = await Settler.findOne({
+            _id: settlerId,
+            colonyId: colonyId,
+            isActive: false
+        }).session(session);
+
+        if (!chosenSettler) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: 'Settler not found or already activated.' });
+        }
+
+        // Step 2: Activate the chosen settler.
+        chosenSettler.isActive = true;
+        await chosenSettler.save({ session });
+
+        colony.settlers.push(chosenSettler);
+
+        const colonyManager = new ColonyManager(colony);
+        await colonyManager.addLogEntry(session, "settler", `Settler '${chosenSettler.name}' onboarded!`, { settlerId: chosenSettler._id });
+
+        await colony.save({ session });
+
+        // Step 3: Delete the other two.
+        // Find all other inactive settlers for this player and delete them.
+        await Settler.deleteMany({
+            _id: { $ne: chosenSettler._id }, // Not equal to the chosen settler's ID
+            colonyId: colonyId,
+            isActive: false
+        }).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json(chosenSettler);
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error(err);
+        res.status(500).json({ error: 'Failed to select settler.' });
     }
-
-    // Step 2: Activate the chosen settler.
-    chosenSettler.isActive = true;
-    await chosenSettler.save();
-
-    colony.settlers.push(chosenSettler);
-    await colony.save();
-
-    // Step 3: Delete the other two.
-    // Find all other inactive settlers for this player and delete them.
-    await Settler.deleteMany({
-        _id: { $ne: chosenSettler._id }, // Not equal to the chosen settler's ID
-        colonyId: colonyId,
-        isActive: false
-    });
-
-    res.json(chosenSettler);
 });
 
 export default router;

@@ -35,7 +35,7 @@ export const ProtectedRoute = () => {
   if (onboardingPages.includes(path)) return <Outlet />;
 
   // Check for settlers
-  if (!colony.hasSettlers) return <Navigate to="/settler-selection" replace />;
+  if (colony.settlerCount <= 0) return <Navigate to="/settler-selection" replace />;
 
   // Check unlocks dynamically
   const requiredUnlock = routeUnlockMap[location.pathname];
