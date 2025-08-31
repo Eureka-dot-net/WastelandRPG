@@ -40,6 +40,32 @@ export const wastelandTheme = createTheme({
     }
   },
   components: {
+     MuiCssBaseline: {
+    styleOverrides: {
+      '*::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '*::-webkit-scrollbar-track': {
+        background: '#2a2a2a',
+        borderRadius: '4px',
+      },
+      '*::-webkit-scrollbar-thumb': {
+        background: '#555',
+        borderRadius: '4px',
+        '&:hover': {
+          background: '#666',
+        },
+      },
+      '*::-webkit-scrollbar-thumb:active': {
+        background: '#777',
+      },
+      // Firefox scrollbar styling
+      '*': {
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#555 #2a2a2a',
+      },
+    },
+  },
     MuiPaper: {
       styleOverrides: {
         root: {

@@ -166,6 +166,22 @@
         "chance": 0.4
       }
     },
+    "specialRewards": {
+      "findSettler": {
+        "scaling": [
+          {
+            "minSettlers": 1,
+            "maxSettlers": 1,
+            "chance": 1
+          },
+          {
+            "minSettlers": 2,
+            "maxSettlers": 2,
+            "chance": 0.05
+          }
+        ]
+      }
+    },
     "requiredStats": {
       "perception": 2,
       "speed": 1

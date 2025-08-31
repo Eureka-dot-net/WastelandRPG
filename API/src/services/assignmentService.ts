@@ -106,7 +106,6 @@ export async function completeAssignmentsForColony(colony: ColonyDoc, session: C
       });
 
       assignment.settlerFoundId = newSettler._id;
-      colony.settlers.push(newSettler);
 
       logEntries.push(`Assignment '${assignment.name}' completed. Rewards ${JSON.stringify(assignment.plannedRewards)}. A new settler has joined the colony!`);
     } else {
@@ -116,8 +115,7 @@ export async function completeAssignmentsForColony(colony: ColonyDoc, session: C
 
   // Save all assignments and colony in parallel, using session
   await Promise.all([
-    ...assignments.map(a => a.save({ session })),
-    colony.save({ session })
+    ...assignments.map(a => a.save({ session }))
   ]);
 
   // Add logs after saving to avoid partial state issues

@@ -4,6 +4,7 @@ import { agent } from "../api/agent";
 
 export function useSettler() {
   const queryClient = useQueryClient();
+  
   // Onboard Settler
   const onboardSettler = useMutation({
     mutationFn: async (colonyId: string) => {
@@ -14,7 +15,7 @@ export function useSettler() {
     },
   });
 
-  // Select Settler
+  // Select Settler (Accept/Recruit)
   const selectSettler = useMutation({
     mutationFn: async ({
       colonyId,
@@ -32,11 +33,39 @@ export function useSettler() {
       );
       return res.data as Settler;
     },
-    onSuccess: (_, variables) => async () => {
+    onSuccess: (_, variables) => {
       // Invalidate the colony query so it refetches updated settlers
-      await queryClient.invalidateQueries({ queryKey: ["colony", variables.colonyId] });
+      queryClient.invalidateQueries({ queryKey: ["colony", variables.colonyId] });
     },
   });
 
-  return { onboardSettler, selectSettler };
+  // Reject Settler (when you get the endpoint)
+  const rejectSettler = useMutation({
+    mutationFn: async ({
+      colonyId,
+      settlerId,
+    }: {
+      colonyId: string;
+      settlerId: string;
+    }) => {
+      // Replace this with your actual endpoint when available
+      const res = await agent.delete(
+        `/colonies/${colonyId}/settlers/${settlerId}/reject`,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate the colony query if needed
+      queryClient.invalidateQueries({ queryKey: ["colony", variables.colonyId] });
+    },
+  });
+
+  return { 
+    onboardSettler, 
+    selectSettler, 
+    rejectSettler 
+  };
 }

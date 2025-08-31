@@ -56,7 +56,6 @@ router.post('/onboard', async (req, res) => {
 
     } catch (err) {
         await session.abortTransaction();
-        console.error('Onboard error:', err);
         return res.status(500).json({ error: "Internal server error" });
     } finally {
         session.endSession();
@@ -125,5 +124,56 @@ router.post('/:settlerId/select', async (req, res) => {
         res.status(500).json({ error: 'Failed to select settler.' });
     }
 });
+
+router.delete('/:settlerId/reject', async (req, res) => {
+    const { settlerId } = req.params;
+    const colonyId = req.colonyId;
+
+    // Step 1: Validate the settler ID format
+    if (!mongoose.Types.ObjectId.isValid(settlerId)) {
+        return res.status(400).json({ error: 'Invalid Settler ID.' });
+    }
+
+    const session = await Settler.startSession();
+    session.startTransaction();
+
+    try {
+        // Step 2: Find the settler to delete (must belong to colony and be inactive)
+        const settlerToDelete = await Settler.findOne({
+            _id: settlerId,
+            colonyId,
+            isActive: false
+        }).session(session);
+
+        if (!settlerToDelete) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ error: 'Settler not found or already active.' });
+        }
+
+        // Step 3: Delete the settler
+        await Settler.deleteOne({ _id: settlerToDelete._id }).session(session);
+
+        // Optional: Add log entry for rejection
+        const colonyManager = new ColonyManager(req.colony);
+        await colonyManager.addLogEntry(
+            session,
+            "settler",
+            `Settler '${settlerToDelete.name}' was rejected.`,
+            { settlerId: settlerToDelete._id }
+        );
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.json({ success: true, deletedSettlerId: settlerToDelete._id });
+    } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error(err);
+        res.status(500).json({ error: 'Failed to reject settler.' });
+    }
+});
+
 
 export default router;
