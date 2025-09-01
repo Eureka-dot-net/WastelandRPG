@@ -46,20 +46,22 @@ export function useAssignment(serverId: string | null, colonyId?: string | null)
         },
     });
 
+    type PreviewAssignmentResult = {
+        settlerId: string;
+        settlerName: string;
+        baseDuration: number;
+        basePlannedRewards: Record<string, number>;
+        adjustments: AssignmentAdjustments;
+    };
+
     // Mutation to preview assignment adjustments with a settler
-    const previewAssignment = useMutation({
+    const previewAssignment = useMutation<PreviewAssignmentResult, Error, { assignmentId: string; settlerId: string }>({
         mutationFn: async ({ assignmentId, settlerId }: { assignmentId: string; settlerId: string }) => {
             const response = await agent.post(
                 `/colonies/${colonyId}/assignments/${assignmentId}/preview`,
                 { settlerId }
             );
-            return response.data as {
-                settlerId: string;
-                settlerName: string;
-                baseDuration: number;
-                basePlannedRewards: Record<string, number>;
-                adjustments: AssignmentAdjustments;
-            };
+            return response.data as PreviewAssignmentResult;
         },
     });
 

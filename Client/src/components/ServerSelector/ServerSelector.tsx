@@ -117,7 +117,7 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
       // Switch to the newly joined server
       setCurrentServer(selectedServerId);
     } catch (error) {
-      toast.error('Failed to join server');
+      toast.error('Failed to join server' + error);
     }
   };
 
@@ -210,7 +210,7 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
                         <Chip
                           label={colony.server?.type}
                           size="small"
-                          color={getServerTypeColor(colony.server?.type || '') as any}
+                          color={getServerTypeColor(colony.server?.type || '') }
                           sx={{ height: 16, fontSize: '0.7rem' }}
                         />
                       </Box>
@@ -263,7 +263,7 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
                     <Chip
                       label={server.type}
                       size="small"
-                      color={getServerTypeColor(server.type) as any}
+                      color={getServerTypeColor(server.type)}
                     />
                   </Box>
                 </MenuItem>

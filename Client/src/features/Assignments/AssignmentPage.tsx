@@ -11,7 +11,7 @@ import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
-import type { Assignment, AssignmentAdjustments } from "../../lib/types/assignment";
+import type { Assignment } from "../../lib/types/assignment";
 import { useQueryClient } from "@tanstack/react-query";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import TaskCard from "../../app/shared/components/tasks/TaskCard";
@@ -19,17 +19,11 @@ import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
-import AssignmentEffectsPreviewDialog from "../../app/shared/components/assignments/AssignmentEffectsPreviewDialog";
 
 function AssignmentPage() {
   const { currentServerId: serverId } = useServerContext();
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<{
-    adjustments: AssignmentAdjustments;
-    settlerName: string;
-    baseDuration: number;
-  } | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Assignment | null>(null);
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
@@ -46,56 +40,29 @@ function AssignmentPage() {
   }, [colonyId, queryClient]);
 
   const handleAssignClick = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setSettlerDialogOpen(true);
-  };
-
-  const handleSettlerSelect = (settler: Settler) => {
-    if (selectedTaskId) {
-      // First get the preview
-      previewAssignment.mutate(
-        { assignmentId: selectedTaskId, settlerId: settler._id },
-        {
-          onSuccess: (previewResult) => {
-            // Show preview data
-            setPreviewData({
-              adjustments: previewResult.adjustments,
-              settlerName: previewResult.settlerName,
-              baseDuration: previewResult.baseDuration
-            });
-          },
-          onError: (error) => {
-            console.error("Error previewing assignment:", error);
-            // If preview fails, still allow assignment but without effects display
-            confirmAssignment(settler);
-          }
-        }
-      );
+    const task = assignments?.find(a => a._id === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setSettlerDialogOpen(true);
     }
   };
 
-  const confirmAssignment = (settler: Settler) => {
-    if (selectedTaskId) {
+  const handleSettlerSelect = (settler: Settler) => {
+    if (selectedTask) {
       startAssignment.mutate(
-        { assignmentId: selectedTaskId, settlerId: settler._id },
+        { assignmentId: selectedTask._id, settlerId: settler._id },
         {
           onSuccess: (updatedAssignment) => {
             // Start the notification timer
             startNotificationTimer(updatedAssignment);
-            setPreviewData(null);
           }
         }
       );
     }
     setSettlerDialogOpen(false);
-    setSelectedTaskId(null);
+    setSelectedTask(null);
   };
 
-  const cancelAssignment = () => {
-    setPreviewData(null);
-    setSettlerDialogOpen(false);
-    setSelectedTaskId(null);
-  };
 
   const getRewardIcon = (type: string) => {
     const icons = {
@@ -165,7 +132,6 @@ function AssignmentPage() {
 
   return (
     <Container maxWidth="lg">
-
       <ProgressHeader
         title="Homestead Cleanup"
         emoji="🏚️"
@@ -236,7 +202,7 @@ function AssignmentPage() {
               label: "Dependency Required",
               onClick: () => { },
               variant: 'outlined' as const,
-              disabled: true, //this is 265
+              disabled: true,
               startIcon: <Lock fontSize="small" />
             });
           } else if (status === 'in-progress') {
@@ -288,34 +254,20 @@ function AssignmentPage() {
         })}
       </Grid>
 
-      {/* Effects Preview */}
-      {previewData && (
-        <AssignmentEffectsPreviewDialog
-          open={!!previewData}
-          onClose={cancelAssignment}
-          adjustments={previewData?.adjustments}
-          settlerName={previewData?.settlerName ?? ""}
-          baseDuration={previewData?.baseDuration ?? 0}
-          onCancel={cancelAssignment}
-          onConfirm={() => {
-            const selectedSettler = availableSettlers.find(s => s.name === previewData?.settlerName);
-            if (selectedSettler) confirmAssignment(selectedSettler);
-          }}
-          confirmPending={startAssignment.isPending}
-        />
-      )}
-
-      {/* Settler Selection Dialog */}
+      {/* Enhanced Settler Selection Dialog with Assignment Effects */}
       <SettlerSelectorDialog
         open={settlerDialogOpen}
         onClose={() => setSettlerDialogOpen(false)}
         onSelect={handleSettlerSelect}
         settlers={availableSettlers}
-        title="Select Settler to Assign"
+        selectedTask={selectedTask}
+        previewAssignment={previewAssignment}
+        title={`Assign Settler to: ${selectedTask?.name || ''}`}
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks."
         showSkills={true}
         showStats={false}
+        confirmPending={startAssignment.isPending}
       />
 
       {/* Task Queue Placeholder */}
