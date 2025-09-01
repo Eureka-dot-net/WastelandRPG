@@ -22,39 +22,34 @@ interface AssignmentAdjustments {
 function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any): AssignmentAdjustments {
   const baseDuration = assignment.duration || 300000; // 5 minutes default
   const baseRewards = assignment.plannedRewards || {};
-  
-  // Calculate effective speed based on settler stats, skills and hunger
+
+  // --- SPEED CALCULATION ---
   let effectiveSpeed = 1.0;
   const speedEffects: string[] = [];
-  
+
   // Speed stat effect (0-20 scale, normalized to 0.5-1.5x multiplier)
   const speedMultiplier = 0.5 + (settler.stats.speed / 20) * 1.0;
   effectiveSpeed *= speedMultiplier;
   speedEffects.push(`Speed stat: ${speedMultiplier.toFixed(2)}x`);
-  
-  // Hunger penalty (0-100 scale, 0 = no hunger, 100 = very hungry)
-  const hungerPenalty = Math.max(0.5, 1.0 - (settler.hunger / 200)); // Max 50% penalty at 100 hunger
-  effectiveSpeed *= hungerPenalty;
-  if (settler.hunger > 0) {
-    speedEffects.push(`Hunger penalty: ${hungerPenalty.toFixed(2)}x`);
-  }
-  
-  // Calculate loot multiplier based on scavenging skill and traits
+
+  // --- LOOT CALCULATION ---
   let lootMultiplier = 1.0;
   const lootEffects: string[] = [];
   const traitEffects: string[] = [];
-  
+
   // Scavenging skill effect (0-20 scale, normalized to 0.8-1.4x multiplier)
   const scavengingMultiplier = 0.8 + (settler.skills.scavenging / 20) * 0.6;
   lootMultiplier *= scavengingMultiplier;
-  lootEffects.push(`Scavenging skill: +${((scavengingMultiplier - 1) * 100).toFixed(0)}%`);
-  
+  const scavengingPercent = ((scavengingMultiplier - 1) * 100).toFixed(0);
+  lootEffects.push(`Scavenging skill: ${parseInt(scavengingPercent) > 0 ? "+" : ""}${scavengingPercent}%`);
+
   // Intelligence affects loot quality/variety
   const intelligenceMultiplier = 0.9 + (settler.stats.intelligence / 20) * 0.3;
   lootMultiplier *= intelligenceMultiplier;
-  lootEffects.push(`Intelligence: +${((intelligenceMultiplier - 1) * 100).toFixed(0)}%`);
-  
-  // Process trait effects
+  const intelligencePercent = ((intelligenceMultiplier - 1) * 100).toFixed(0);
+  lootEffects.push(`Intelligence: ${parseInt(intelligencePercent) > 0 ? "+" : ""}${intelligencePercent}%`);
+
+  // --- TRAIT EFFECTS ---
   if (settler.traits && Array.isArray(settler.traits)) {
     settler.traits.forEach((trait: any) => {
       switch (trait.traitId) {
@@ -81,16 +76,17 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
       }
     });
   }
-  
-  // Calculate final values
+
+  // --- FINAL CALCULATIONS ---
   const adjustedDuration = Math.round(baseDuration / effectiveSpeed);
-  
+
   // Apply loot multiplier to planned rewards
   const adjustedPlannedRewards: Record<string, number> = {};
   Object.entries(baseRewards).forEach(([key, amount]) => {
     adjustedPlannedRewards[key] = Math.max(1, Math.round(amount * lootMultiplier));
   });
-  
+
+  // --- RETURN STRUCTURE ---
   return {
     adjustedDuration,
     effectiveSpeed,
