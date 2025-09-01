@@ -3,11 +3,11 @@ name: HomesteadRPG CI/CD with Render Deployment
 on:
   push:
     branches: 
-      - main
+      - master
       - 'copilot/**'  # Deploy branches created by copilot
     paths: [ 'client/**', 'API/**' ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     paths: [ 'client/**', 'API/**' ]
   workflow_dispatch:
 
