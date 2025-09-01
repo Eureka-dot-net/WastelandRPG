@@ -6,9 +6,9 @@ import Register from "../../features/account/Register";
 import App from "../layout/App";
 import SettlerSelection from "../../features/settlerSelection/SettlerSelectionPage";
 import DashboardLayout from "../layout/DashboardLayout"; // Import the layout component
-import AssignmentPage from "../../features/Assignments/AssignmentPage";
+import AssignmentPageWrapper from "../wrappers/AssignmentPageWrapper";
+import InventoryPageWrapper from "../wrappers/InventoryPageWrapper";
 import UnderConstruction from "../layout/UnderConstruction";
-import InventoryPage from "../../features/inventory/InventoryPage";
 
 const router = createBrowserRouter([
     {
@@ -26,10 +26,10 @@ const router = createBrowserRouter([
                     {
                         element: <DashboardLayout />, // This is the shared layout
                         children: [
-                            { path: "/assignments", element: <AssignmentPage serverId={"server-1"} /> }, 
-                            { path: "/inventory", element: <InventoryPage serverId={"server-1"} /> },
+                            { path: "/assignments", element: <AssignmentPageWrapper /> }, 
+                            { path: "/inventory", element: <InventoryPageWrapper /> },
                             { path: "/map", element: <MapPage /> },
-                            { path: "/", element: <AssignmentPage serverId={"server-1"} /> },
+                            { path: "/", element: <AssignmentPageWrapper /> },
                              { path: "*", element: <UnderConstruction /> },
                             // Add all other protected routes that need the DashboardLayout here
                         ]

@@ -16,6 +16,8 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber"; // Alerts
 import HomeIcon from '@mui/icons-material/Home';
 import { Box, Badge, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, Paper, type SvgIconProps } from "@mui/material";
 import { useColony } from "../../lib/hooks/useColony";
+import { useServerContext } from "../../lib/contexts/ServerContext";
+import ServerSelector from "../../components/ServerSelector/ServerSelector";
 
 import { GiCorn, GiCrownedSkull, GiHeartBeats, GiHorseshoe,  GiPerson, GiRunningNinja, GiShieldEchoes, GiWoodStick } from "react-icons/gi";
 
@@ -94,16 +96,19 @@ const StatItem: React.FC<StatItemProps> = ({
 };
 
 type Props = {
-  serverId?: string;
+  // Remove serverId prop since we'll get it from context
 }
 
-const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
+const DashboardTopBar: React.FC<Props> = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation(); 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  // Get current server from context
+  const { currentServerId, currentColony, isLoading: serverLoading } = useServerContext();
 
   // Reset navigatingTo when route changes
   useEffect(() => {
@@ -112,45 +117,48 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     }
   }, [location.pathname, navigatingTo]);
 
-  // Get dynamic colony data
-  const { colony, colonyLoading } = useColony(serverId);
+  // Get dynamic colony data for current server
+  const { colony, colonyLoading } = useColony(currentServerId || undefined);
+  
+  // Use colony data from context if available, fallback to API data
+  const displayColony = currentColony || colony;
 
   // Dynamic navigation based on unlocked features
   const NAV_ITEMS = useMemo(() => {
-    if (!colony) return [];
+    if (!displayColony) return [];
 
     const baseItems = [
       { label: "Assignments", href: "/assignments", icon: <WarningAmberIcon /> },
     ];
 
     const conditionalItems = [
-      { label: "Homestead", href: "/homestead", condition: colony.unlocks.homestead, icon: <HomeIcon /> },
-      { label: "Settlers", href: "/settlers", condition: colony.settlerCount > 0, icon: <SelfImprovementIcon /> },
-      { label: "Map", href: "/map", condition: colony.unlocks.map, icon: <VisibilityIcon /> },
-      { label: "Inventory", href: "/inventory", condition: colony.unlocks.inventory, icon: <BuildIcon /> },
-      { label: "Crafting", href: "/crafting", condition: colony.unlocks.crafting, icon: <BuildIcon /> },
-      { label: "Lodgings", href: "/lodgings", condition: colony.unlocks.lodgings, icon: <HomeIcon /> },
-      { label: "Farming", href: "/farming", condition: colony.unlocks.farming, icon: <NatureIcon /> },
-      { label: "Defence", href: "/defence", condition: colony.unlocks.defence, icon: <ShieldIcon /> },
+      { label: "Homestead", href: "/homestead", condition: displayColony.unlocks.homestead, icon: <HomeIcon /> },
+      { label: "Settlers", href: "/settlers", condition: displayColony.settlerCount > 0, icon: <SelfImprovementIcon /> },
+      { label: "Map", href: "/map", condition: displayColony.unlocks.map, icon: <VisibilityIcon /> },
+      { label: "Inventory", href: "/inventory", condition: displayColony.unlocks.inventory, icon: <BuildIcon /> },
+      { label: "Crafting", href: "/crafting", condition: displayColony.unlocks.crafting, icon: <BuildIcon /> },
+      { label: "Lodgings", href: "/lodgings", condition: displayColony.unlocks.lodgings, icon: <HomeIcon /> },
+      { label: "Farming", href: "/farming", condition: displayColony.unlocks.farming, icon: <NatureIcon /> },
+      { label: "Defence", href: "/defence", condition: displayColony.unlocks.defence, icon: <ShieldIcon /> },
     ];
 
     return [
       ...baseItems,
       ...conditionalItems.filter(item => item.condition)
     ];
-  }, [colony]);
+  }, [displayColony]);
 
   // Calculate dynamic settler stats
   const settlerStats = useMemo(() => {
-    if (!colony?.settlers) return { idle: 0, busy: 0, averageMorale: 0, total: 0 };
+    if (!displayColony?.settlers) return { idle: 0, busy: 0, averageMorale: 0, total: 0 };
 
-    const idle = colony.settlers.filter(s => s.status === "idle").length;
-    const busy = colony.settlers.filter(s => s.status !== "idle").length;
-    const totalMorale = colony.settlers.reduce((sum, s) => sum + (s.morale || 0), 0);
-    const averageMorale = colony.settlers.length > 0 ? Math.round(totalMorale / colony.settlers.length) : 0;
+    const idle = displayColony.settlers.filter(s => s.status === "idle").length;
+    const busy = displayColony.settlers.filter(s => s.status !== "idle").length;
+    const totalMorale = displayColony.settlers.reduce((sum, s) => sum + (s.morale || 0), 0);
+    const averageMorale = displayColony.settlers.length > 0 ? Math.round(totalMorale / displayColony.settlers.length) : 0;
 
-    return { idle, busy, averageMorale, total: colony.settlers.length };
-  }, [colony?.settlers]);
+    return { idle, busy, averageMorale, total: displayColony.settlers.length };
+  }, [displayColony?.settlers]);
 
   // Get notoriety color
   const getNotorietyColor = (notoriety: number) => {
@@ -173,21 +181,21 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     {
       icon: <GiHorseshoe fontSize="inherit" />,
       label: "Scrap",
-      value: colony?.scrapMetal || 0, // This would come from inventory
+      value: displayColony?.scrapMetal || 0, // This would come from inventory
       color: "text.secondary",
     },
     {
       icon: <GiWoodStick fontSize="inherit"  />,
       label: "Wood",
-      value: colony?.wood || 0, // This would come from inventory
+      value: displayColony?.wood || 0, // This would come from inventory
       color: "success.main",
     },
     {
       icon: <GiCorn fontSize="inherit"  />,
       label: "Food",
-      value: colony?.daysFood || 0 + "d",
+      value: displayColony?.daysFood || 0 + "d",
       color: "warning.main",
-      tooltip: `${colony?.daysFood || 0} days of food remaining`,
+      tooltip: `${displayColony?.daysFood || 0} days of food remaining`,
     },
   ];
 
@@ -224,9 +232,9 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     {
       icon: <GiCrownedSkull fontSize="inherit"  />,
       label: "Notoriety",
-      value: colony?.notoriety || 0,
-      color: getNotorietyColor(colony?.notoriety || 0),
-      tooltip: `Notoriety level: ${colony?.notoriety || 0}/100`,
+      value: displayColony?.notoriety || 0,
+      color: getNotorietyColor(displayColony?.notoriety || 0),
+      tooltip: `Notoriety level: ${displayColony?.notoriety || 0}/100`,
     },
   ];
 
@@ -244,7 +252,7 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     handleMobileMenuClose(); // Close mobile menu if open
   };
 
-  if (colonyLoading) {
+  if (colonyLoading || serverLoading || !currentServerId) {
     return (
       <AppBar position="fixed" elevation={3} sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #333' }}>
         <Toolbar>
@@ -270,11 +278,19 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
       <Box sx={{ p: 2, display: "flex", flexDirection: "column" }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-            🧟 WASTELAND RPG {colony?.colonyName || "🧟 WASTELAND RPG"}
+            🧟 WASTELAND RPG
           </Typography>
           <IconButton onClick={handleMobileMenuClose} size="small">
             <CloseIcon />
           </IconButton>
+        </Box>
+
+        {/* Server Selector in mobile menu */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+            Current Server
+          </Typography>
+          <ServerSelector isMobile={true} />
         </Box>
 
         <Divider sx={{ mb: 2 }} />
@@ -376,8 +392,8 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
             justifyContent: 'space-between',
           }}
         >
-          {/* Title and hamburger for mobile */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Title and Server Selector */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography
               variant="h5"
               sx={{
@@ -387,6 +403,7 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
             >
               🧟 WASTELAND RPG
             </Typography>
+            {!isMobile && <ServerSelector />}
             {isMobile && (
               <IconButton
                 color="primary"
