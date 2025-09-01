@@ -58,8 +58,8 @@ interface ServerSelectorProps {
 }
 
 const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => {
-  const { currentColony, userColonies, setCurrentServer, hasMultipleServers } = useServerContext();
-  const { data: serversData } = useServers();
+  const { currentColony, userColonies, setCurrentServer, hasMultipleServers, error: serverContextError } = useServerContext();
+  const { data: serversData, error: serversError } = useServers();
   const joinServerMutation = useJoinServer();
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -68,6 +68,15 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
   const [colonyName, setColonyName] = useState('');
 
   const availableServers = serversData?.servers || [];
+
+  // Handle errors
+  if (serverContextError || serversError) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
+        <Typography variant="body2">Failed to load servers</Typography>
+      </Box>
+    );
+  }
   const joinedServerIds = userColonies.map(colony => colony.serverId);
   const unjoinedServers = availableServers.filter(server => !joinedServerIds.includes(server.id));
 

@@ -41,11 +41,20 @@ export const ServerProvider = ({ children }: ServerProviderProps) => {
   const userColonies = coloniesData?.colonies || [];
 
   // Auto-select first server if none is selected and user has colonies
+  // Also handle case where stored serverId doesn't match any current colonies
   useEffect(() => {
-    if (!currentServerId && userColonies.length > 0) {
-      const firstServerId = userColonies[0].serverId;
-      setCurrentServerId(firstServerId);
-      localStorage.setItem('currentServerId', firstServerId);
+    if (userColonies.length > 0) {
+      const hasValidCurrentServer = currentServerId && userColonies.some(colony => colony.serverId === currentServerId);
+      
+      if (!hasValidCurrentServer) {
+        const firstServerId = userColonies[0].serverId;
+        setCurrentServerId(firstServerId);
+        localStorage.setItem('currentServerId', firstServerId);
+      }
+    } else if (currentServerId) {
+      // User has no colonies but has a stored serverId - clear it
+      setCurrentServerId(null);
+      localStorage.removeItem('currentServerId');
     }
   }, [currentServerId, userColonies]);
 
