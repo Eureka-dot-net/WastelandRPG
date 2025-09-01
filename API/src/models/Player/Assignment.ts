@@ -25,6 +25,17 @@ export interface IAssignment {
   duration?: number;
   unlocks?: string;
   plannedRewards?: Record<string, number>;
+  adjustments?: {
+    adjustedDuration: number;
+    effectiveSpeed: number;
+    lootMultiplier: number;
+    adjustedPlannedRewards: Record<string, number>;
+    effects: {
+      speedEffects: string[];
+      lootEffects: string[];
+      traitEffects: string[];
+    };
+  };
 }
 
 const AssignmentSchema = new Schema(
@@ -44,6 +55,7 @@ const AssignmentSchema = new Schema(
     duration: {type: Number, required: false},
     unlocks: {type: String, required: false},
     plannedRewards: { type: Schema.Types.Mixed, required: false },
+    adjustments: { type: Schema.Types.Mixed, required: false },
   },
   { timestamps: true, versionKey: false },
   
