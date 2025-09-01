@@ -24,7 +24,8 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
   const [settlerError, setSettlerError] = useState<string | null>(null);
 
   const { colony, colonyLoading, colonyError } = useColony(serverId);
-  const { onboardSettler, selectSettler } = useSettler();
+  const colonyId = colony?._id ?? null;
+  const { onboardSettler, selectSettler } = useSettler(serverId, colonyId);
 
   useEffect(() => {
     console.log("colony: " + colony);
@@ -33,7 +34,7 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
       setIsOnboarding(true);
       try {
         //onboardSettler returns three settlers.
-        const newSettlers: Settler[] = await onboardSettler.mutateAsync(colony._id);
+        const newSettlers: Settler[] = await onboardSettler.mutateAsync();
         console.log("newSettlers: " + newSettlers);
         setSettlers(newSettlers);
       } catch (error) {
@@ -53,7 +54,6 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
   const handleSelectSettler = (settler: Settler) => {
     if (colony) {
       selectSettler.mutate({
-        colonyId: colony._id,
         settlerId: settler._id
       }, {
         onError: (error) => {

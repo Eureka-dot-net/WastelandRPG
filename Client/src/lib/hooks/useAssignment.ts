@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
 import type { Colony } from "../types/colony";
+import type { Settler } from "../types/settler";
 
 export function useAssignment(serverId: string, colonyId?: string) {
     const queryClient = useQueryClient();
-    console.log(serverId);
     // Fetch assignments
     const { data: assignments, error: errorAssignment, isLoading: loadingAssignment, refetch } = useQuery<Assignment[]>({
         queryKey: ["assignments", colonyId],
@@ -46,7 +46,14 @@ export function useAssignment(serverId: string, colonyId?: string) {
         },
     });
 
-    const informAssignment = useMutation({
+    type InformAssignmentResult = {
+        _id: string;
+        state: string;
+        foundSettler?: Settler; // SettlerType is whatever structure you expect
+        // ...other fields
+    };
+
+    const informAssignment = useMutation<InformAssignmentResult, Error, string>({
         mutationFn: async (assignmentId: string) => {
             // Call PATCH endpoint
             const response = await agent.patch(`/colonies/${colonyId}/assignments/${assignmentId}/informed`);
@@ -54,37 +61,38 @@ export function useAssignment(serverId: string, colonyId?: string) {
         },
         onSuccess: (data) => {
             // Update cache for just this assignment
+            if (data.state === "informed") {
+                queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
+                    old?.map(a => a._id === data._id ? { ...a, state: "informed" } : a) ?? [] //this isn't working
+                );
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                    if (!old) return old;
+                    //update unlocks
 
-            queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
-                old?.map(a => a._id === data._id ? { ...a, state: data.state } : a) ?? [] //this isn't working
-            );
-            queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
-                if (!old) return old;
-                //update unlocks
+                    // Get assignments from cache
+                    const assignments = queryClient.getQueryData<Assignment[]>(["assignments", colonyId]);
+                    // Find the assignment you just updated
+                    const updatedAssignment = assignments?.find(a => a._id === data._id);
 
-                // Get assignments from cache
-                const assignments = queryClient.getQueryData<Assignment[]>(["assignments", colonyId]);
-                // Find the assignment you just updated
-                const updatedAssignment = assignments?.find(a => a._id === data._id);
+                    const unlockKey = updatedAssignment?.unlocks; // e.g., "inventory"
+                    if (unlockKey) {
+                        old.unlocks = { ...old.unlocks, [unlockKey]: true };
+                    }
 
-                const unlockKey = updatedAssignment?.unlocks; // e.g., "inventory"
-                if (unlockKey) {
-                    old.unlocks = { ...old.unlocks, [unlockKey]: true };
-                }
+                    // If no settlerId, nothing to do
+                    if (!updatedAssignment?.settlerId) return old;
 
-                // If no settlerId, nothing to do
-                if (!updatedAssignment?.settlerId) return old;
-
-                return {
-                    ...old,
-                    unlocks: unlockKey ? { ...old.unlocks, [unlockKey]: true } : old.unlocks,
-                    settlers: updatedAssignment?.settlerId
-                        ? old.settlers.map(s =>
-                            s._id === updatedAssignment.settlerId ? { ...s, status: "idle" } : s
-                        )
-                        : old.settlers
-                };
-            });
+                    return {
+                        ...old,
+                        unlocks: unlockKey ? { ...old.unlocks, [unlockKey]: true } : old.unlocks,
+                        settlers: updatedAssignment?.settlerId
+                            ? old.settlers.map(s =>
+                                s._id === updatedAssignment.settlerId ? { ...s, status: "idle" } : s
+                            )
+                            : old.settlers
+                    };
+                });
+            }
         }
     });
 

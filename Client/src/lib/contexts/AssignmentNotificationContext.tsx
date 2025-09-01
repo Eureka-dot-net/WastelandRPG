@@ -4,8 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Assignment } from '../types/assignment';
 import type { Colony } from '../types/colony';
 import type { Settler } from '../types/settler';
-import { agent } from '../api/agent';
 import { showTaskCompletionToast } from '../../app/shared/components/toast/toastHelpers';
+import { useSettler } from '../hooks/useSettler';
+import { useAssignment } from '../hooks/useAssignment';
 
 interface NotificationState {
   assignmentId: string;
@@ -27,15 +28,15 @@ interface AssignmentTimer {
 interface AssignmentNotificationContextValue {
   // Timer data for UI display
   timers: Record<string, number>; // assignmentId -> milliseconds remaining
-  
+
   // Notification management  
   pendingNotifications: NotificationState[];
-  
+
   // Actions
   startAssignment: (assignment: Assignment) => void;
   clearNotification: (assignmentId: string) => void;
   handleSettlerApproval: (settler: Settler, approve: boolean) => Promise<void>;
-  
+
   // Dialog state
   settlerDialog: {
     isOpen: boolean;
@@ -59,7 +60,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   colonyId,
 }) => {
   const queryClient = useQueryClient();
-  
+
   // Local state
   const [timers, setTimers] = useState<Record<string, number>>({});
   const [activeTimers, setActiveTimers] = useState<AssignmentTimer[]>([]);
@@ -71,6 +72,8 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
 
   // Storage keys
   const STORAGE_KEY = `assignment_notifications_${serverId}_${colonyId}`;
+  const { selectSettler, rejectSettler } = useSettler(serverId, colonyId);
+  const { informAssignment } = useAssignment(serverId, colonyId);
 
   // Load persisted notifications from localStorage
   useEffect(() => {
@@ -110,7 +113,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     }));
 
     setActiveTimers(newTimers);
-    
+
     // Also invalidate and refetch assignments to ensure we have latest data
     queryClient.invalidateQueries({ queryKey: ['assignments', colonyId] });
   }, [queryClient, colonyId]);
@@ -118,10 +121,10 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   // Listen for assignment query updates to reinitialize timers
   useEffect(() => {
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event.query.queryKey[0] === 'assignments' && 
-          event.query.queryKey[1] === colonyId && 
-          event.type === 'updated') {
-        
+      if (event.query.queryKey[0] === 'assignments' &&
+        event.query.queryKey[1] === colonyId &&
+        event.type === 'updated') {
+
         const assignments = event.query.state.data as Assignment[];
         if (!assignments) return;
 
@@ -166,7 +169,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
       if (assignment.plannedRewards) {
         Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
           rewards[key] = reward.amount;
-          
+
           // Update colony resources in cache
           queryClient.setQueryData(['colony', serverId], (old: Colony | undefined) => {
             return updateColonyResource(old, key, reward.type, reward.amount, reward.properties || {});
@@ -175,20 +178,21 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
       }
 
       // Call the inform endpoint
-      const response = await agent.patch(`/colonies/${colonyId}/assignments/${assignmentId}/informed`);
-      const data = response.data;
+      const data = await informAssignment.mutateAsync(assignmentId);
+      // const response = await agent.patch(`/colonies/${colonyId}/assignments/${assignmentId}/informed`);
+      // const data = response.data;
 
-      // Update assignment state in cache
-      queryClient.setQueryData<Assignment[]>(['assignments', colonyId], (old) =>
-        old?.map(a => a._id === assignmentId ? { ...a, state: 'informed' } : a) ?? []
-      );
+      // // Update assignment state in cache
+      // queryClient.setQueryData<Assignment[]>(['assignments', colonyId], (old) =>
+      //   old?.map(a => a._id === assignmentId ? { ...a, state: 'informed' } : a) ?? []
+      // );
 
       // Create notification state
       const notificationState: NotificationState = {
         assignmentId,
         needsToast: true,
-        needsSettlerDialog: !!data.foundSettler,
-        settlerData: data.foundSettler,
+        needsSettlerDialog: !!data?.foundSettler,
+        settlerData: data?.foundSettler,
         rewards,
         assignmentName: assignment.name,
         assignmentDescription: assignment.description,
@@ -201,7 +205,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     } catch (error) {
       console.error('Error handling assignment completion:', error);
     }
-  }, [queryClient, serverId, colonyId]);
+  }, [queryClient, informAssignment, serverId, colonyId]);
 
   // Main timer loop - check every second for completed assignments
   useEffect(() => {
@@ -215,7 +219,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
 
       activeTimers.forEach(timer => {
         const timeRemaining = timer.completionTime.getTime() - now;
-        
+
         if (timeRemaining <= 0) {
           completedAssignments.push(timer);
         } else {
@@ -323,20 +327,24 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     setPendingNotifications(prev => prev.filter(n => n.assignmentId !== assignmentId));
   }, []);
 
+
   // Handle settler dialog actions
   const handleSettlerApproval = useCallback(async (settler: Settler, approve: boolean) => {
+
     try {
       // Make API call based on approval
       if (approve) {
         console.log('Recruiting settler:', settler.name);
-        // TODO: Add actual recruit API call when endpoint is available
+        await selectSettler.mutate({ settlerId: settler._id });
+
       } else {
         console.log('Rejecting settler:', settler.name);
+        await rejectSettler.mutate({ settlerId: settler._id });
       }
 
       // Close dialog and clear notification
       setSettlerDialog({ isOpen: false, settler: null });
-      
+
       // Clear the settler dialog notification
       setPendingNotifications(prev =>
         prev.map(n =>
@@ -349,7 +357,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     } catch (error) {
       console.error('Error handling settler approval:', error);
     }
-  }, []);
+  }, [selectSettler, rejectSettler, setSettlerDialog, setPendingNotifications]);
 
   const closeSettlerDialog = useCallback(() => {
     setSettlerDialog({ isOpen: false, settler: null });
