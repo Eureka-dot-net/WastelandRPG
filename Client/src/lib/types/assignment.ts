@@ -19,6 +19,18 @@ export interface PlannedRewards {
   [key: string]: AssignmentRewardItem;
 }
 
+export interface AssignmentAdjustments {
+  adjustedDuration: number;
+  effectiveSpeed: number;
+  lootMultiplier: number;
+  adjustedPlannedRewards: Record<string, number>;
+  effects: {
+    speedEffects: string[];
+    lootEffects: string[];
+    traitEffects: string[];
+  };
+}
+
 export interface Assignment {
   _id: string;
   colonyId: string;
@@ -34,6 +46,7 @@ export interface Assignment {
   settlerFound?: Settler;
   completionMessage?: string;
   plannedRewards: PlannedRewards;
+  adjustments?: AssignmentAdjustments;
   createdAt: string;      // ISO date string
   updatedAt: string;      // ISO date string
   startedAt?: string;     // ISO date string
