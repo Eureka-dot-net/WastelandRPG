@@ -104,7 +104,7 @@ const DashboardTopBar: React.FC = () => {
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
   // Get current server from context
-  const { currentServerId, currentColony, isLoading: serverLoading } = useServerContext();
+  const { currentServerId, isLoading: serverLoading } = useServerContext();
 
   // Reset navigatingTo when route changes
   useEffect(() => {
@@ -117,7 +117,7 @@ const DashboardTopBar: React.FC = () => {
   const { colony, colonyLoading } = useColony(currentServerId || undefined);
   
   // Use colony data from context if available, fallback to API data
-  const displayColony = currentColony || colony;
+  const displayColony =  colony;
 
   // Dynamic navigation based on unlocked features
   const NAV_ITEMS = useMemo(() => {

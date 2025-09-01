@@ -171,13 +171,7 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
-        PaperProps={{
-          sx: {
-            minWidth: 280,
-            bgcolor: 'background.paper',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }
-        }}
+       
       >
         {hasMultipleServers && (
           <>
