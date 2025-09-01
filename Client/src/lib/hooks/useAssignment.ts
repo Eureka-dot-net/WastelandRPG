@@ -1,14 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
-import { useEffect, useRef } from "react";
-import { showTaskCompletionToast } from "../../app/shared/components/toast/toastHelpers";
 import type { Colony } from "../types/colony";
-import type { Settler } from "../types/settler";
 
 export function useAssignment(serverId: string, colonyId?: string) {
     const queryClient = useQueryClient();
-    const onFoundSettlerRef = useRef<((settler: Settler) => void) | null>(null);
     console.log(serverId);
     // Fetch assignments
     const { data: assignments, error: errorAssignment, isLoading: loadingAssignment, refetch } = useQuery<Assignment[]>({
@@ -92,87 +88,12 @@ export function useAssignment(serverId: string, colonyId?: string) {
         }
     });
 
-    function updateColonyResource(
-        old: Colony | undefined,
-        key: string,
-        type: string,
-        amount: number,
-        properties: Record<string, unknown> = {}
-    ): Colony | undefined {
-        if (!old) return old;
-
-        if (type === "food") {
-            // Calculate daysFood based on settlers
-            const settlerCount = Array.isArray(old.settlers) ? old.settlers.length : (old.settlers || 1);
-            const currentFood = (old.daysFood || 0) * (settlerCount || 1);
-            const addedFood = amount * (properties["foodValue"] as number || 0);
-            const newFood = currentFood + addedFood;
-            return { ...old, daysFood: Math.round((newFood / (settlerCount || 1)) * 10) / 10 };
-        }
-
-        if (key === "scrap") {
-            return { ...old, scrapMetal: (old.scrapMetal || 0) + amount };
-        }
-
-        if (key === "wood") {
-            return { ...old, wood: (old.wood || 0) + amount };
-        }
-    }
-
-    useEffect(() => {
-        if (!assignments) return;
-
-        const newlyCompleted = assignments.filter(
-            a => a.state === "completed");
-        console.log('starting assignment completion')
-
-        for (const assignment of newlyCompleted) {
-            const colony = queryClient.getQueryData<{ settlers: { _id: string; name: string }[] }>(["colony", serverId]);
-            const settler = colony?.settlers?.find(s => s._id === assignment.settlerId) || null;
-            
-            // ... existing console logs and logic ...
-
-            if (assignment.plannedRewards && settler) {
-                const rewards: Record<string, number> = {};
-                Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
-                    queryClient.setQueryData(["colony", serverId], (old: Colony | undefined) =>
-                        updateColonyResource(old, key, reward.type, reward.amount, reward.properties)
-                    );
-                    rewards[key] = reward.amount;
-                });
-
-                informAssignment.mutateAsync(assignment._id)
-                    .then((data) => {
-                        console.log('foundSettlerId: ' + (data.foundSettler?._id || 'none'));
-                        
-                        if (data.state === "informed") {
-                            showTaskCompletionToast(
-                                { name: assignment.name, purpose: assignment.description },
-                                { name: settler.name },
-                                rewards
-                            );
-
-                            // Handle found settler if callback is registered
-                            if (data.foundSettler && onFoundSettlerRef.current) {
-                                onFoundSettlerRef.current(data.foundSettler as Settler);
-                            }
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Inform assignment error:", error);
-                    });
-            }
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [assignments]);
-
     return {
         assignments,
         errorAssignment,
         loadingAssignment,
         startAssignment,
         informAssignment,
-        onFoundSettlerRef,
         refetch
     };
 }

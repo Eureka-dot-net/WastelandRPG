@@ -2,32 +2,13 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../lib/hooks/useAuth';
 import { useColony } from '../../lib/hooks/useColony';
 import { CircularProgress, Container } from '@mui/material';
-import GlobalAssignmentHandler from '../shared/components/GlobalAssignmentHandler';
-import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { agent } from '../../lib/api/agent';
-import { assignmentTimerService } from '../../lib/services/AssignmentTimerService';
+import { AssignmentNotificationProvider } from '../../lib/contexts/AssignmentNotificationContext';
+import GlobalSettlerDialog from '../shared/components/GlobalSettlerDialog';
 
 export const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
   const { colony, colonyLoading } = useColony("server-1");
   const location = useLocation();
-
-  // Move ALL hooks to the top before any conditional returns
-  const { data: assignments } = useQuery({
-    queryKey: ["assignments", colony?._id],
-    queryFn: async () => {
-      const response = await agent.get(`/colonies/${colony!._id}/assignments`);
-      return response.data.assignments;
-    },
-    enabled: colony && !!colony?._id,
-  });
-
-  useEffect(() => {
-    if (assignments && colony?._id) {
-      assignmentTimerService.initialize(assignments, "server-1", colony._id);
-    }
-  }, [assignments, colony?._id]);
 
   // NOW do your conditional logic
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -67,9 +48,9 @@ export const ProtectedRoute = () => {
   }
 
   return (
-    <>
-      <GlobalAssignmentHandler serverId="server-1" colonyId={colony._id} /> 
+    <AssignmentNotificationProvider serverId="server-1" colonyId={colony._id}>
+      <GlobalSettlerDialog />
       <Outlet />
-    </>
+    </AssignmentNotificationProvider>
   );
 };

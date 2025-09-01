@@ -1,4 +1,3 @@
-// File: src/pages/AssignmentPage.tsx
 import  { useState, useEffect } from "react";
 import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
@@ -10,7 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
-import { useCountdownTimer } from "../../lib/hooks/useCountdownTimer";
+import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
 import type { Assignment } from "../../lib/types/assignment";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,83 +28,19 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  const { colony, colonyLoading, refetch: refetchColony } = useColony(serverId);
+  const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const queryClient = useQueryClient();
-  const { assignments, loadingAssignment, startAssignment, refetch: refetchAssignments } = useAssignment(serverId, colonyId);
-
-  // Use the countdown timer hook
-  const { activeTimers, setTimerForTask, removeTimer } = useCountdownTimer(async (taskId: string) => {
-    try {
-      // Remove the timer first
-      removeTimer(taskId);
-      
-      const assignment = assignments?.find(a => a._id === taskId);
-      if (assignment?.state === "in-progress") {
-        // Optimistically update to "completed" first (so toast logic can trigger)
-        queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
-          old?.map(a => a._id === taskId ? { 
-            ...a, 
-            state: "completed"
-          } : a) ?? []
-        );
-      }
-    } catch (error) {
-      console.error("Error handling task completion:", error);
-      
-      // On error, refetch to get correct state from server
-      await refetchAssignments();
-      await refetchColony();
-      removeTimer(taskId);
-    }
-  });
+  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId);
+  
+  // Use the simplified notification system
+  const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
   useEffect(() => {
     if (colonyId) {
       queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
     }
   }, [colonyId, queryClient]);
-
-  // Initialize timers for in-progress assignments
-  useEffect(() => {
-    if (!assignments) return;
-
-    assignments.forEach(assignment => {
-      if (assignment.state === "in-progress" && assignment.startedAt && assignment.duration) {
-        setTimerForTask({
-          id: assignment._id,
-          startedAt: assignment.startedAt,
-          duration: assignment.duration,
-          state: assignment.state
-        });
-      }
-    });
-  }, [assignments, setTimerForTask]);
-
-  // Handle completed tasks - show toast and notify server
-  useEffect(() => {
-    if (!assignments || !colony) return;
-
-    const completedTasks = assignments.filter(a => a.state === "completed");
-    
-    completedTasks.forEach(async (assignment) => {
-      try {
-        // Show toast with rewards (you'll need to import toast)
-        // toast.success(`${assignment.name} completed! Rewards: ${Object.entries(assignment.plannedRewards || {}).map(([type, amount]) => `${amount} ${type}`).join(', ')}`);
-        
-        // Notify server that user has been informed
-        // await notifyTaskInformed.mutateAsync(assignment._id);
-        
-        // Update to informed state
-        queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
-          old?.map(a => a._id === assignment._id ? { ...a, state: "informed" } : a) ?? []
-        );
-        
-      } catch (error) {
-        console.error("Error processing completed task:", error);
-      }
-    });
-  }, [assignments, colony, queryClient, colonyId]);
 
   const handleAssignClick = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -115,7 +50,13 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const handleSettlerSelect = (settler: Settler) => {
     if (selectedTaskId) {
       startAssignment.mutate(
-        { assignmentId: selectedTaskId, settlerId: settler._id }
+        { assignmentId: selectedTaskId, settlerId: settler._id },
+        {
+          onSuccess: (updatedAssignment) => {
+            // Start the notification timer
+            startNotificationTimer(updatedAssignment);
+          }
+        }
       );
     }
     setSettlerDialogOpen(false);
@@ -205,7 +146,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
       {/* Tasks Grid */}
       <Grid container spacing={3}>
         {assignments.map(assignment => {
-          const timeRemaining = activeTimers[assignment._id] || 0;
+          const timeRemaining = timers[assignment._id] || 0;
 
           // Calculate progress correctly
           let progress = 0;
