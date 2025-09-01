@@ -144,10 +144,11 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
             settlers={settlers}
             actions={[
               {
-                label: (settler: Settler) => `Select ${settler.name.split(' ')[0]}`,
+                label: (settler: Settler) => selectSettler.isPending ? 'Selecting...' : `Select ${settler.name.split(' ')[0]}`,
                 onClick: handleSelectSettler,
                 variant: 'contained',
-                color: 'primary'
+                color: 'primary',
+                disabled: selectSettler.isPending
               }
             ]}
             gridSizes={{ xs: 12, md: 4 }}
