@@ -1,5 +1,6 @@
 // File: src/shared/components/tasks/TaskCard.tsx
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -9,8 +10,7 @@ import {
   LinearProgress,
   Chip,
   Button,
-  Alert,
-  Link
+  Alert
 } from '@mui/material';
 import {
   CheckCircle,
@@ -82,6 +82,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
   actions,
   compact = false
 }) => {
+  const navigate = useNavigate();
+  const [isNavigatingToUnlock, setIsNavigatingToUnlock] = useState(false);
+  const handleUnlockNavigation = () => {
+    if (unlockLink) {
+      setIsNavigatingToUnlock(true);
+      navigate(unlockLink);
+    }
+  };
+
   const formatTime = (ms: number) => {
     const seconds = Math.ceil(ms / 1000);
     const mins = Math.floor(seconds / 60);
@@ -164,12 +173,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 variant="outlined"
                 color="success"
                 startIcon={<Launch />}
-                component={Link}
-                href={unlockLink}
+                onClick={handleUnlockNavigation}
+                disabled={isNavigatingToUnlock}
                 sx={{ mb: 1 }}
                 size={compact ? "small" : "medium"}
               >
-                Go to {unlocks.charAt(0).toUpperCase() + unlocks.slice(1)}
+                {isNavigatingToUnlock ? 'Loading...' : `Go to ${unlocks.charAt(0).toUpperCase() + unlocks.slice(1)}`}
               </Button>
             )}
           </Box>

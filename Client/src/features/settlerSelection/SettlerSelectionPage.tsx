@@ -1,13 +1,14 @@
 // File: src/components/settlers/SettlerSelection.tsx
 import  { useState, useEffect } from 'react';
 import { Container, Box, Paper } from '@mui/material';
+import { Navigate } from 'react-router-dom';
 import type { Settler } from '../../lib/types/settler';
 import { useColony } from '../../lib/hooks/useColony';
 import { useSettler } from '../../lib/hooks/useSettler';
 import ErrorDisplay from '../../app/shared/components/ui/ErrorDisplay';
 import LoadingDisplay from '../../app/shared/components/ui/LoadingDisplay';
 import PageHeader from '../../app/shared/components/ui/PageHeader';
-import SuccessCompletion from '../../app/shared/components/ui/SuccessCompletion';
+import SuccessModal from '../../app/shared/components/ui/SuccessModal';
 import SettlerGrid from '../settlers/SettlerGrid';
 
 
@@ -22,6 +23,8 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
   const [settlers, setSettlers] = useState<Settler[]>([]);
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
   const [settlerError, setSettlerError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [shouldNavigate, setShouldNavigate] = useState<boolean>(false);
 
   const { colony, colonyLoading, colonyError } = useColony(serverId);
   const colonyId = colony?._id ?? null;
@@ -63,10 +66,25 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
         onSuccess: (data) => {
           console.log("Settler selected successfully:", data);
           setSelectedSettler(data);
+          setShowSuccessModal(true);
         }
       });
     }
   };
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleModalContinue = () => {
+    setShowSuccessModal(false);
+    setShouldNavigate(true);
+  };
+
+  // Handle navigation after modal is closed
+  if (shouldNavigate) {
+    return <Navigate to="/assignments" replace />;
+  }
 
   // Loading state for colony
   if (colonyLoading || (colony === undefined)) {
@@ -102,23 +120,6 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
     );
   }
 
-  // Success state - settler selected
-  if (selectedSettler) {
-    return (
-      <SuccessCompletion
-        title={`Welcome to ${colony.colonyName}!`}
-        subtitle={`${selectedSettler.name} has joined your colony`}
-        successMessage={`${selectedSettler.name} is now part of your colony and ready to help you survive in the wasteland.`}
-        entityName={selectedSettler.name}
-        entityDescription={selectedSettler.backstory}
-        continueButtonText="Continue"
-        continueHref="/assignments"
-        emoji="🎉"
-        showContainer={true}
-      />
-    );
-  }
-
   // Main settler selection state
   return (
     <Container maxWidth="lg">
@@ -144,10 +145,11 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
             settlers={settlers}
             actions={[
               {
-                label: (settler: Settler) => `Select ${settler.name.split(' ')[0]}`,
+                label: (settler: Settler) => selectSettler.isPending ? 'Selecting...' : `Select ${settler.name.split(' ')[0]}`,
                 onClick: handleSelectSettler,
                 variant: 'contained',
-                color: 'primary'
+                color: 'primary',
+                disabled: selectSettler.isPending
               }
             ]}
             gridSizes={{ xs: 12, md: 4 }}
@@ -155,6 +157,20 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
           />
         </Paper>
       </Box>
+
+      {/* Success Modal */}
+      <SuccessModal
+        open={showSuccessModal}
+        onClose={handleModalClose}
+        title={`Welcome to ${colony.colonyName}!`}
+        subtitle={selectedSettler ? `${selectedSettler.name} has joined your colony` : ''}
+        successMessage={selectedSettler ? `${selectedSettler.name} is now part of your colony and ready to help you survive in the wasteland.` : ''}
+        entityName={selectedSettler?.name || ''}
+        entityDescription={selectedSettler?.backstory}
+        continueButtonText="Continue"
+        onContinue={handleModalContinue}
+        emoji="🎉"
+      />
     </Container>
   );
 };

@@ -3,7 +3,7 @@ import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
 } from "@mui/icons-material";
 import {
-  Container, Paper, Typography, Grid
+  Container, Paper, Typography, Grid, Box, Button
 } from "@mui/material";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -11,13 +11,14 @@ import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
-import type { Assignment } from "../../lib/types/assignment";
+import type { Assignment, AssignmentAdjustments } from "../../lib/types/assignment";
 import { useQueryClient } from "@tanstack/react-query";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import TaskCard from "../../app/shared/components/tasks/TaskCard";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
+import AssignmentEffectsPreview from "../../app/shared/components/assignments/AssignmentEffectsPreview";
 
 
 type Props = {
@@ -27,11 +28,16 @@ type Props = {
 function AssignmentPage({ serverId = "server-1" }: Props) {
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<{
+    adjustments: AssignmentAdjustments;
+    settlerName: string;
+    baseDuration: number;
+  } | null>(null);
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const queryClient = useQueryClient();
-  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId);
+  const { assignments, loadingAssignment, startAssignment, previewAssignment } = useAssignment(serverId, colonyId);
   
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
@@ -49,16 +55,47 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
 
   const handleSettlerSelect = (settler: Settler) => {
     if (selectedTaskId) {
+      // First get the preview
+      previewAssignment.mutate(
+        { assignmentId: selectedTaskId, settlerId: settler._id },
+        {
+          onSuccess: (previewResult) => {
+            // Show preview data
+            setPreviewData({
+              adjustments: previewResult.adjustments,
+              settlerName: previewResult.settlerName,
+              baseDuration: previewResult.baseDuration
+            });
+          },
+          onError: (error) => {
+            console.error("Error previewing assignment:", error);
+            // If preview fails, still allow assignment but without effects display
+            confirmAssignment(settler);
+          }
+        }
+      );
+    }
+  };
+
+  const confirmAssignment = (settler: Settler) => {
+    if (selectedTaskId) {
       startAssignment.mutate(
         { assignmentId: selectedTaskId, settlerId: settler._id },
         {
           onSuccess: (updatedAssignment) => {
             // Start the notification timer
             startNotificationTimer(updatedAssignment);
+            setPreviewData(null);
           }
         }
       );
     }
+    setSettlerDialogOpen(false);
+    setSelectedTaskId(null);
+  };
+
+  const cancelAssignment = () => {
+    setPreviewData(null);
     setSettlerDialogOpen(false);
     setSelectedTaskId(null);
   };
@@ -253,6 +290,34 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           );
         })}
       </Grid>
+
+      {/* Effects Preview */}
+      {previewData && (
+        <Box sx={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1300, width: '90%', maxWidth: 600 }}>
+          <Paper elevation={8} sx={{ p: 3 }}>
+            <AssignmentEffectsPreview
+              adjustments={previewData.adjustments}
+              settlerName={previewData.settlerName}
+              baseDuration={previewData.baseDuration}
+            />
+            <Box display="flex" gap={2} justifyContent="flex-end">
+              <Button variant="outlined" onClick={cancelAssignment} disabled={startAssignment.isPending}>
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={() => {
+                  const selectedSettler = availableSettlers.find(s => s.name === previewData.settlerName);
+                  if (selectedSettler) confirmAssignment(selectedSettler);
+                }}
+                disabled={startAssignment.isPending}
+              >
+                {startAssignment.isPending ? 'Assigning...' : 'Confirm Assignment'}
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      )}
 
       {/* Settler Selection Dialog */}
       <SettlerSelectorDialog

@@ -30,6 +30,18 @@ const SuccessCompletion: React.FC<SuccessCompletionProps> = ({
   showContainer = true,
   maxWidth = 600
 }) => {
+  const [isNavigating, setIsNavigating] = React.useState(false);
+
+  const handleContinueClick = () => {
+    setIsNavigating(true);
+    if (onContinue) {
+      onContinue();
+    }
+    // If it's a link, let the default behavior happen
+    if (!continueHref && !onContinue) {
+      setIsNavigating(false);
+    }
+  };
   const content = (
     <Box
       display="flex"
@@ -85,9 +97,10 @@ const SuccessCompletion: React.FC<SuccessCompletionProps> = ({
             sx={{ mt: 4 }}
             component={continueHref ? "a" : "button"}
             href={continueHref}
-            onClick={onContinue}
+            onClick={handleContinueClick}
+            disabled={isNavigating}
           >
-            {continueButtonText}
+            {isNavigating ? 'Loading...' : continueButtonText}
           </Button>
         </Box>
       </Paper>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
-import type { Assignment } from "../types/assignment";
+import type { Assignment, AssignmentAdjustments } from "../types/assignment";
 import type { Colony } from "../types/colony";
 import type { Settler } from "../types/settler";
 
@@ -43,6 +43,23 @@ export function useAssignment(serverId: string, colonyId?: string) {
                             { ...s, status: 'busy' } : s)
                 };
             });
+        },
+    });
+
+    // Mutation to preview assignment adjustments with a settler
+    const previewAssignment = useMutation({
+        mutationFn: async ({ assignmentId, settlerId }: { assignmentId: string; settlerId: string }) => {
+            const response = await agent.post(
+                `/colonies/${colonyId}/assignments/${assignmentId}/preview`,
+                { settlerId }
+            );
+            return response.data as {
+                settlerId: string;
+                settlerName: string;
+                baseDuration: number;
+                basePlannedRewards: Record<string, number>;
+                adjustments: AssignmentAdjustments;
+            };
         },
     });
 
@@ -101,6 +118,7 @@ export function useAssignment(serverId: string, colonyId?: string) {
         errorAssignment,
         loadingAssignment,
         startAssignment,
+        previewAssignment,
         informAssignment,
         refetch
     };

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, type ReactElement } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -97,8 +98,10 @@ type Props = {
 
 const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
   // Get dynamic colony data
   const { colony, colonyLoading } = useColony(serverId);
@@ -226,6 +229,12 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
     setMobileMenuOpen(false);
   };
 
+  const handleNavigation = (href: string) => {
+    setNavigatingTo(href);
+    navigate(href);
+    handleMobileMenuClose(); // Close mobile menu if open
+  };
+
   if (colonyLoading) {
     return (
       <AppBar position="fixed" elevation={3} sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #333' }}>
@@ -298,35 +307,37 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
           Navigation
         </Typography>
         <List sx={{ pt: 0 }}>
-          {NAV_ITEMS.map((item) => (
-            <ListItem key={item.label} disablePadding>
-              <ListItemButton
-                component="a"
-                href={item.href}
-                onClick={handleMobileMenuClose}
-                sx={{
-                  borderRadius: 1,
-                  mb: 0.5,
-                  '&:hover': {
-                    bgcolor: 'primary.main',
-                    color: 'white',
-                  },
-                }}
-              >
-                <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-                  {item.icon}
-                </Box>
-                <ListItemText
-                  primary={item.label}
+          {NAV_ITEMS.map((item) => {
+            const isNavigating = navigatingTo === item.href;
+            return (
+              <ListItem key={item.label} disablePadding>
+                <ListItemButton
+                  onClick={() => handleNavigation(item.href)}
+                  disabled={isNavigating}
                   sx={{
-                    '& .MuiListItemText-primary': {
-                      fontWeight: 600,
+                    borderRadius: 1,
+                    mb: 0.5,
+                    '&:hover': {
+                      bgcolor: 'primary.main',
+                      color: 'white',
                     },
                   }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                >
+                  <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+                    {item.icon}
+                  </Box>
+                  <ListItemText
+                    primary={isNavigating ? 'Loading...' : item.label}
+                    sx={{
+                      '& .MuiListItemText-primary': {
+                        fontWeight: 600,
+                      },
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
       </Box>
     </Drawer>
@@ -382,28 +393,32 @@ const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
           {/* Navigation in top row - Desktop only */}
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 1 }}>
-              {NAV_ITEMS.map((item) => (
-                <Button
-                  key={item.label}
-                  href={item.href}
-                  variant="outlined"
-                  size="small"
-                  startIcon={item.icon}
-                  sx={{
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    color: 'text.primary',
-                    '&:hover': {
-                      bgcolor: 'primary.main',
-                      borderColor: 'primary.main',
-                      color: 'white',
-                    },
-                  }}
-                >
-                  {item.label}
-                </Button>
-              ))}
+              {NAV_ITEMS.map((item) => {
+                const isNavigating = navigatingTo === item.href;
+                return (
+                  <Button
+                    key={item.label}
+                    onClick={() => handleNavigation(item.href)}
+                    variant="outlined"
+                    size="small"
+                    startIcon={item.icon}
+                    disabled={isNavigating}
+                    sx={{
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      borderColor: 'rgba(255,255,255,0.2)',
+                      color: 'text.primary',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        borderColor: 'primary.main',
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    {isNavigating ? 'Loading...' : item.label}
+                  </Button>
+                );
+              })}
             </Box>
           )}
         </Paper>
