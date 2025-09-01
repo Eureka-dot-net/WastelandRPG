@@ -31,6 +31,7 @@ export type ColonyDoc = HydratedDocument<IColony>;
 const colonySchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   serverId: { type: String, required: true },
+  serverType: { type: String, enum: ['PvE', 'PvP', 'Extreme'], required: true },
   colonyName: { type: String, required: true },
   level: { type: Number, default: 1, min: 1 },
   notoriety: { type: Number, default: 0, min: 0, max: 100 },

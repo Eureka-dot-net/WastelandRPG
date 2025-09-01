@@ -9,13 +9,13 @@ describe('Server API', () => {
   let userId: mongoose.Types.ObjectId;
   let colony: any;
 
-  const serverId = 'server-1';
+  const serverId = 'harbor';
   const colonyName = 'First Colony';
 
   beforeAll(async () => {
     const result = await createTestUserAndColony({
       userProps: { email: 'player@test.com', password: 'password123' },
-      colonyProps: { serverId, colonyName, level: 1 }
+      colonyProps: { serverId, serverType: 'PvE', colonyName, level: 1 }
     });
     userId = result.user._id;
     colony = result.colony  ;
@@ -25,7 +25,9 @@ describe('Server API', () => {
   it('should return list of servers', async () => {
     const res = await request(app).get('/api/servers');
     expect(res.status).toBe(200);
-    expect(res.body.servers).toContain(serverId);
+    expect(res.body.servers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: serverId, name: 'Harbor', type: 'PvE' })
+    ]));
   });
 
   it('should return colony info for authenticated user', async () => {
@@ -49,7 +51,7 @@ describe('Server API', () => {
   });
 
   it('should return 404 if player does not exist', async () => {
-    const fakeServer = 'server-999';
+    const fakeServer = 'nonexistent-server';
     const res = await request(app)
       .get(`/api/servers/${fakeServer}/colony`)
       .set('Authorization', `Bearer ${token}`);

@@ -6,14 +6,12 @@ import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 import { Inventory } from '../models/Player/Inventory';
 import { SettlerManager } from '../managers/SettlerManager';
 import { ColonyManager } from '../managers/ColonyManager';
+import serverCatalogue from '../data/ServerCatalogue.json';
 
 const router = Router();
 
-// For now, hardcode one server
-const SERVERS = ['server-1'];
-
 router.get('/', (req, res) => {
-  return res.json({ servers: SERVERS });
+  return res.json({ servers: serverCatalogue });
 });
 
 

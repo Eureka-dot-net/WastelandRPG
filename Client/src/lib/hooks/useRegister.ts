@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 interface RegisterData {
   email: string;
   password: string;
+  serverId: string;
 }
 
 interface LoginResult {

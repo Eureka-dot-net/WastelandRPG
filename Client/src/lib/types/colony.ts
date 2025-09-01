@@ -4,6 +4,7 @@ export interface Colony {
   _id: string;
   userId: string;              // ObjectId as string
   serverId: string;
+  serverType: string;          // PvE, PvP, Extreme
   colonyName: string;
   level: number;
   notoriety: number;

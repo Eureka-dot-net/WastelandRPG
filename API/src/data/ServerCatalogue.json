@@ -1,0 +1,35 @@
+[
+  {
+    "id": "harbor",
+    "name": "Harbor",
+    "type": "PvE",
+    "description": "A peaceful server focused on cooperative play and exploration",
+    "features": {
+      "pvp": false,
+      "notoriety": false,
+      "cooperation": true
+    }
+  },
+  {
+    "id": "frontier",
+    "name": "Frontier", 
+    "type": "PvP",
+    "description": "Player vs Player combat without notoriety consequences",
+    "features": {
+      "pvp": true,
+      "notoriety": false,
+      "cooperation": false
+    }
+  },
+  {
+    "id": "wasteland",
+    "name": "Wasteland",
+    "type": "PvP",
+    "description": "Extreme PvP with notoriety system - actions have consequences",
+    "features": {
+      "pvp": true,
+      "notoriety": true,
+      "cooperation": false
+    }
+  }
+]
