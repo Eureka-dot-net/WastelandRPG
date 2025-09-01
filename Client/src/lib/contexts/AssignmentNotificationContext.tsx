@@ -1,5 +1,5 @@
 // File: src/lib/contexts/AssignmentNotificationContext.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Assignment } from '../types/assignment';
 import type { Colony } from '../types/colony';
@@ -44,7 +44,8 @@ interface AssignmentNotificationContextValue {
   closeSettlerDialog: () => void;
 }
 
-const AssignmentNotificationContext = createContext<AssignmentNotificationContextValue | null>(null);
+// eslint-disable-next-line react-refresh/only-export-components
+export const AssignmentNotificationContext = createContext<AssignmentNotificationContextValue | null>(null);
 
 interface AssignmentNotificationProviderProps {
   children: React.ReactNode;
@@ -369,12 +370,4 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
       {children}
     </AssignmentNotificationContext.Provider>
   );
-};
-
-export const useAssignmentNotifications = () => {
-  const context = useContext(AssignmentNotificationContext);
-  if (!context) {
-    throw new Error('useAssignmentNotifications must be used within AssignmentNotificationProvider');
-  }
-  return context;
 };
