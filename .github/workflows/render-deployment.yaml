@@ -51,12 +51,6 @@ jobs:
         NODE_ENV: test
         MONGODB_URI: mongodb://localhost:27017/homesteadRpg_test
 
-    - name: Run API tests (non-blocking)
-      run: npm test || echo "Tests failed but continuing with deployment"
-      continue-on-error: true
-      env:
-        NODE_ENV: test
-
     - name: Prepare API build artifacts
       run: |
         mkdir -p ../api-build
