@@ -8,7 +8,7 @@ describe('Player endpoints', () => {
   let userId: mongoose.Types.ObjectId;
   let colony: any;
 
-  const serverId = 'server-1';
+  const serverId = 'harbor';
   const colonyName = 'First Colony';
 
   beforeAll(async () => {

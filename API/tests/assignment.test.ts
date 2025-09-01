@@ -11,7 +11,7 @@ describe('Player endpoints', () => {
   let settlerId: string;
   let assignment: any;
 
-  const serverId = 'server-1';
+  const serverId = 'harbor';
   const colonyName = 'First Colony';
 
   beforeAll(async () => {

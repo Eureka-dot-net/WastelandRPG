@@ -1,9 +1,12 @@
 import { VisibilityOff, Visibility } from "@mui/icons-material";
-import { Container, Box, Alert, Button, CircularProgress, IconButton, Paper, TextField, Typography } from "@mui/material";
+import { Container, Box, Alert, Button, CircularProgress, IconButton, Paper, TextField, Typography, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import type { SelectChangeEvent } from "@mui/material";
 import { useAuth } from "../../lib/hooks/useAuth";
 import { useAuthForm } from "../../lib/hooks/useForm";
 import { useRegister } from "../../lib/hooks/useRegister";
+import { useServers } from "../../lib/hooks/useServers";
 import { Navigate, Link } from "react-router-dom";
+import { useState } from "react";
 
 export default function Register() {
   const { isAuthenticated } = useAuth();
@@ -15,17 +18,23 @@ export default function Register() {
     setPassword,
     togglePasswordVisibility,
   } = useAuthForm();
-
+  
+  const [serverId, setServerId] = useState<string>('');
   const registerMutation = useRegister();
+  const { data: serversData, isLoading: serversLoading, error: serversError } = useServers();
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
+  const handleServerChange = (event: SelectChangeEvent) => {
+    setServerId(event.target.value as string);
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (!email || !password) return;
-    registerMutation.mutate({ email, password });
+    if (!email || !password || !serverId) return;
+    registerMutation.mutate({ email, password, serverId });
   };
   return (
     <Container maxWidth="sm">
@@ -75,6 +84,36 @@ export default function Register() {
               }}
             />
 
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel id="server-select-label">Server</InputLabel>
+              <Select
+                labelId="server-select-label"
+                value={serverId}
+                label="Server"
+                onChange={handleServerChange}
+                disabled={serversLoading}
+              >
+                {serversData?.servers.map((server) => (
+                  <MenuItem key={server.id} value={server.id}>
+                    <Box>
+                      <Typography variant="body1" fontWeight="bold">
+                        {server.name} ({server.type})
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {server.description}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {serversError && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                Failed to load servers. Please try again.
+              </Alert>
+            )}
+
             {registerMutation.error && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {registerMutation.error?.message || 'Registration failed'}
@@ -86,7 +125,7 @@ export default function Register() {
               fullWidth
               variant="contained"
               size="large"
-              disabled={registerMutation.isPending}
+              disabled={registerMutation.isPending || serversLoading || !serverId}
               sx={{ mt: 3, mb: 2 }}
             >
               {registerMutation.isPending && <CircularProgress size={20} sx={{ mr: 1 }} />}

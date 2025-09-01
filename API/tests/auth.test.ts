@@ -7,7 +7,7 @@ describe('Auth API', () => {
         console.log(res.status, res.body);
     });
 
-    const testUser = { email: 'test@example.com', password: 'password123' };
+    const testUser = { email: 'test@example.com', password: 'password123', serverId: 'harbor' };
 
     it('should register a user', async () => {
         const res = await request(app)
@@ -27,10 +27,20 @@ describe('Auth API', () => {
         expect(res.body.message).toBe('User already exists');
     });
 
+    it('should reject registration with invalid serverId', async () => {
+        const invalidUser = { email: 'invalid@example.com', password: 'password123', serverId: 'invalid-server' };
+        const res = await request(app)
+            .post('/api/auth/register')
+            .send(invalidUser)
+            .expect(400);
+
+        expect(res.body.message).toBe('Invalid server selected');
+    });
+
     it('should login a user and return JWT', async () => {
         const res = await request(app)
             .post('/api/auth/login')
-            .send(testUser)
+            .send({ email: testUser.email, password: testUser.password })
             .expect(200);
 
         expect(res.body.token).toBeDefined();
@@ -39,7 +49,7 @@ describe('Auth API', () => {
     it('should reject invalid credentials', async () => {
         const res = await request(app)
             .post('/api/auth/login')
-            .send({ ...testUser, password: 'wrongpass' })
+            .send({ email: testUser.email, password: 'wrongpass' })
             .expect(400);
 
         expect(res.body.message).toBe('Invalid credentials');

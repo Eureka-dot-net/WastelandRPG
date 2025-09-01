@@ -3,12 +3,25 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { Colony } from '../models/Player/Colony';
+import serverCatalogue from '../data/ServerCatalogue.json';
 
 const router = Router();
 
+// Helper function to get server by ID
+function getServerById(serverId: string) {
+    return serverCatalogue.find(server => server.id === serverId);
+}
+
 // Register
 router.post('/register', async (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    const { email, password, serverId } = req.body;
+
+    // Validate serverId
+    const server = getServerById(serverId);
+    if (!server) {
+        return res.status(400).json({ message: 'Invalid server selected' });
+    }
+
     const session = await User.startSession();
     session.startTransaction();
 
@@ -27,7 +40,8 @@ router.post('/register', async (req: Request, res: Response) => {
 
         const colony = new Colony({
             userId: user._id,
-            serverId: 'server-1',
+            serverId: server.id,
+            serverType: server.type,
             colonyName: 'First Colony',
             level: 1,
         });
