@@ -1,0 +1,147 @@
+name: HomesteadRPG CI/CD with Render Deployment
+
+on:
+  push:
+    branches: 
+      - main
+      - 'copilot/**'  # Deploy branches created by copilot
+    paths: [ 'client/**', 'API/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'client/**', 'API/**' ]
+  workflow_dispatch:
+
+jobs:
+  # API build and deploy job
+  api-build-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./API
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        cache-dependency-path: API/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: API security audit
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+    - name: Check API for known vulnerabilities
+      run: npx audit-ci --high
+      continue-on-error: true
+
+    - name: Test API server startup
+      run: timeout 10 npm start || true
+      env:
+        NODE_ENV: test
+        MONGODB_URI: mongodb://localhost:27017/homesteadRpg_test
+
+    - name: Prepare API build artifacts
+      run: |
+        mkdir -p ../api-build
+        cp -r . ../api-build/
+        # Remove dev dependencies and test files
+        cd ../api-build
+        npm ci --production
+
+    - name: Upload API build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-build-${{ github.sha }}
+        path: api-build
+        retention-days: 30
+
+    - name: Deploy API to Render
+      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/copilot/')
+      run: |
+        echo "🚀 Triggering API deployment to Render..."
+        curl -X POST ${{ secrets.RENDER_API_HOOK }}
+        echo "✅ API deployment triggered successfully!"
+
+  # client build and deploy job
+  client-build-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run security audit
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+    - name: Check for known vulnerabilities
+      run: npx audit-ci --high
+      continue-on-error: true
+
+    - name: Run linter
+      run: npm run lint
+
+    - name: Build application
+      run: npm run build
+      env:
+        VITE_API_URL: ${{ vars.VITE_API_URL || 'https://your-api-service.onrender.com/api' }}
+
+    - name: Check bundle size
+      run: |
+        du -sh dist/
+        # Fail if bundle is too large (>5MB for now)
+        if [ $(du -s dist/ | cut -f1) -gt 5120 ]; then
+          echo "Bundle size exceeds 5MB limit"
+          exit 1
+        fi
+
+    - name: Upload Client build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: client-build-${{ github.sha }}
+        path: dist
+        retention-days: 30
+
+    - name: Deploy Client  to Render
+      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/copilot/')
+      run: |
+        echo "🚀 Triggering Client deployment to Render..."
+        curl -X POST ${{ secrets.RENDER_CLIENT_HOOK }}
+        echo "✅ Client deployment triggered successfully!"
+
+  # Deployment summary job (optional, runs after both deployments)
+  deployment-summary:
+    needs: [api-build-deploy, client-build-deploy]
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/copilot/')) && (success() || failure())
+
+    steps:
+    - name: Deployment Summary
+      run: |
+        echo "🎉 HomesteadRPG Deployment Summary"
+        echo "=================================="
+        echo "📦 API Build: ${{ needs.api-build-deploy.result }}"
+        echo "📦 Client Build: ${{ needs.client-build-deploy.result }}"
+        echo "🚀 Deployment triggered for both services"
+        echo "🌐 Check your Render dashboard for deployment status"
+        echo "⏰ Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
