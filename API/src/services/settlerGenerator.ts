@@ -1,12 +1,11 @@
 import { ClientSession, Types } from 'mongoose';
 import { ISettler, Settler, SettlerDoc } from '../models/Player/Settler';
-import nameCatalogue from '../data/namesCatalogue.json';
+import namesCatalogue from '../data/namesCatalogue.json';
+import surnamesCatalogue from '../data/surnamesCatalogue.json';
+import backstoryCatalogue from '../data/backstoryCatalogue.json';
 import statsCatalogue from '../data/statsCatalogue.json';
 import skillsCatalogue from '../data/skillsCatalogue.json';
-import traitsCatalogue from '../data/traitsCatalogue.json';
-
-// to do - change namesCatelogue to be names and surnames sperately so we have more options
-// to do - pick backstory based on highest skill 
+import traitsCatalogue from '../data/traitsCatalogue.json'; 
 
 function getRandomTrait(type: 'positive' | 'negative') {
     const filtered = traitsCatalogue.filter(trait => trait.type === type);
@@ -92,29 +91,70 @@ function rollSkills(): ISettler['skills'] {
     return skills;
 }
 
-// Get unused names for a colony
-async function getAvailableNames(colonyId: string): Promise<typeof nameCatalogue> {
-    const existingSettlers = await Settler.find({ colonyId });
-    const usedNameIds = new Set(existingSettlers.map(settler => settler.nameId));
-    return nameCatalogue.filter(n => !usedNameIds.has(n.nameId));
+// Generate a random name combining first name and surname
+function generateRandomName(): { name: string, nameId: string } {
+    const firstName = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
+    const surname = surnamesCatalogue[Math.floor(Math.random() * surnamesCatalogue.length)];
+    const fullName = `${firstName} ${surname}`;
+    const nameId = `${firstName.toLowerCase()}_${surname.toLowerCase()}`;
+    
+    return {
+        name: fullName,
+        nameId: nameId
+    };
 }
 
-// Pick N unique names for onboarding or single for recruit
-async function pickUniqueNames(colonyId: string, count: number): Promise<any[]> {
-    const availableNames = await getAvailableNames(colonyId);
-    if (availableNames.length < count) {
-        throw new Error('Not enough unique names available.');
+// Find the highest skill value and return the skill name
+function getHighestSkill(skills: ISettler['skills']): keyof ISettler['skills'] {
+    const skillEntries = Object.entries(skills) as [keyof ISettler['skills'], number][];
+    skillEntries.sort((a, b) => b[1] - a[1]);
+    return skillEntries[0][0];
+}
+
+// Get a backstory based on the highest skill
+function getSkillLinkedBackstory(skills: ISettler['skills']): string {
+    const highestSkill = getHighestSkill(skills);
+    
+    // Filter backstories by the highest skill
+    const matchingBackstories = backstoryCatalogue.filter(entry => entry.skill === highestSkill);
+    
+    // Fallback to random backstory if no matches found
+    if (matchingBackstories.length === 0) {
+        const randomBackstory = backstoryCatalogue[Math.floor(Math.random() * backstoryCatalogue.length)];
+        return randomBackstory.backstory;
     }
-    const pickedNames: any[] = [];
-    const usedIndexes = new Set<number>();
-    while (pickedNames.length < count) {
-        const idx = Math.floor(Math.random() * availableNames.length);
-        if (!usedIndexes.has(idx)) {
-            pickedNames.push(availableNames[idx]);
-            usedIndexes.add(idx);
+    
+    // Select random backstory from matching ones
+    const selectedBackstory = matchingBackstories[Math.floor(Math.random() * matchingBackstories.length)];
+    return selectedBackstory.backstory;
+}
+
+// Generate unique names ensuring no duplicates within a colony
+async function generateUniqueNames(colonyId: string, count: number): Promise<{ name: string, nameId: string }[]> {
+    const existingSettlers = await Settler.find({ colonyId });
+    const usedNameIds = new Set(existingSettlers.map(settler => settler.nameId));
+    
+    const generatedNames: { name: string, nameId: string }[] = [];
+    const attempts = count * 1000; // Prevent infinite loop
+    let attemptCount = 0;
+    
+    while (generatedNames.length < count && attemptCount < attempts) {
+        const nameObj = generateRandomName();
+        
+        // Check if this nameId is already used in the colony or already generated
+        if (!usedNameIds.has(nameObj.nameId) && !generatedNames.some(n => n.nameId === nameObj.nameId)) {
+            generatedNames.push(nameObj);
+            usedNameIds.add(nameObj.nameId);
         }
+        
+        attemptCount++;
     }
-    return pickedNames;
+    
+    if (generatedNames.length < count) {
+        throw new Error(`Could not generate ${count} unique names. Only generated ${generatedNames.length}.`);
+    }
+    
+    return generatedNames;
 }
 
 // Generate one settler
@@ -123,16 +163,19 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
     const skills = rollSkills();
     const traits = assignTraits();
 
-    // Use provided nameObj for deterministic selection, or pick unique
-    const pickedName = options?.nameObj || (await pickUniqueNames(colonyId, 1))[0];
+    // Use provided nameObj for deterministic selection, or generate unique name
+    const nameObj = options?.nameObj || (await generateUniqueNames(colonyId, 1))[0];
     const interests = options?.assignInterests ? assignInterests(2) : [];
+    
+    // Generate skill-linked backstory
+    const backstory = getSkillLinkedBackstory(skills);
 
     const settler = new Settler({
         colonyId: new Types.ObjectId(colonyId),
-        nameId: pickedName.nameId,
-        name: pickedName.name,
-        backstory: pickedName.backstory,
-        theme: pickedName.theme,
+        nameId: nameObj.nameId,
+        name: nameObj.name,
+        backstory: backstory,
+        theme: 'wasteland', // Default theme since we removed theme from names
         stats,
         skills,
         interests,
@@ -149,12 +192,12 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
     return await settler.save({ session });
 }
 
-// Generate three unique onboarding choices (names)
+// Generate three unique onboarding choices (settlers)
 export async function generateSettlerChoices(colonyId: string, session: ClientSession): Promise<ISettler[]> {
-    // Pick 3 unused names for this colony
-    const pickedNames = await pickUniqueNames(colonyId, 3);
+    // Generate 3 unique names for this colony
+    const uniqueNames = await generateUniqueNames(colonyId, 3);
 
-    const settlerPromises = pickedNames.map(nameObj =>
+    const settlerPromises = uniqueNames.map(nameObj =>
         generateSettler(colonyId, session, { assignInterests: true, isActive: false, nameObj })
     );
     const newSettlers = await Promise.all(settlerPromises);
