@@ -1,5 +1,5 @@
-import React, { useState, useMemo, type ReactElement } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useMemo, type ReactElement, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -85,6 +85,7 @@ const StatItem: React.FC<StatItemProps> = ({
     </Box>
   );
 
+  
   return  (
     <Tooltip title={tooltip || value + ' ' + label} arrow>
       {content}
@@ -99,9 +100,17 @@ type Props = {
 const DashboardTopBar: React.FC<Props> = ({ serverId = "server-1" }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation(); 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  // Reset navigatingTo when route changes
+  useEffect(() => {
+    if (navigatingTo && location.pathname === navigatingTo) {
+      setNavigatingTo(null);
+    }
+  }, [location.pathname, navigatingTo]);
 
   // Get dynamic colony data
   const { colony, colonyLoading } = useColony(serverId);
