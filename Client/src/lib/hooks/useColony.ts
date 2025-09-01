@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Colony } from "../types/colony";
 import { agent } from "../api/agent";
 
-export function useColony(serverId?: string) {
+export function useColony(serverId?: string | null) {
 
     const { data : colony, isLoading : colonyLoading, error: colonyError, refetch } = useQuery<Colony>({
         queryKey: ["colony", serverId],

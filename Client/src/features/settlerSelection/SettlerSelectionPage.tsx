@@ -10,14 +10,10 @@ import LoadingDisplay from '../../app/shared/components/ui/LoadingDisplay';
 import PageHeader from '../../app/shared/components/ui/PageHeader';
 import SuccessModal from '../../app/shared/components/ui/SuccessModal';
 import SettlerGrid from '../settlers/SettlerGrid';
+import { useServerContext } from '../../lib/contexts/ServerContext';
 
 
-
-interface SettlerSelectionProps {
-  serverId?: string;
-}
-
-function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
+function SettlerSelection() {
   console.log('settler selection loaded');
   const [selectedSettler, setSelectedSettler] = useState<Settler | null>(null);
   const [settlers, setSettlers] = useState<Settler[]>([]);
@@ -25,6 +21,7 @@ function SettlerSelection({ serverId = "server-1" }: SettlerSelectionProps) {
   const [settlerError, setSettlerError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [shouldNavigate, setShouldNavigate] = useState<boolean>(false);
+  const { currentServerId: serverId } = useServerContext();
 
   const { colony, colonyLoading, colonyError } = useColony(serverId);
   const colonyId = colony?._id ?? null;

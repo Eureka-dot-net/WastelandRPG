@@ -59,7 +59,7 @@ A welcome screen for new users who haven't joined any servers yet.
 The ServerContext is integrated at the root level in `main.tsx`, making server state available throughout the application.
 
 ### Dynamic Routing
-Page wrapper components (`AssignmentPageWrapper`, `InventoryPageWrapper`) dynamically inject the current server ID into page components, replacing hardcoded "server-1" references.
+Page wrapper components (`AssignmentPageWrapper`, `InventoryPageWrapper`) dynamically inject the current server ID into page components, replacing hardcoded  references.
 
 ### Layout Updates
 `DashboardLayout` conditionally shows either the normal dashboard with top bar or the initial server selection for new users.

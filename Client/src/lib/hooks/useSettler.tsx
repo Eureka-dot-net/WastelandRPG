@@ -7,7 +7,7 @@ import type { Colony } from "../types/colony";
  * Custom hook for settler mutations.
  * If colonyId is not defined, mutation functions will throw and not run.
  */
-export function useSettler(serverId: string, colonyId: string | null) {
+export function useSettler(serverId: string | null, colonyId?: string | null) {
   const queryClient = useQueryClient();
 
   // Onboard Settler

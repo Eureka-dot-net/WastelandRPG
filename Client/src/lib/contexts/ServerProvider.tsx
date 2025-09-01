@@ -1,31 +1,6 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { useUserColonies } from '../hooks/useUserColonies';
-import type { Server } from '../hooks/useServers';
-import type { Colony } from '../types/colony';
-
-interface ColonyWithServer extends Colony {
-  server: Server;
-}
-
-interface ServerContextType {
-  currentServerId: string | null;
-  currentColony: ColonyWithServer | null;
-  userColonies: ColonyWithServer[];
-  isLoading: boolean;
-  error: Error | null;
-  setCurrentServer: (serverId: string) => void;
-  hasMultipleServers: boolean;
-}
-
-const ServerContext = createContext<ServerContextType | undefined>(undefined);
-
-export const useServerContext = () => {
-  const context = useContext(ServerContext);
-  if (context === undefined) {
-    throw new Error('useServerContext must be used within a ServerProvider');
-  }
-  return context;
-};
+import { type ReactNode, useState, useEffect, useMemo } from "react";
+import { useUserColonies } from "../hooks/useUserColonies";
+import { ServerContext, type ServerContextType } from "./ServerContext";
 
 interface ServerProviderProps {
   children: ReactNode;
@@ -38,7 +13,7 @@ export const ServerProvider = ({ children }: ServerProviderProps) => {
   });
 
   const { data: coloniesData, isLoading, error } = useUserColonies();
-  const userColonies = coloniesData?.colonies || [];
+  const userColonies = useMemo(() => coloniesData?.colonies || [], [coloniesData]);
 
   // Auto-select first server if none is selected and user has colonies
   // Also handle case where stored serverId doesn't match any current colonies

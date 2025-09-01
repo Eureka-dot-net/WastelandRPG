@@ -10,13 +10,11 @@ import type { InventoryItem } from "../../lib/types/inventory";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
+import { useServerContext } from "../../lib/contexts/ServerContext";
 
-type Props = {
-  serverId: string;
-}
-
-function InventoryPage({ serverId = "server-1" }: Props) {
+function InventoryPage() {
   const [droppingItems, setDroppingItems] = useState<Set<string>>(new Set());
+  const {currentServerId : serverId} = useServerContext();
 
   const { colony, colonyLoading, colonyError } = useColony(serverId);
   const colonyId = colony?._id;
@@ -102,7 +100,7 @@ function InventoryPage({ serverId = "server-1" }: Props) {
     return (usedSlots / maxSlots) * 100;
   };
 
-  if (colonyLoading || loadingInventory) {
+  if (colonyLoading || loadingInventory || !serverId) {
     return (
       <LoadingDisplay 
         title="Loading Inventory" 

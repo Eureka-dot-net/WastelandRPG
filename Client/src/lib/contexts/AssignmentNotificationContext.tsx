@@ -7,6 +7,7 @@ import type { Settler } from '../types/settler';
 import { showTaskCompletionToast } from '../../app/shared/components/toast/toastHelpers';
 import { useSettler } from '../hooks/useSettler';
 import { useAssignment } from '../hooks/useAssignment';
+import { useServerContext } from './ServerContext';
 
 interface NotificationState {
   assignmentId: string;
@@ -50,17 +51,14 @@ export const AssignmentNotificationContext = createContext<AssignmentNotificatio
 
 interface AssignmentNotificationProviderProps {
   children: React.ReactNode;
-  serverId: string;
-  colonyId: string;
 }
 
 export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProviderProps> = ({
   children,
-  serverId,
-  colonyId,
 }) => {
   const queryClient = useQueryClient();
-
+  const { currentServerId : serverId, currentColony } = useServerContext();
+  const colonyId = currentColony?._id;
   // Local state
   const [timers, setTimers] = useState<Record<string, number>>({});
   const [activeTimers, setActiveTimers] = useState<AssignmentTimer[]>([]);

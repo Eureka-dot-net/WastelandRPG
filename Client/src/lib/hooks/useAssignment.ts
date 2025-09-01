@@ -4,7 +4,7 @@ import type { Assignment, AssignmentAdjustments } from "../types/assignment";
 import type { Colony } from "../types/colony";
 import type { Settler } from "../types/settler";
 
-export function useAssignment(serverId: string, colonyId?: string) {
+export function useAssignment(serverId: string | null, colonyId?: string | null) {
     const queryClient = useQueryClient();
     // Fetch assignments
     const { data: assignments, error: errorAssignment, isLoading: loadingAssignment, refetch } = useQuery<Assignment[]>({

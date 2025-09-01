@@ -4,10 +4,12 @@ import { useColony } from '../../lib/hooks/useColony';
 import { CircularProgress, Container } from '@mui/material';
 import { AssignmentNotificationProvider } from '../../lib/contexts/AssignmentNotificationContext';
 import GlobalSettlerDialog from '../shared/components/GlobalSettlerDialog';
+import { useServerContext } from '../../lib/contexts/ServerContext';
 
 export const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
-  const { colony, colonyLoading } = useColony("server-1");
+  const { currentServerId } = useServerContext();
+  const { colony, colonyLoading } = useColony(currentServerId);
   const location = useLocation();
 
   // NOW do your conditional logic
@@ -48,7 +50,7 @@ export const ProtectedRoute = () => {
   }
 
   return (
-    <AssignmentNotificationProvider serverId="server-1" colonyId={colony._id}>
+    <AssignmentNotificationProvider>
       <GlobalSettlerDialog />
       <Outlet />
     </AssignmentNotificationProvider>

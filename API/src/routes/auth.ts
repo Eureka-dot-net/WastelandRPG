@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { Colony } from '../models/Player/Colony';
 import serverCatalogue from '../data/ServerCatalogue.json';
+import { createColonyWithSpiralLocation } from '../services/mapService';
 
 const router = Router();
 
@@ -38,14 +39,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         await user.save({ session });
 
-        const colony = new Colony({
-            userId: user._id,
-            serverId: server.id,
-            serverType: server.type,
-            colonyName: 'First Colony',
-            level: 1,
-        });
-        await colony.save({ session });
+        const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, 5, 5, session);
 
         await session.commitTransaction();
         session.endSession();

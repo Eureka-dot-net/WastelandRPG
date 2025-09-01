@@ -95,11 +95,7 @@ const StatItem: React.FC<StatItemProps> = ({
   );
 };
 
-type Props = {
-  // Remove serverId prop since we'll get it from context
-}
-
-const DashboardTopBar: React.FC<Props> = () => {
+const DashboardTopBar: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation(); 

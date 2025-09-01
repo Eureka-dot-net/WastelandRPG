@@ -1,9 +1,9 @@
-import  { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
 } from "@mui/icons-material";
 import {
-  Container, Paper, Typography, Grid, Box, Button
+  Container, Paper, Typography, Grid
 } from "@mui/material";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -18,14 +18,11 @@ import TaskCard from "../../app/shared/components/tasks/TaskCard";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
-import AssignmentEffectsPreview from "../../app/shared/components/assignments/AssignmentEffectsPreview";
+import { useServerContext } from "../../lib/contexts/ServerContext";
+import AssignmentEffectsPreviewDialog from "../../app/shared/components/assignments/AssignmentEffectsPreviewDialog";
 
-
-type Props = {
-  serverId: string;
-}
-
-function AssignmentPage({ serverId = "server-1" }: Props) {
+function AssignmentPage() {
+  const { currentServerId: serverId } = useServerContext();
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<{
@@ -38,7 +35,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
   const colonyId = colony?._id;
   const queryClient = useQueryClient();
   const { assignments, loadingAssignment, startAssignment, previewAssignment } = useAssignment(serverId, colonyId);
-  
+
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
@@ -144,9 +141,9 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
     return linkMap[unlocks] || `/${unlocks}`;
   };
 
-  if (colonyLoading || loadingAssignment) {
+  if (colonyLoading || loadingAssignment || !serverId) {
     return (
-      <LoadingDisplay 
+      <LoadingDisplay
         showContainer={true}
         minHeight="100vh"
         size={80}
@@ -156,7 +153,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
 
   if (!assignments || !colony) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error="Failed to load assignment data"
         showContainer={true}
       />
@@ -206,7 +203,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           // Determine task states
           const dependencyMet = isDependencyMet(assignment);
           let status: 'available' | 'blocked' | 'in-progress' | 'completed';
-          
+
           if (assignment.state === "informed") {
             status = 'completed';
           } else if (assignment.state === "in-progress") {
@@ -219,7 +216,7 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
 
           // Build actions array
           const actions = [];
-          
+
           if (status === 'available' && dependencyMet && availableSettlers.length > 0) {
             actions.push({
               label: "Assign Settler",
@@ -230,14 +227,14 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           } else if (status === 'available' && dependencyMet && availableSettlers.length === 0) {
             actions.push({
               label: "No Available Settlers",
-              onClick: () => {},
+              onClick: () => { },
               variant: 'outlined' as const,
               disabled: true
             });
           } else if (status === 'blocked') {
             actions.push({
               label: "Dependency Required",
-              onClick: () => {},
+              onClick: () => { },
               variant: 'outlined' as const,
               disabled: true, //this is 265
               startIcon: <Lock fontSize="small" />
@@ -245,14 +242,14 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
           } else if (status === 'in-progress') {
             actions.push({
               label: `In Progress... ${timeRemaining > 0 ? `(${Math.ceil(timeRemaining / 60000)}m)` : "(Finishing...)"}`,
-              onClick: () => {},
+              onClick: () => { },
               variant: 'outlined' as const,
               disabled: true
             });
           } else if (status === 'completed') {
             actions.push({
               label: "✓ Completed",
-              onClick: () => {},
+              onClick: () => { },
               variant: 'outlined' as const,
               color: 'success' as const,
               disabled: true
@@ -293,30 +290,19 @@ function AssignmentPage({ serverId = "server-1" }: Props) {
 
       {/* Effects Preview */}
       {previewData && (
-        <Box sx={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1300, width: '90%', maxWidth: 600 }}>
-          <Paper elevation={8} sx={{ p: 3 }}>
-            <AssignmentEffectsPreview
-              adjustments={previewData.adjustments}
-              settlerName={previewData.settlerName}
-              baseDuration={previewData.baseDuration}
-            />
-            <Box display="flex" gap={2} justifyContent="flex-end">
-              <Button variant="outlined" onClick={cancelAssignment} disabled={startAssignment.isPending}>
-                Cancel
-              </Button>
-              <Button 
-                variant="contained" 
-                onClick={() => {
-                  const selectedSettler = availableSettlers.find(s => s.name === previewData.settlerName);
-                  if (selectedSettler) confirmAssignment(selectedSettler);
-                }}
-                disabled={startAssignment.isPending}
-              >
-                {startAssignment.isPending ? 'Assigning...' : 'Confirm Assignment'}
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
+        <AssignmentEffectsPreviewDialog
+          open={!!previewData}
+          onClose={cancelAssignment}
+          adjustments={previewData?.adjustments}
+          settlerName={previewData?.settlerName ?? ""}
+          baseDuration={previewData?.baseDuration ?? 0}
+          onCancel={cancelAssignment}
+          onConfirm={() => {
+            const selectedSettler = availableSettlers.find(s => s.name === previewData?.settlerName);
+            if (selectedSettler) confirmAssignment(selectedSettler);
+          }}
+          confirmPending={startAssignment.isPending}
+        />
       )}
 
       {/* Settler Selection Dialog */}

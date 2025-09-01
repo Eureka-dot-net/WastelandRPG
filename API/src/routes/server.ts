@@ -7,6 +7,7 @@ import { Inventory } from '../models/Player/Inventory';
 import { SettlerManager } from '../managers/SettlerManager';
 import { ColonyManager } from '../managers/ColonyManager';
 import serverCatalogue from '../data/ServerCatalogue.json';
+import { createColonyWithSpiralLocation } from '../services/mapService';
 
 const router = Router();
 
@@ -75,15 +76,16 @@ router.post('/:serverId/join', authenticate, async (req: Request, res: Response)
   }
 
   try {
-    const colony = new Colony({
-      userId,
-      serverId: server.id,
-      serverType: server.type,
-      colonyName: colonyName || 'New Colony',
-      level: 1,
-    });
+    const colony = await createColonyWithSpiralLocation(userId, server.id, colonyName || 'New Colony', server.type);
+    // const colony = new Colony({
+    //   userId,
+    //   serverId: server.id,
+    //   serverType: server.type,
+    //   colonyName: colonyName || 'New Colony',
+    //   level: 1,
+    // });
     
-    await colony.save();
+    // await colony.save();
     
     const colonyManager = new ColonyManager(colony);
     const viewModel = await colonyManager.toViewModel();
