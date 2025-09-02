@@ -22,20 +22,15 @@ router.get('/colonies', authenticate, async (req: Request, res: Response) => {
   try {
     const colonies = await Colony.find({ userId }).populate('settlers');
     
-    const coloniesByServer = await Promise.all(
+    const coloniesViewModels = await Promise.all(
       colonies.map(async (colony) => {
         const colonyManager = new ColonyManager(colony);
         const viewModel = await colonyManager.toViewModel();
-        const server = serverCatalogue.find(s => s.id === colony.serverId);
-        
-        return {
-          ...viewModel,
-          server: server
-        };
+        return viewModel;
       })
     );
 
-    return res.json({ colonies: coloniesByServer });
+    return res.json({ colonies: coloniesViewModels });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to retrieve colonies', error });
   }
@@ -76,7 +71,7 @@ router.post('/:serverId/join', authenticate, async (req: Request, res: Response)
   }
 
   try {
-    const colony = await createColonyWithSpiralLocation(userId, server.id, colonyName || 'New Colony', server.type);
+    const colony = await createColonyWithSpiralLocation(userId, server.id, colonyName || 'New Colony', server.type, server.name);
     // const colony = new Colony({
     //   userId,
     //   serverId: server.id,

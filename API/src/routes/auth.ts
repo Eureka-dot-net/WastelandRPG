@@ -39,7 +39,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         await user.save({ session });
 
-        const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, 5, 5, session);
+        const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
         session.endSession();

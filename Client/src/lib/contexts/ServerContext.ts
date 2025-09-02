@@ -1,17 +1,8 @@
 import { createContext, useContext } from 'react';
-import type { Server } from '../hooks/useServers';
-import type { Colony } from '../types/colony';
-
-interface ColonyWithServer extends Colony {
-  server: Server;
-}
 
 export interface ServerContextType {
   currentServerId: string | null;
-  currentColony: ColonyWithServer | null;
-  userColonies: ColonyWithServer[];
-  isLoading: boolean;
-  error: Error | null;
+  colonyId: string | null;
   setCurrentServer: (serverId: string) => void;
   hasMultipleServers: boolean;
 }

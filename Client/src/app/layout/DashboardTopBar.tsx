@@ -104,7 +104,7 @@ const DashboardTopBar: React.FC = () => {
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
   // Get current server from context
-  const { currentServerId, isLoading: serverLoading } = useServerContext();
+  const { currentServerId } = useServerContext();
 
   // Reset navigatingTo when route changes
   useEffect(() => {
@@ -248,7 +248,7 @@ const DashboardTopBar: React.FC = () => {
     handleMobileMenuClose(); // Close mobile menu if open
   };
 
-  if (colonyLoading || serverLoading || !currentServerId) {
+  if (colonyLoading || !currentServerId) {
     return (
       <AppBar position="fixed" elevation={3} sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #333' }}>
         <Toolbar>

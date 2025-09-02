@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Box, Container, useMediaQuery } from '@mui/material';
 import DashboardTopBar from './DashboardTopBar';
-import { useServerContext } from '../../lib/contexts/ServerContext';
+import { useUserColonies } from '../../lib/hooks/useUserColonies';
 import InitialServerSelection from '../../components/InitialServerSelection/InitialServerSelection';
 
 const MOBILE_HEADER_HEIGHT = 10;    // px (adjust based on your AppBar height on mobile)
@@ -10,7 +10,8 @@ const DESKTOP_HEADER_HEIGHT = 16;
 const DashboardLayout = () => {
   // Use MUI hook for match (keep consistent with DashboardTopBar)
   const isMobile = useMediaQuery('(max-width:900px)');
-  const { userColonies, isLoading } = useServerContext();
+  const { data: coloniesData, isLoading } = useUserColonies();
+  const userColonies = coloniesData?.colonies || [];
   
   // Show initial server selection if user has no colonies
   if (!isLoading && userColonies.length === 0) {

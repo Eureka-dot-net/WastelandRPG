@@ -12,7 +12,7 @@ export const ServerProvider = ({ children }: ServerProviderProps) => {
     return localStorage.getItem('currentServerId');
   });
 
-  const { data: coloniesData, isLoading, error } = useUserColonies();
+  const { data: coloniesData } = useUserColonies();
   const userColonies = useMemo(() => coloniesData?.colonies || [], [coloniesData]);
 
   // Auto-select first server if none is selected and user has colonies
@@ -38,15 +38,18 @@ export const ServerProvider = ({ children }: ServerProviderProps) => {
     localStorage.setItem('currentServerId', serverId);
   };
 
-  const currentColony = userColonies.find(colony => colony.serverId === currentServerId) || null;
+  // Derive colonyId from current server selection
+  const colonyId = useMemo(() => {
+    if (!currentServerId) return null;
+    const currentColony = userColonies.find(colony => colony.serverId === currentServerId);
+    return currentColony?._id || null;
+  }, [currentServerId, userColonies]);
+
   const hasMultipleServers = userColonies.length > 1;
 
   const contextValue: ServerContextType = {
     currentServerId,
-    currentColony,
-    userColonies,
-    isLoading,
-    error,
+    colonyId,
     setCurrentServer,
     hasMultipleServers,
   };

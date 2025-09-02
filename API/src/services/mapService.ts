@@ -6,6 +6,7 @@ export async function createColonyWithSpiralLocation(
     serverId: string,
     colonyName: string,
     serverType: string,
+    serverName: string,
     steps: number = 10,
     maxRetries: number = 5,
     session?: ClientSession
@@ -23,6 +24,7 @@ export async function createColonyWithSpiralLocation(
             const colony = new Colony({
                 userId,
                 serverId,
+                serverName,
                 colonyName,
                 serverType,
                 homesteadLocation: { x: spiralData.x, y: spiralData.y },
