@@ -6,6 +6,7 @@ import { SettlerDoc } from './Settler';
 export interface IColony {
   userId: Types.ObjectId;
   serverId: string;
+  serverName: string;
   serverType: string;
   colonyName: string;
   level: number;
@@ -37,6 +38,7 @@ export type ColonyDoc = HydratedDocument<IColony>;
 const colonySchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   serverId: { type: String, required: true },
+  serverName: { type: String, required: true },
   serverType: { type: String, required: true },
   colonyName: { type: String, required: true },
   level: { type: Number, default: 1, min: 1 },

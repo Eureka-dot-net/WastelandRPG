@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useServerContext } from '../../lib/contexts/ServerContext';
 import { useServers } from '../../lib/hooks/useServers';
+import { useUserColonies } from '../../lib/hooks/useUserColonies';
 import { useJoinServer } from '../../lib/hooks/useJoinServer';
 import { toast } from 'react-toastify';
 
@@ -58,8 +59,9 @@ interface ServerSelectorProps {
 }
 
 const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => {
-  const { currentColony, userColonies, setCurrentServer, hasMultipleServers, error: serverContextError } = useServerContext();
+  const { currentServerId, setCurrentServer, hasMultipleServers } = useServerContext();
   const { data: serversData, error: serversError } = useServers();
+  const { data: coloniesData, error: serverContextError } = useUserColonies();
   const joinServerMutation = useJoinServer();
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -67,7 +69,11 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
   const [selectedServerId, setSelectedServerId] = useState('');
   const [colonyName, setColonyName] = useState('');
 
+  const userColonies = coloniesData?.colonies || [];
   const availableServers = serversData?.servers || [];
+
+  // Find current colony from colonies data
+  const currentColony = userColonies.find(colony => colony.serverId === currentServerId);
 
   // Handle errors
   if (serverContextError || serversError) {
@@ -77,6 +83,16 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
       </Box>
     );
   }
+
+  if (!currentColony) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <CircularProgress size={16} />
+        <Typography variant="body2">Loading...</Typography>
+      </Box>
+    );
+  }
+
   const joinedServerIds = userColonies.map(colony => colony.serverId);
   const unjoinedServers = availableServers.filter(server => !joinedServerIds.includes(server.id));
 
@@ -121,17 +137,8 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
     }
   };
 
-  if (!currentColony) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CircularProgress size={16} />
-        <Typography variant="body2">Loading...</Typography>
-      </Box>
-    );
-  }
-
-  const serverDisplayName = currentColony.server?.name || 'Unknown Server';
-  const serverType = currentColony.server?.type || 'Unknown';
+  const serverDisplayName = currentColony.serverName || 'Unknown Server';
+  const serverType = currentColony.serverType || 'Unknown';
 
   return (
     <>
@@ -182,7 +189,7 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
               <MenuItem
                 key={colony.serverId}
                 onClick={() => handleServerSwitch(colony.serverId)}
-                selected={colony.serverId === currentColony.serverId}
+                selected={colony.serverId === currentServerId}
                 sx={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -192,19 +199,19 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                   <ListItemIcon sx={{ minWidth: 36 }}>
-                    {getServerIcon(colony.server?.type || '')}
+                    {getServerIcon(colony.serverType || '')}
                   </ListItemIcon>
                   <ListItemText
                     primary={colony.colonyName}
                     secondary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          {colony.server?.name}
+                          {colony.serverName}
                         </Typography>
                         <Chip
-                          label={colony.server?.type}
+                          label={colony.serverType}
                           size="small"
-                          color={getServerTypeColor(colony.server?.type || '') }
+                          color={getServerTypeColor(colony.serverType || '') }
                           sx={{ height: 16, fontSize: '0.7rem' }}
                         />
                       </Box>

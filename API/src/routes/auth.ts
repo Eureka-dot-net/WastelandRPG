@@ -39,16 +39,8 @@ router.post('/register', async (req: Request, res: Response) => {
         const user = new User({ email, password: hashedPassword });
 
         await user.save({ session });
-
-        await createColonyWithSpiralLocation(
-            user._id,
-            server.id,
-            'First Colony',
-            server.type,
-            5,
-            5,
-            session
-        );
+      
+        const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
         return res.status(201).json({ message: 'User created successfully' });

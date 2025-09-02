@@ -57,8 +57,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   children,
 }) => {
   const queryClient = useQueryClient();
-  const { currentServerId : serverId, currentColony } = useServerContext();
-  const colonyId = currentColony?._id;
+  const { currentServerId : serverId, colonyId } = useServerContext();
   // Local state
   const [timers, setTimers] = useState<Record<string, number>>({});
   const [activeTimers, setActiveTimers] = useState<AssignmentTimer[]>([]);
