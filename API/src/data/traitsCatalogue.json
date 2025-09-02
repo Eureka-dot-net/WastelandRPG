@@ -94,7 +94,7 @@
         "stack": "multiplicative"
       }
     ],
-    "icon": "GiPickaxe",
+    "icon": "GiGoldMine",
     "rarity": "common"
   },
   {
@@ -336,7 +336,7 @@
         "stack": "additive"
       }
     ],
-    "icon": "GiTripping",
+    "icon": "GiFalling",
     "rarity": "common"
   },
   {
@@ -403,7 +403,7 @@
         "stack": "multiplicative"
       }
     ],
-    "icon": "GiLyingDown",
+    "icon": "GiBed",
     "rarity": "common"
   },
   {
@@ -448,7 +448,7 @@
         "stack": "additive"
       }
     ],
-    "icon": "GiNauseous",
+    "icon": "GiVomiting",
     "rarity": "common"
   },
   {
@@ -493,7 +493,7 @@
         "stack": "multiplicative"
       }
     ],
-    "icon": "GiWeakness",
+    "icon": "GiBrokenHeart",
     "rarity": "common"
   },
   {
@@ -531,7 +531,7 @@
         "stack": "multiplicative"
       }
     ],
-    "icon": "GiSick",
+    "icon": "GiPoisonBottle",
     "rarity": "common"
   },
   {
@@ -646,7 +646,7 @@
         "stack": "additive"
       }
     ],
-    "icon": "GiLeaf",
+    "icon": "GiChestnutLeaf",
     "rarity": "uncommon"
   },
   {

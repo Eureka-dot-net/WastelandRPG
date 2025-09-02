@@ -4,7 +4,7 @@ import DashboardTopBar from './DashboardTopBar';
 import { useUserColonies } from '../../lib/hooks/useUserColonies';
 import InitialServerSelection from '../../components/InitialServerSelection/InitialServerSelection';
 
-const MOBILE_HEADER_HEIGHT = 10;    // px (adjust based on your AppBar height on mobile)
+const MOBILE_HEADER_HEIGHT = 14;    // px (increased for mobile stats bar)
 const DESKTOP_HEADER_HEIGHT = 16; 
 
 const DashboardLayout = () => {

@@ -30,6 +30,7 @@ type StatItemProps = {
   color?: string;
   tooltip?: string;
   alert?: boolean;
+  showLabel?: boolean; // New prop for mobile tiny text
 };
 
 const StatItem: React.FC<StatItemProps> = ({
@@ -39,6 +40,7 @@ const StatItem: React.FC<StatItemProps> = ({
   color = 'text.primary',
   tooltip,
   alert = false,
+  showLabel = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -47,10 +49,11 @@ const StatItem: React.FC<StatItemProps> = ({
     <Box
       sx={{
         display: 'flex',
+        flexDirection: showLabel ? 'column' : 'row',
         alignItems: 'center',
-        gap: 0.5,
+        gap: showLabel ? 0.2 : 0.5,
         px: isMobile ? 1 : 1.5,
-        py: 0.5,
+        py: showLabel ? 0.8 : 0.5,
         fontSize: isMobile ? '0.75rem' : '0.85rem',
         borderRadius: 1,
         bgcolor: 'rgba(255,255,255,0.05)',
@@ -83,11 +86,20 @@ const StatItem: React.FC<StatItemProps> = ({
            {icon}
         </Box>
       )}
-      <Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
         <Typography variant="body2" sx={{ fontWeight: 600, color, lineHeight: 1.2, fontSize: isMobile ? '0.75rem' : undefined }}>
           {value}
         </Typography>
-       
+        {showLabel && (
+          <Typography variant="caption" sx={{ 
+            fontSize: '0.6rem', 
+            lineHeight: 1, 
+            color: 'text.secondary',
+            textAlign: 'center'
+          }}>
+            {label}
+          </Typography>
+        )}
       </Box>
     </Box>
   );
@@ -415,8 +427,8 @@ const DashboardTopBar: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            bgcolor: 'rgba(211, 47, 47, 0.1)',
-            border: '1px solid rgba(211, 47, 47, 0.3)',
+            bgcolor: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: 0,
             py: 1,
             px: 2,
@@ -437,20 +449,18 @@ const DashboardTopBar: React.FC = () => {
               🧟 WASTELAND RPG
             </Typography>
             {!isMobile && <ServerSelector />}
-            {isMobile && (
-              <IconButton
-                color="primary"
-                aria-label="menu"
-                onClick={handleMobileMenuToggle}
-                sx={{ ml: 'auto' }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
           </Box>
 
-          {/* Navigation in top row - Desktop only */}
-          {!isMobile && (
+          {/* Right side - Navigation or Hamburger */}
+          {isMobile ? (
+            <IconButton
+              color="primary"
+              aria-label="menu"
+              onClick={handleMobileMenuToggle}
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               {NAV_ITEMS.map((item) => {
                 const isNavigating = navigatingTo === item.href;
@@ -502,6 +512,45 @@ const DashboardTopBar: React.FC = () => {
             </Box>
           )}
         </Paper>
+
+        {/* Mobile Stats Bar - underneath header */}
+        {isMobile && (
+          <Paper
+            elevation={0}
+            sx={{
+              bgcolor: 'rgba(0,0,0,0.3)',
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 0,
+              py: 0.75,
+              px: 1,
+              display: 'flex',
+              justifyContent: 'space-around',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            {/* Resources */}
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {resources.slice(0, 2).map((stat) => (
+                <StatItem key={stat.label} {...stat} showLabel={true} />
+              ))}
+            </Box>
+
+            {/* Settlers */}
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {settlers.slice(0, 2).map((stat) => (
+                <StatItem key={stat.label} {...stat} showLabel={true} />
+              ))}
+            </Box>
+
+            {/* Status */}
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {status.map((stat) => (
+                <StatItem key={stat.label} {...stat} showLabel={true} />
+              ))}
+            </Box>
+          </Paper>
+        )}
 
         {/* Stats Row - Desktop only */}
         {!isMobile && (
