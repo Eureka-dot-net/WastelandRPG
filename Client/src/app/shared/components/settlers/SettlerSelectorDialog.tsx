@@ -13,7 +13,9 @@ import {
   Divider,
   Chip,
   LinearProgress,
-  Skeleton
+  Skeleton,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { Speed, TrendingUp, CheckCircle, Person } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
@@ -88,6 +90,8 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
   showStats = false,
   confirmPending = false
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [settlerPreviews, setSettlerPreviews] = useState<SettlerPreview[]>([]);
   const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
   
@@ -306,8 +310,8 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 2, maxHeight: '70vh', overflowY: 'auto' }}>
-        <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={2}>
+      <DialogContent sx={{ pt: isMobile ? 1 : 2, maxHeight: '70vh', overflowY: 'auto' }}>
+        <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={isMobile ? 1 : 2}>
           {settlerPreviews.map((preview, index) => {
             const { settler, adjustments, loading, error } = preview;
             const avatarColor = avatarColors[index % avatarColors.length];
@@ -327,15 +331,15 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                 }}
                 onClick={() => !confirmPending && onSelect(settler)}
               >
-                <CardContent sx={{ p: 2 }}>
+                <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
                   {/* Settler Basic Info */}
-                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                  <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2} mb={isMobile ? 1.5 : 2}>
                     <Avatar
                       sx={{
                         bgcolor: avatarColor,
-                        width: 35,
-                        height: 35,
-                        fontSize: '1rem',
+                        width: isMobile ? 30 : 35,
+                        height: isMobile ? 30 : 35,
+                        fontSize: isMobile ? '0.9rem' : '1rem',
                         fontWeight: 'bold'
                       }}
                     >
@@ -351,29 +355,29 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                   {/* Assignment Effects Preview */}
                   {selectedTask && (
                     <>
-                      <Divider sx={{ mb: 2 }} />
+                      <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
                       <Typography
                         variant="subtitle2"
                         color="primary.main"
-                        sx={{ mb: 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                        sx={{ mb: isMobile ? 1 : 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
                       >
                         <CheckCircle fontSize="small" />
                         Assignment Effects
                       </Typography>
 
                       {loading ? (
-                        <Box sx={{ mb: 2 }}>
+                        <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
                           <Skeleton variant="text" width="60%" height={20} />
                           <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
                           <Skeleton variant="text" width="40%" height={20} />
                           <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
                         </Box>
                       ) : error ? (
-                        <Typography variant="body2" color="error.main" sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="error.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
                           {error}
                         </Typography>
                       ) : adjustments ? (
-                        <Box sx={{ mb: 2 }}>
+                        <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
                           {/* Duration & Speed */}
                           <Box sx={{ mb: 1.5 }}>
                             <Box display="flex" alignItems="center" gap={2} mb={0.5}>
@@ -425,22 +429,22 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                             )}
                         </Box>
                       ) : (
-                        <Typography variant="body2" color="warning.main" sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="warning.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
                           No assignment effects data available
                         </Typography>
                       )}
                     </>
                   )}
 
-                  <Divider sx={{ mb: 2 }} />
+                  <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
 
                   {/* Settler Skills */}
                   {showSkills && (
                     <>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
                         Skills:
                       </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={0.5} mb={1}>
+                      <Box display="flex" flexWrap="wrap" gap={0.5} mb={isMobile ? 0.5 : 1}>
                         {Object.entries(settler.skills).map(([skill, level]) => (
                           <Chip
                             key={skill}
@@ -458,7 +462,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                   {/* Settler Stats */}
                   {showStats && (
                     <>
-                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
                         Stats:
                       </Typography>
                       <Box display="flex" flexWrap="wrap" gap={0.5}>
