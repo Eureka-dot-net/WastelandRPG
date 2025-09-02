@@ -7,7 +7,7 @@
     "lootMultiplier": 1.2,
     "threatLevel": 0.3,
     "eventChance": 0.15,
-    "commonLoot": ["wood", "berries", "herbs"],
+    "commonLoot": ["wood", "wood", "wood", "berries", "herbs", "scrap"],
     "rareLoot": ["survivor_notes", "ancient_seeds"],
     "threats": ["wild_animals", "unstable_trees"],
     "events": ["hidden_cache", "old_camp", "animal_tracks"]
@@ -20,7 +20,7 @@
     "lootMultiplier": 1.5,
     "threatLevel": 0.6,
     "eventChance": 0.25,
-    "commonLoot": ["scrap", "concrete", "glass_shards"],
+    "commonLoot": ["scrap", "scrap", "scrap", "concrete", "glass_shards", "metal"],
     "rareLoot": ["electronics", "pre_war_tools", "medicines"],
     "threats": ["radiation_pockets", "unstable_structures", "feral_scavengers"],
     "events": ["locked_vault", "survivor_shelter", "emergency_cache"]
@@ -33,7 +33,7 @@
     "lootMultiplier": 1.0,
     "threatLevel": 0.1,
     "eventChance": 0.2,
-    "commonLoot": ["vegetables", "fruits", "seeds"],
+    "commonLoot": ["vegetables", "vegetables", "fruits", "seeds", "wood"],
     "rareLoot": ["heirloom_seeds", "garden_tools", "fertilizer"],
     "threats": ["plant_diseases", "insect_swarms"],
     "events": ["seed_discovery", "greenhouse_ruins", "compost_pile"]
@@ -46,7 +46,7 @@
     "lootMultiplier": 1.3,
     "threatLevel": 0.4,
     "eventChance": 0.3,
-    "commonLoot": ["scrap", "cloth", "tinned_food"],
+    "commonLoot": ["scrap", "scrap", "cloth", "tinned_food", "wood"],
     "rareLoot": ["trade_goods", "maps", "communication_equipment"],
     "threats": ["raider_patrols", "booby_traps", "territorial_survivors"],
     "events": ["trading_post", "message_board", "safe_house"]
@@ -72,7 +72,7 @@
     "lootMultiplier": 1.1,
     "threatLevel": 0.25,
     "eventChance": 0.18,
-    "commonLoot": ["grain", "farming_tools", "rope"],
+    "commonLoot": ["grain", "grain", "farming_tools", "rope", "scrap", "wood"],
     "rareLoot": ["tractor_parts", "irrigation_equipment", "livestock_supplies"],
     "threats": ["wild_livestock", "crop_blight", "irrigation_hazards"],
     "events": ["equipment_shed", "silo_cache", "well_discovery"]
@@ -85,7 +85,7 @@
     "lootMultiplier": 1.8,
     "threatLevel": 0.8,
     "eventChance": 0.2,
-    "commonLoot": ["steel", "machinery_parts", "chemicals"],
+    "commonLoot": ["steel", "steel", "machinery_parts", "chemicals", "scrap", "metal"],
     "rareLoot": ["heavy_equipment", "power_cells", "industrial_blueprints"],
     "threats": ["toxic_waste", "mechanical_hazards", "automated_defenses"],
     "events": ["power_station", "factory_vault", "maintenance_tunnel"]
@@ -98,7 +98,7 @@
     "lootMultiplier": 1.0,
     "threatLevel": 0.35,
     "eventChance": 0.25,
-    "commonLoot": ["household_items", "clothing", "personal_effects"],
+    "commonLoot": ["household_items", "household_items", "clothing", "personal_effects", "scrap", "wood"],
     "rareLoot": ["family_photos", "jewelry", "home_electronics"],
     "threats": ["squatter_gangs", "house_traps", "structural_collapse"],
     "events": ["basement_shelter", "garage_workshop", "neighbor_cache"]

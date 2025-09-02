@@ -194,6 +194,82 @@ export async function getTile(
 }
 
 /**
+ * Check if a tile can be explored (must be adjacent to an explored tile or homestead)
+ */
+export async function canTileBeExplored(
+  serverId: string,
+  colonyId: string,
+  x: number,
+  y: number,
+  session?: ClientSession
+): Promise<boolean> {
+  // Check if tile is already explored
+  const existingTile = await getTile(serverId, x, y, session);
+  if (existingTile) {
+    return true; // Can always re-explore existing tiles
+  }
+
+  // Check if any adjacent tile is explored by this colony
+  const adjacentCoords = getAdjacentCoordinates(x, y);
+  
+  for (const coord of adjacentCoords) {
+    const adjacentTile = await getTile(serverId, coord.x, coord.y, session);
+    if (adjacentTile && (
+      adjacentTile.colony?.toString() === colonyId ||
+      adjacentTile.exploredBy.some(explorer => explorer !== 'auto_generated')
+    )) {
+      return true; // Adjacent tile is explored by this colony
+    }
+  }
+
+  return false; // No adjacent explored tiles
+}
+
+/**
+ * Get a 5x5 grid of tiles centered on x,y coordinates, filtered for colony's fog of war
+ */
+export async function getMapGridForColony(
+  serverId: string,
+  colonyId: string,
+  centerX: number,
+  centerY: number,
+  session?: ClientSession
+): Promise<(MapTileDoc | null)[][]> {
+  const gridSize = 5;
+  const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
+  
+  const grid: (MapTileDoc | null)[][] = [];
+  
+  for (let row = 0; row < gridSize; row++) {
+    const gridRow: (MapTileDoc | null)[] = [];
+    
+    for (let col = 0; col < gridSize; col++) {
+      const x = centerX - offset + col;
+      const y = centerY - offset + row;
+      
+      const query = { serverId, x, y };
+      const tile = session 
+        ? await MapTileModel.findOne(query).session(session)
+        : await MapTileModel.findOne(query);
+      
+      // Only include tiles that this colony has explored or that are homestead tiles
+      if (tile && (
+        tile.colony?.toString() === colonyId ||
+        tile.exploredBy.some(explorer => explorer !== 'auto_generated')
+      )) {
+        gridRow.push(tile);
+      } else {
+        gridRow.push(null); // Fog of war
+      }
+    }
+    
+    grid.push(gridRow);
+  }
+  
+  return grid;
+}
+
+/**
  * Transform grid to a more API-friendly format
  */
 export function formatGridForAPI(grid: (MapTileDoc | null)[][]): any {
