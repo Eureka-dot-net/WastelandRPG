@@ -254,28 +254,36 @@ function InventoryPage() {
                     </Box>
 
                     {properties.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.75rem' }}>
-                          Properties:
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.5}>
-                          {properties.map((prop, index) => (
-                            <Chip
-                              key={index}
-                              size="small"
-                              label={prop}
-                              variant="filled"
-                              color="default"
-                              sx={{ 
-                                fontSize: '0.7rem', 
-                                height: '20px',
-                                backgroundColor: 'rgba(255,255,255,0.1)'
-                              }}
-                            />
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
+  <Box
+    display="flex"
+    flexWrap="wrap"
+    alignItems="center"
+    gap={0.5}
+    sx={{ mt: 2 }}
+  >
+    <Typography
+      variant="subtitle2"
+      color="text.secondary"
+      sx={{ fontSize: '0.75rem', mr: 0.5 }}
+    >
+      Properties:
+    </Typography>
+    {properties.map((prop, index) => (
+      <Chip
+        key={index}
+        size="small"
+        label={prop}
+        variant="filled"
+        color="default"
+        sx={{
+          fontSize: '0.7rem',
+          height: '20px',
+          backgroundColor: 'rgba(255,255,255,0.1)',
+        }}
+      />
+    ))}
+  </Box>
+)}
                   </CardContent>
 
                   <CardActions sx={{ p: 2, pt: 0 }}>
