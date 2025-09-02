@@ -19,6 +19,7 @@ import {
   Lock,
   Launch
 } from '@mui/icons-material';
+import { formatTimeRemaining } from '../../../../lib/utils/timeUtils';
 
 export interface TaskCardAction {
   label: string;
@@ -89,13 +90,6 @@ const TaskCard: React.FC<TaskCardProps> = ({
       setIsNavigatingToUnlock(true);
       navigate(unlockLink);
     }
-  };
-
-  const formatTime = (ms: number) => {
-    const seconds = Math.ceil(ms / 1000);
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const isBlocked = status === 'blocked';
@@ -202,7 +196,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact ? '0.75rem' : '0.875rem' }}
                 >
                   <Timer fontSize="small" /> 
-                  {timeRemaining > 0 ? formatTime(timeRemaining) : "Finishing..."}
+                  {timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : "Finishing..."}
                 </Typography>
               )}
             </Box>

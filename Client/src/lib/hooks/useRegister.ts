@@ -8,6 +8,7 @@ interface RegisterData {
   email: string;
   password: string;
   serverId: string;
+  colonyName?: string;
 }
 
 interface LoginResult {

@@ -20,6 +20,7 @@ export default function Register() {
   } = useAuthForm();
   
   const [serverId, setServerId] = useState<string>('');
+  const [colonyName, setColonyName] = useState<string>('');
   const registerMutation = useRegister();
   const { data: serversData, isLoading: serversLoading, error: serversError } = useServers();
 
@@ -34,7 +35,7 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     if (!email || !password || !serverId) return;
-    registerMutation.mutate({ email, password, serverId });
+    registerMutation.mutate({ email, password, serverId, colonyName: colonyName.trim() || undefined });
   };
   return (
     <Container maxWidth="sm">
@@ -107,6 +108,16 @@ export default function Register() {
                 ))}
               </Select>
             </FormControl>
+
+            <TextField
+              fullWidth
+              label="Colony Name (Optional)"
+              placeholder="Enter a name for your colony"
+              value={colonyName}
+              onChange={(e) => setColonyName(e.target.value)}
+              margin="normal"
+              helperText="If left blank, your colony will be named 'First Colony'"
+            />
 
             {serversError && (
               <Alert severity="warning" sx={{ mt: 2 }}>
