@@ -131,7 +131,7 @@ jobs:
       if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/copilot/')
       run: |
         echo "🚀 Triggering Client deployment to Render..."
-        curl -X POST ${{ secrets.RENDER_REACT_HOOK }}
+        curl -X POST ${{ secrets.RENDER_CLIENT_HOOK }}
         echo "✅ Client deployment triggered successfully!"
 
   # Deployment summary job (optional, runs after both deployments)
