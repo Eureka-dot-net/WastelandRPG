@@ -150,3 +150,75 @@ This document provides a detailed overview of the **Wasteland RPG** project, inc
 - Multiplayer core concepts defined but no active features released.
 
 ---
+WastelandRPG Feature Implementation Template
+Based on lessons learned from the exploration system implementation, follow this pattern for any new game mechanics:
+
+1. Server-Authoritative Architecture (Critical)
+All game logic runs server-side - Client only displays data and sends user actions
+Create dedicated models for tracking feature state (like Exploration.ts)
+Use middleware integration - Add to updateCompletedTasks.ts for auto-completion
+Transaction-based operations - All DB operations use MongoDB sessions for consistency
+2. Required File Structure
+API/src/models/Server/{Feature}.ts          # State tracking model
+API/src/services/{feature}Service.ts        # Business logic service  
+API/src/controllers/{feature}Controller.ts  # API endpoints
+API/src/routes/{feature}.ts                 # Route definitions
+API/src/data/{feature}Catalogue.json        # Static game data
+3. Model Pattern (follow Exploration.ts)
+interface I{Feature} {
+  serverId: string;                    # Multi-server support
+  colonyId: Types.ObjectId;           # Colony ownership
+  settlerId: Types.ObjectId;          # Settler assignment
+  state: 'in-progress' | 'completed' | 'informed';  # Lifecycle states
+  startedAt: Date;
+  completedAt: Date;
+  plannedRewards: Record<string, number>;
+  adjustments: GameAdjustments;       # Settler stat/skill/trait bonuses
+}
+4. API Endpoints Pattern
+GET /:colonyId/{feature} - List active tasks (with fog of war filtering)
+POST /:colonyId/{feature}/preview - Preview adjusted rewards/duration based on settler
+POST /:colonyId/{feature}/start - Create server-side tracking with completion time
+POST /:colonyId/{feature}/inform - Process completed tasks, return rewards/discoveries
+5. Critical Validations
+Adjacency/Access Control - Validate player can perform action (like exploration adjacency)
+Settler Availability - Check settler.status === 'idle' before assignment
+Existing Task Check - Prevent duplicate tasks with unique indexes
+Colony Ownership - Use colonyOwnership middleware on all endpoints
+6. Game Mechanics Integration
+Catalogue Requirements - All loot/rewards must exist in itemsCatalogue.json
+Settler Adjustments - Use calculateSettlerAdjustments() for speed/loot bonuses
+Auto-completion - Add service call to updateCompletedTasks middleware
+Fog of War - Filter results by colony ownership for multiplayer isolation
+7. Data Catalogue Structure
+{
+  "{item}Id": "unique_identifier",
+  "name": "Display Name", 
+  "icon": "Gi{ReactIcon}",         # From react-icons/gi
+  "type": "category",
+  "rarity": "common|uncommon|rare|epic|legendary",
+  "tradeValue": 1,
+  "description": "Flavor text",
+  "properties": { "stackable": true },
+  "obtainMethods": ["farming", "crafting", "trading"]
+}
+8. Service Pattern (follow explorationService.ts)
+Completion Handler - Process completed tasks in batch
+Inventory Management - Add rewards using addRewardsToColonyInventory()
+Discovery Logic - Handle special discoveries (settlers, blueprints, etc.)
+Transaction Safety - All operations within provided session
+9. Common Pitfalls to Avoid
+Don't create objects if validation fails - Check adjacency/permissions first
+Don't forget middleware integration - Auto-completion requires service call
+Don't skip catalogue validation - All items must exist in catalogues
+Don't ignore fog of war - Always filter by colony ownership
+Don't hardcode durations - Use catalogue data with settler adjustments
+10. Testing Checklist
+ Can start task with valid settler
+ Rejects invalid/busy settlers
+ Validates access permissions (adjacency, prerequisites)
+ Auto-completes after duration expires
+ Rewards added to inventory correctly
+ Fog of war filtering works per colony
+ All catalogue items exist with proper icons
+This pattern ensures consistency with existing systems and proper server-authoritative design.
