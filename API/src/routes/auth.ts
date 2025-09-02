@@ -5,6 +5,7 @@ import { User } from '../models/User';
 import { Colony } from '../models/Player/Colony';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -71,6 +72,11 @@ router.post('/login', async (req: Request, res: Response) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
+});
+
+// Token validation endpoint
+router.get('/validate', authenticate, async (req: Request, res: Response) => {
+    return res.json({ valid: true, userId: req.userId });
 });
 
 export default router;
