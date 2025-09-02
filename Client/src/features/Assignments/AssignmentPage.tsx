@@ -3,7 +3,7 @@ import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
 } from "@mui/icons-material";
 import {
-  Container, Paper, Typography, Grid
+  Container, Paper, Typography, Grid, useTheme, useMediaQuery
 } from "@mui/material";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -22,6 +22,8 @@ import { useServerContext } from "../../lib/contexts/ServerContext";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
 
 function AssignmentPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Assignment | null>(null);
@@ -132,7 +134,7 @@ function AssignmentPage() {
   const availableSettlers = getAvailableSettlers();
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
       <ProgressHeader
         title="Homestead Cleanup"
         emoji="🏚️"
@@ -145,7 +147,7 @@ function AssignmentPage() {
       />
 
       {/* Tasks Grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 1.5 : 3}>
         {assignments.map(assignment => {
           const timeRemaining = timers[assignment._id] || 0;
 
@@ -272,7 +274,7 @@ function AssignmentPage() {
       />
 
       {/* Task Queue Placeholder */}
-      <Paper elevation={2} sx={{ p: 3, mt: 4, opacity: 0.6 }}>
+      <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mt: isMobile ? 2 : 4, opacity: 0.6 }}>
         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Science color="secondary" /> Task Queue (Coming Soon)
         </Typography>
