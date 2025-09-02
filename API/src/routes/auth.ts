@@ -26,11 +26,12 @@ router.post('/register', async (req: Request, res: Response) => {
     const session = await User.startSession();
     session.startTransaction();
 
+    let errorOccurred = false;
+
     try {
         const existingUser = await User.findOne({ email }).session(session);
         if (existingUser) {
             await session.abortTransaction();
-            session.endSession();
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -38,17 +39,18 @@ router.post('/register', async (req: Request, res: Response) => {
         const user = new User({ email, password: hashedPassword });
 
         await user.save({ session });
-
+      
         const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
-        session.endSession();
-
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
+        errorOccurred = true;
         await session.abortTransaction();
-        session.endSession();
         res.status(500).json({ message: 'Server error', error });
+    } finally {
+        // Always end session, but only after commit/abort
+        session.endSession();
     }
 });
 
