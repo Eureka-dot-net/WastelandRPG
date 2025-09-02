@@ -16,7 +16,7 @@ function getServerById(serverId: string) {
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
-    const { email, password, serverId } = req.body;
+    const { email, password, serverId, colonyName } = req.body;
 
     // Validate serverId
     const server = getServerById(serverId);
@@ -41,7 +41,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         await user.save({ session });
       
-        const colony = await createColonyWithSpiralLocation(user._id, server.id, 'First Colony', server.type, server.name, 5, 5, session);
+        const colony = await createColonyWithSpiralLocation(user._id, server.id, colonyName || 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
         return res.status(201).json({ message: 'User created successfully' });
