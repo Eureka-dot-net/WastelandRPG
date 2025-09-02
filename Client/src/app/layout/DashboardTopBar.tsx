@@ -427,8 +427,8 @@ const DashboardTopBar: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            bgcolor: 'rgba(211, 47, 47, 0.1)',
-            border: '1px solid rgba(211, 47, 47, 0.3)',
+            bgcolor: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: 0,
             py: 1,
             px: 2,
