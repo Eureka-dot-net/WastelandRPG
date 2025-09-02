@@ -1,5 +1,6 @@
 import { model, Schema, Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
+import { createOrUpdateMapTile, assignAdjacentTerrain } from "../utils/mapUtils";
 import { MapTile } from "../models/Server/MapTile";
 
 export async function createColonyWithSpiralLocation(
@@ -35,17 +36,19 @@ export async function createColonyWithSpiralLocation(
                 spiralIndex: nextIndex
             });
 
-            const tile = new MapTile({
-                serverId,
-                x: spiralData.x,
-                y: spiralData.y,
-                colony: colony._id
+            await colony.save({ session });
+            
+            // Create the homestead tile and assign adjacent terrain
+            await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, {
+                terrain: 'center', // Homesteads are typically in town center terrain
+                exploredBy: 'homestead_creation',
+                colony: colony._id.toString(),
+                session
             });
-
-            await Promise.all([
-                tile.save({ session }),
-                colony.save({ session })
-            ]);
+            
+            // Generate adjacent tiles when homestead is created
+            await assignAdjacentTerrain(serverId, spiralData.x, spiralData.y, 'homestead_creation', session);
+        
             return colony;
 
         } catch (error) {

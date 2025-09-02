@@ -1,0 +1,430 @@
+// controllers/mapController.ts
+import { Request, Response } from 'express';
+import { Types } from 'mongoose';
+import { Settler } from '../models/Player/Settler';
+import { ColonyManager } from '../managers/ColonyManager';
+import { ExplorationModel } from '../models/Server/Exploration';
+import { 
+  calculateSettlerAdjustments, 
+  enrichRewardsWithMetadata, 
+  getTerrainCatalogue 
+} from '../utils/gameUtils';
+import { 
+  createOrUpdateMapTile, 
+  assignAdjacentTerrain, 
+  getMapGridForColony, 
+  getTile, 
+  formatGridForAPI,
+  canTileBeExplored 
+} from '../utils/mapUtils';
+import { MapTileModel } from '../models/Server/MapTile';
+
+// GET /api/colonies/:colonyId/map/:x/:y
+export const getMapGrid5x5 = async (req: Request, res: Response) => {
+  const { x, y } = req.params;
+  const colony = req.colony;
+
+  const centerX = parseInt(x);
+  const centerY = parseInt(y);
+
+  if (isNaN(centerX) || isNaN(centerY)) {
+    return res.status(400).json({ error: 'Invalid coordinates' });
+  }
+
+  try {
+    // Get 5x5 grid centered on the coordinates, filtered for this colony's fog of war
+    const grid = await getMapGridForColony(colony.serverId, colony._id.toString(), centerX, centerY);
+    const formattedGrid = formatGridForAPI(grid);
+
+    res.json({
+      center: { x: centerX, y: centerY },
+      grid: formattedGrid
+    });
+  } catch (err) {
+    console.error('Error fetching map grid:', err);
+    res.status(500).json({ error: 'Failed to fetch map grid' });
+  }
+};
+
+// POST /api/colonies/:colonyId/map/:x/:y/start
+export const startExploration = async (req: Request, res: Response) => {
+  const { x, y } = req.params;
+  const { settlerId } = req.body;
+  const colony = req.colony;
+
+  const tileX = parseInt(x);
+  const tileY = parseInt(y);
+
+  if (isNaN(tileX) || isNaN(tileY)) {
+    return res.status(400).json({ error: 'Invalid coordinates' });
+  }
+
+  if (!settlerId) {
+    return res.status(400).json({ error: 'settlerId is required' });
+  }
+
+  if (!Types.ObjectId.isValid(settlerId)) {
+    return res.status(400).json({ error: 'Invalid settlerId' });
+  }
+
+  const session = await MapTileModel.startSession();
+  session.startTransaction();
+
+  try {
+    // Check if settler exists and is available
+    const settler = await Settler.findById(settlerId).session(session);
+    if (!settler) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Settler not found' });
+    }
+
+    if (settler.status !== 'idle') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'Settler is not available' });
+    }
+
+    // Check if exploration is already in progress for this tile by this colony
+    const existingExploration = await ExplorationModel.findOne({
+      serverId: colony.serverId,
+      colonyId: colony._id,
+      x: tileX,
+      y: tileY,
+      state: 'in-progress'
+    }).session(session);
+
+    if (existingExploration) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'Exploration already in progress for this tile' });
+    }
+
+    // Check if tile can be explored (must be adjacent to explored tiles or homestead)
+    const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session);
+    if (!canExplore) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'Cannot explore this tile - it must be adjacent to already explored tiles or homestead' });
+    }
+
+    // Get or create the tile
+    let tile = await getTile(colony.serverId, tileX, tileY, session);
+    let isNewTile = false;
+
+    if (!tile) {
+      // This should not happen if canTileBeExplored works correctly, but create it as a safety
+      tile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, {
+        exploredBy: settler.name,
+        colony: colony._id.toString(),
+        session
+      });
+      isNewTile = true;
+    } else if (!tile.exploredBy.includes(settler.name)) {
+      // Update existing tile
+      tile.exploredBy.push(settler.name);
+      if (!tile.colony) {
+        tile.colony = colony._id;
+      }
+      tile = await tile.save({ session });
+    }
+
+    // Create adjacent tiles when exploring (if new exploration)
+    if (isNewTile || !tile.exploredBy.some(explorer => explorer !== 'auto_generated')) {
+      await assignAdjacentTerrain(colony.serverId, tileX, tileY, settler.name, session);
+    }
+
+    // Calculate exploration adjustments based on settler
+    const baseDuration = 300000; // 5 minutes base exploration time
+    const baseRewards: Record<string, number> = {};
+    
+    // Add tile loot as base rewards
+    tile.loot.forEach(lootItem => {
+      baseRewards[lootItem.item] = lootItem.amount;
+    });
+
+    const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+
+    // Update settler status to busy
+    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
+
+    // Create exploration record
+    const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
+    
+    const exploration = await ExplorationModel.create([{
+      serverId: colony.serverId,
+      colonyId: colony._id,
+      settlerId,
+      x: tileX,
+      y: tileY,
+      state: 'in-progress',
+      startedAt: new Date(),
+      completedAt,
+      plannedRewards: adjustments.adjustedPlannedRewards,
+      adjustments
+    }], { session });
+
+    // Log the exploration
+    const colonyManager = new ColonyManager(colony);
+    await colonyManager.addLogEntry(
+      session,
+      'exploration',
+      `${settler.name} started exploring ${tile.terrain} at coordinates (${tileX}, ${tileY}).`,
+      { tileX, tileY, settlerId, terrain: tile.terrain }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const terrainInfo = getTerrainCatalogue(tile.terrain);
+
+    res.json({
+      exploration: {
+        id: exploration[0]._id,
+        settlerId,
+        settlerName: settler.name,
+        startedAt: new Date(),
+        completedAt,
+        coordinates: { x: tileX, y: tileY },
+        terrain: {
+          type: tile.terrain,
+          name: terrainInfo?.name || tile.terrain,
+          description: terrainInfo?.description || 'Unknown terrain',
+          icon: terrainInfo?.icon || 'GiQuestionMark'
+        },
+        plannedRewards: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards)
+      },
+      adjustments
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error starting exploration:', err);
+    res.status(500).json({ error: 'Failed to start exploration' });
+  }
+};
+
+// POST /api/colonies/:colonyId/map/:x/:y/preview
+export const previewExploration = async (req: Request, res: Response) => {
+  const { x, y } = req.params;
+  const { settlerId } = req.body;
+  const colony = req.colony;
+
+  const tileX = parseInt(x);
+  const tileY = parseInt(y);
+
+  if (isNaN(tileX) || isNaN(tileY)) {
+    return res.status(400).json({ error: 'Invalid coordinates' });
+  }
+
+  if (!settlerId) {
+    return res.status(400).json({ error: 'settlerId is required' });
+  }
+
+  if (!Types.ObjectId.isValid(settlerId)) {
+    return res.status(400).json({ error: 'Invalid settlerId' });
+  }
+
+  try {
+    // Find settler
+    const settler = await Settler.findById(settlerId);
+    if (!settler) {
+      return res.status(404).json({ error: 'Settler not found' });
+    }
+
+    // Check if tile can be explored
+    const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY);
+    if (!canExplore) {
+      return res.status(400).json({ error: 'Cannot explore this tile - it must be adjacent to already explored tiles or homestead' });
+    }
+
+    // Check if tile exists
+    const tile = await getTile(colony.serverId, tileX, tileY);
+    
+    let previewData;
+    
+    if (tile) {
+      // Existing tile - show actual loot and terrain info
+      const baseRewards: Record<string, number> = {};
+      tile.loot.forEach(lootItem => {
+        baseRewards[lootItem.item] = lootItem.amount;
+      });
+
+      const baseDuration = 300000; // 5 minutes
+      const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+      
+      const terrainInfo = getTerrainCatalogue(tile.terrain);
+
+      previewData = {
+        terrain: {
+          type: tile.terrain,
+          name: terrainInfo?.name || tile.terrain,
+          description: terrainInfo?.description || 'Unknown terrain',
+          icon: terrainInfo?.icon || 'GiQuestionMark'
+        },
+        loot: enrichRewardsWithMetadata(baseRewards),
+        adjustedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+        threat: tile.threat,
+        event: tile.event,
+        duration: adjustments.adjustedDuration,
+        adjustments: adjustments.effects,
+        alreadyExplored: tile.exploredBy.includes(settler.name),
+        exploredBy: tile.exploredBy.filter(e => e !== 'auto_generated')
+      };
+    } else {
+      // Unknown tile - show estimated info
+      const baseDuration = 300000;
+      const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
+      const adjustments = calculateSettlerAdjustments(baseDuration, estimatedRewards, settler);
+
+      previewData = {
+        terrain: {
+          type: 'unknown',
+          name: 'Unknown Territory',
+          description: 'This area has not been explored yet. Terrain and contents are unknown.',
+          icon: 'GiQuestionMark'
+        },
+        estimatedLoot: enrichRewardsWithMetadata(estimatedRewards),
+        adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+        estimatedDuration: adjustments.adjustedDuration,
+        adjustments: adjustments.effects,
+        alreadyExplored: false,
+        exploredBy: []
+      };
+    }
+
+    res.json({
+      coordinates: { x: tileX, y: tileY },
+      settler: {
+        id: settler._id,
+        name: settler.name,
+        stats: settler.stats,
+        skills: settler.skills,
+        traits: settler.traits
+      },
+      preview: previewData
+    });
+
+  } catch (err) {
+    console.error('Error previewing exploration:', err);
+    res.status(500).json({ error: 'Failed to preview exploration' });
+  }
+};
+
+// POST /api/colonies/:colonyId/map/:x/:y/inform
+export const informExplorationResult = async (req: Request, res: Response) => {
+  const { x, y } = req.params;
+  const colony = req.colony;
+
+  const tileX = parseInt(x);
+  const tileY = parseInt(y);
+
+  if (isNaN(tileX) || isNaN(tileY)) {
+    return res.status(400).json({ error: 'Invalid coordinates' });
+  }
+
+  const session = await ExplorationModel.startSession();
+  session.startTransaction();
+
+  try {
+    // Find the completed exploration
+    const exploration = await ExplorationModel.findOne({
+      serverId: colony.serverId,
+      colonyId: colony._id,
+      x: tileX,
+      y: tileY,
+      state: 'completed'
+    }).session(session);
+
+    if (!exploration) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'No completed exploration found for this tile' });
+    }
+
+    // Update exploration state
+    exploration.state = 'informed';
+    await exploration.save({ session });
+
+    // Get the tile
+    const tile = await getTile(colony.serverId, tileX, tileY, session);
+    if (!tile) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Tile not found' });
+    }
+
+    // Get settler info
+    let settler = null;
+    if (exploration.settlerId) {
+      settler = await Settler.findById(exploration.settlerId).session(session);
+    }
+
+    // Prepare the response
+    const terrainInfo = getTerrainCatalogue(tile.terrain);
+    
+    const response: any = {
+      message: `Exploration of ${terrainInfo?.name || tile.terrain} at (${tileX}, ${tileY}) has been completed!`,
+      tile: {
+        coordinates: { x: tileX, y: tileY },
+        terrain: {
+          type: tile.terrain,
+          name: terrainInfo?.name || tile.terrain,
+          description: terrainInfo?.description || 'Unknown terrain',
+          icon: terrainInfo?.icon || 'GiQuestionMark'
+        },
+        loot: enrichRewardsWithMetadata(exploration.plannedRewards),
+        threat: tile.threat,
+        event: tile.event,
+        exploredAt: exploration.completedAt,
+        exploredBy: tile.exploredBy.filter(e => e !== 'auto_generated')
+      },
+      exploration: {
+        duration: exploration.adjustments.adjustedDuration,
+        effects: exploration.adjustments.effects
+      },
+      notification: {
+        type: 'exploration_complete',
+        timestamp: new Date(),
+        acknowledged: true
+      }
+    };
+
+    // Include settler info if found
+    if (settler) {
+      response.settler = {
+        id: settler._id,
+        name: settler.name,
+        status: settler.status
+      };
+    }
+
+    // Check if a settler was found
+    let foundSettler = null;
+    if (exploration.settlerFoundId) {
+      foundSettler = await Settler.findById(exploration.settlerFoundId).session(session);
+      if (foundSettler) {
+        response.foundSettler = {
+          id: foundSettler._id,
+          name: foundSettler.name,
+          stats: foundSettler.stats,
+          skills: foundSettler.skills,
+          traits: foundSettler.traits,
+          backstory: foundSettler.backstory
+        };
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json(response);
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Error informing exploration result:', err);
+    res.status(500).json({ error: 'Failed to process exploration notification' });
+  }
+};

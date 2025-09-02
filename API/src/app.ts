@@ -8,6 +8,7 @@ import serverRoutes from './routes/server';
 import settlerRoutes from './routes/settler';
 import assignmentRoutes from './routes/assignment';
 import inventoryRoutes from './routes/inventory';
+import mapRoutes from './routes/map';
 import devRoutes from './routes/dev';
 
 import { authenticate } from './middleware/auth';
@@ -58,3 +59,4 @@ app.use('/api/servers', serverRoutes);
 app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership, updateCompletedTasks, settlerRoutes);
 app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, updateCompletedTasks, assignmentRoutes);
 app.use('/api/colonies/:colonyId/inventory', authenticate, requireColonyOwnership, updateCompletedTasks, inventoryRoutes);
+app.use('/api/colonies/:colonyId/map', authenticate, requireColonyOwnership, updateCompletedTasks, mapRoutes);
