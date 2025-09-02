@@ -18,6 +18,7 @@ import {
 import { Speed, TrendingUp, CheckCircle, Person } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
 import type { Assignment, AssignmentAdjustments } from '../../../../lib/types/assignment';
+import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 interface SettlerSelectorDialogProps {
@@ -162,11 +163,6 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
       fetchPreviews(selectedTask, settlers);
     }
   }, [open, selectedTask, settlers, fetchPreviews, previewAssignment]);
-
-  const formatDuration = (ms: number) => {
-    const minutes = Math.ceil(ms / 60000);
-    return `${minutes}m`;
-  };
 
   // Duration: +% means slower/penalty, -% means faster/bonus
   const getDurationChange = (base: number, adjusted: number) => {
@@ -383,7 +379,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                             <Box display="flex" alignItems="center" gap={2} mb={0.5}>
                               <Speed fontSize="small" color="primary" />
                               <Typography variant="body2" fontWeight={600}>
-                                Task Duration: {formatDuration(selectedTask.duration || 0)} → {formatDuration(adjustments.adjustedDuration)}
+                                Task Duration: {formatTaskDuration(selectedTask.duration || 0)} → {formatTaskDuration(adjustments.adjustedDuration)}
                               </Typography>
                             </Box>
                             <EfficiencyBar

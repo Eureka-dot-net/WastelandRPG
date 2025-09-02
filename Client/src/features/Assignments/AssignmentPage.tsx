@@ -19,6 +19,7 @@ import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
+import { formatTimeRemaining } from "../../lib/utils/timeUtils";
 
 function AssignmentPage() {
   const { currentServerId: serverId } = useServerContext();
@@ -207,7 +208,7 @@ function AssignmentPage() {
             });
           } else if (status === 'in-progress') {
             actions.push({
-              label: `In Progress... ${timeRemaining > 0 ? `(${Math.ceil(timeRemaining / 60000)}m)` : "(Finishing...)"}`,
+              label: `In Progress... ${timeRemaining > 0 ? `(${formatTimeRemaining(timeRemaining)})` : "(Finishing...)"}`,
               onClick: () => { },
               variant: 'outlined' as const,
               disabled: true
