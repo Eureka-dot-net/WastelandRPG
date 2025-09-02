@@ -1,0 +1,746 @@
+{
+    "assignments": [
+        {
+            "_id": "68b6ebdcbb73778c9d34ceae",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "salvage_gate_ruins",
+            "type": "general",
+            "state": "informed",
+            "completionMessage": "With a final shove, the gate collapses! Dust settles as your homestead finally breathes again. 'Home sweet rust pile,' they say.",
+            "name": "Salvage Gate Ruins",
+            "description": "Dismantle the collapsed gate to gather materials and open the homestead entrance.",
+            "duration": 12000,
+            "unlocks": "homestead",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "specialRewards": {
+                    "itemId": "specialRewards",
+                    "name": "specialRewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.023Z",
+            "updatedAt": "2025-09-02T13:09:57.904Z",
+            "adjustments": {
+                "adjustedDuration": 13333,
+                "effectiveSpeed": 0.9,
+                "lootMultiplier": 0.86775,
+                "adjustedPlannedRewards": {
+                    "taskId": null,
+                    "name": null,
+                    "description": null,
+                    "unlocks": null,
+                    "duration": null,
+                    "difficulty": null,
+                    "rewards": null,
+                    "specialRewards": null,
+                    "requiredStats": null,
+                    "icon": null,
+                    "completionMessage": null
+                },
+                "effects": {
+                    "speedEffects": [
+                        "Speed stat: 0.90x"
+                    ],
+                    "lootEffects": [
+                        "Scavenging skill: -11%",
+                        "Intelligence: -3%"
+                    ],
+                    "traitEffects": []
+                }
+            },
+            "completedAt": "2025-09-02T13:09:54.900Z",
+            "settlerId": "68b6ec1cbb73778c9d34cef4",
+            "startedAt": "2025-09-02T13:09:41.567Z",
+            "settlerFoundId": "68b6eca5bb73778c9d34cf50"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34ceb0",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "organize_storeroom",
+            "type": "general",
+            "state": "completed",
+            "dependsOn": "salvage_gate_ruins",
+            "completionMessage": "You’ve cleared a dusty corner and laid down some makeshift shelves. It’s not much, but it’s a start!",
+            "name": "Organize Storeroom",
+            "description": "Clear debris and set up a basic storeroom to manage your supplies.",
+            "duration": 15000,
+            "unlocks": "inventory",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "specialRewards": {
+                    "itemId": "specialRewards",
+                    "name": "specialRewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.138Z",
+            "updatedAt": "2025-09-02T13:10:43.214Z",
+            "adjustments": {
+                "adjustedDuration": 16667,
+                "effectiveSpeed": 0.9,
+                "lootMultiplier": 0.86775,
+                "adjustedPlannedRewards": {
+                    "taskId": null,
+                    "name": null,
+                    "description": null,
+                    "unlocks": null,
+                    "duration": null,
+                    "difficulty": null,
+                    "dependsOn": null,
+                    "rewards": null,
+                    "specialRewards": null,
+                    "requiredStats": null,
+                    "icon": null,
+                    "completionMessage": null
+                },
+                "effects": {
+                    "speedEffects": [
+                        "Speed stat: 0.90x"
+                    ],
+                    "lootEffects": [
+                        "Scavenging skill: -11%",
+                        "Intelligence: -3%"
+                    ],
+                    "traitEffects": []
+                }
+            },
+            "completedAt": "2025-09-02T13:10:42.521Z",
+            "settlerId": "68b6ec1cbb73778c9d34cef4",
+            "startedAt": "2025-09-02T13:10:25.854Z"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34ceb2",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "clear_out_ruins",
+            "type": "general",
+            "state": "available",
+            "dependsOn": "salvage_gate_ruins",
+            "completionMessage": "Rubble gone, dreams incoming! You've carved out a corner fit for snoozing. Or plotting your next big move.",
+            "name": "Clear Out Ruins",
+            "description": "Excavate the collapsed ruins to create space for sleeping quarters.",
+            "duration": 18000,
+            "unlocks": "lodgings",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "specialRewards": {
+                    "itemId": "specialRewards",
+                    "name": "specialRewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.252Z",
+            "updatedAt": "2025-09-02T13:06:36.252Z"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34ceb4",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "scout_surrounding_area",
+            "type": "general",
+            "state": "available",
+            "dependsOn": "salvage_gate_ruins",
+            "completionMessage": "You chart the wasteland like a post-apocalyptic cartographer. Now at least when you get lost, you’ll know exactly *where* you’re lost.",
+            "name": "Scout Surrounding Area",
+            "description": "Explore the nearby wasteland to chart a basic map.",
+            "duration": 22000,
+            "unlocks": "map",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "specialRewards": {
+                    "itemId": "specialRewards",
+                    "name": "specialRewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.367Z",
+            "updatedAt": "2025-09-02T13:06:36.367Z"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34ceb6",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "clear_farm_land",
+            "type": "general",
+            "state": "available",
+            "dependsOn": "scout_surrounding_area",
+            "completionMessage": "The soil’s free of rocks and grudges. Seeds in hand, your future menu looks less 'ration paste' and more 'rustic feast.'",
+            "name": "Clear Farm Land",
+            "description": "Remove rocks and weeds to prepare soil for planting.",
+            "duration": 1200000,
+            "unlocks": "farming",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.481Z",
+            "updatedAt": "2025-09-02T13:06:36.481Z"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34ceb9",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "clean_out_workshop",
+            "type": "general",
+            "state": "available",
+            "dependsOn": "scout_surrounding_area",
+            "completionMessage": "Dust swept, tools found, and possibilities unlocked. This workshop smells like ambition… and maybe mold.",
+            "name": "Clean Out Workshop",
+            "description": "Clear debris and salvage materials to restore the workshop.",
+            "duration": 2400000,
+            "unlocks": "crafting",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.594Z",
+            "updatedAt": "2025-09-02T13:06:36.594Z"
+        },
+        {
+            "_id": "68b6ebdcbb73778c9d34cebb",
+            "colonyId": "68b6ebd8bb73778c9d34ce85",
+            "taskId": "scavenge_perimeter_debris",
+            "type": "general",
+            "state": "available",
+            "dependsOn": "scout_surrounding_area",
+            "completionMessage": "Debris hauled, defenses beefed. The homestead now says: ‘Welcome… but only if you’re invited.’",
+            "name": "Scavenge Perimeter Debris",
+            "description": "Collect materials from the outer wreckage to strengthen homestead defenses.",
+            "duration": 2400000,
+            "unlocks": "defence",
+            "plannedRewards": {
+                "taskId": {
+                    "itemId": "taskId",
+                    "name": "taskId",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "name": {
+                    "itemId": "name",
+                    "name": "name",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "description": {
+                    "itemId": "description",
+                    "name": "description",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "unlocks": {
+                    "itemId": "unlocks",
+                    "name": "unlocks",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "duration": {
+                    "itemId": "duration",
+                    "name": "duration",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "difficulty": {
+                    "itemId": "difficulty",
+                    "name": "difficulty",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "dependsOn": {
+                    "itemId": "dependsOn",
+                    "name": "dependsOn",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "rewards": {
+                    "itemId": "rewards",
+                    "name": "rewards",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "requiredStats": {
+                    "itemId": "requiredStats",
+                    "name": "requiredStats",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "icon": {
+                    "itemId": "icon",
+                    "name": "icon",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                },
+                "completionMessage": {
+                    "itemId": "completionMessage",
+                    "name": "completionMessage",
+                    "description": "",
+                    "icon": null,
+                    "amount": null
+                }
+            },
+            "createdAt": "2025-09-02T13:06:36.707Z",
+            "updatedAt": "2025-09-02T13:06:36.707Z"
+        }
+    ]
+}

@@ -48,7 +48,7 @@ export const getAssignments = async (req: Request, res: Response) => {
     const createdAssignments: AssignmentDoc[] = [];
 
     for (const taskTemplate of tasksToCreate) {
-      const plannedRewards = generateRewards(taskTemplate);
+      const plannedRewards = generateRewards(taskTemplate.rewards);
       const assignment = await Assignment.create([{
         colonyId,
         taskId: taskTemplate.taskId,

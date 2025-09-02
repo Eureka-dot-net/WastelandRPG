@@ -128,7 +128,7 @@ function AssignmentPage() {
     );
   }
 
-  const completedTasks = assignments.filter(a => a.state === "informed").length;
+  const completedTasks = assignments.filter(a => a.state === "informed" || a.state === "completed").length;
   const availableSettlers = getAvailableSettlers();
 
   return (
@@ -171,7 +171,7 @@ function AssignmentPage() {
           const dependencyMet = isDependencyMet(assignment);
           let status: 'available' | 'blocked' | 'in-progress' | 'completed';
 
-          if (assignment.state === "informed") {
+          if (assignment.state === "informed" || assignment.state === "completed") {
             status = 'completed';
           } else if (assignment.state === "in-progress") {
             status = 'in-progress';

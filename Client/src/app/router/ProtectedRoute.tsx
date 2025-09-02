@@ -15,14 +15,12 @@ export const ProtectedRoute = () => {
   // NOW do your conditional logic
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  if (colonyLoading)
+  if (colonyLoading || !colony)
     return (
       <Container maxWidth="lg" sx={{ mt: 20, display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Container>
     );
-  
-  if (!colony) return <Navigate to="/login" replace />;
 
   const routeUnlockMap: Record<string, string> = {
     "/homestead": "homestead",
