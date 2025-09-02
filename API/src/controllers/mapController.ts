@@ -217,7 +217,8 @@ export const previewExploration = async (req: Request, res: Response) => {
         terrain: {
           type: tile.terrain,
           name: terrainInfo?.name || tile.terrain,
-          description: terrainInfo?.description || 'Unknown terrain'
+          description: terrainInfo?.description || 'Unknown terrain',
+          icon: terrainInfo?.icon || null
         },
         loot: enrichRewardsWithMetadata(baseRewards),
         threat: tile.threat,
@@ -237,7 +238,8 @@ export const previewExploration = async (req: Request, res: Response) => {
         terrain: {
           type: 'unknown',
           name: 'Unknown Territory',
-          description: 'This area has not been explored yet. Terrain and contents are unknown.'
+          description: 'This area has not been explored yet. Terrain and contents are unknown.',
+          icon: 'GiQuestionMark'
         },
         estimatedLoot: enrichRewardsWithMetadata(estimatedRewards),
         estimatedDuration: adjustments.adjustedDuration,
@@ -305,7 +307,8 @@ export const informExplorationResult = async (req: Request, res: Response) => {
         terrain: {
           type: tile.terrain,
           name: terrainInfo?.name || tile.terrain,
-          description: terrainInfo?.description || 'Unknown terrain'
+          description: terrainInfo?.description || 'Unknown terrain',
+          icon: terrainInfo?.icon || null
         },
         loot: enrichRewardsWithMetadata(
           tile.loot.reduce((acc, item) => ({ ...acc, [item.item]: item.amount }), {})

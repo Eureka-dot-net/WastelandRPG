@@ -6,7 +6,8 @@ import {
   generateTileLoot, 
   generateTileThreat, 
   generateTileEvent,
-  getAdjacentCoordinates 
+  getAdjacentCoordinates,
+  getTerrainCatalogue 
 } from './gameUtils';
 
 /**
@@ -204,7 +205,10 @@ export function formatGridForAPI(grid: (MapTileDoc | null)[][]): any {
         ...(tile ? {
           x: tile.x,
           y: tile.y,
-          terrain: tile.terrain,
+          terrain: {
+            type: tile.terrain,
+            ...(getTerrainCatalogue(tile.terrain) || {})
+          },
           loot: tile.loot,
           threat: tile.threat,
           event: tile.event,
