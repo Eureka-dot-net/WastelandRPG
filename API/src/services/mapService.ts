@@ -1,7 +1,8 @@
-import { model, Schema, Types, ClientSession } from "mongoose";
+import { Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
 import { createOrUpdateMapTile, assignAdjacentTerrain } from "../utils/mapUtils";
 import { MapTile } from "../models/Server/MapTile";
+import { SpiralCounter } from "../models/Server/SpiralCounter";
 
 export async function createColonyWithSpiralLocation(
     userId: Types.ObjectId,
@@ -77,24 +78,19 @@ export async function createColonyWithSpiralLocation(
 
 async function getNextSpiralIndex(serverId: string, session?: ClientSession): Promise<number> {
     // Use MongoDB's findOneAndUpdate with upsert for atomic increment
-    // We'll use a separate counter collection for this
-    const Counter = model('SpiralCounter', new Schema({
-        serverId: { type: String, required: true, unique: true },
-        nextIndex: { type: Number, default: 0 }
-    }));
-
-    const result = await Counter.findOneAndUpdate(
+    // Using the properly imported SpiralCounter model
+    const result = await SpiralCounter.findOneAndUpdate(
         { serverId },
         { $inc: { nextIndex: 1 } },
-        { upsert: true, new: true, lean: true, session }
+        { upsert: true, new: true, session }
     );
 
     if (!result) {
-        // Option 1: Throw an error (recommended, this should never happen)
+        // This should never happen due to upsert: true
         throw new Error('Failed to increment spiral index for server: ' + serverId);
     }
 
-    return result.nextIndex - 1; // Return the index we just claimed (before increment)
+    return (result as any).nextIndex - 1; // Return the index we just claimed (before increment)
 }
 
 // Calculate spiral location from sequential index
