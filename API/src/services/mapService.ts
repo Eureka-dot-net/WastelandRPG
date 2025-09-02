@@ -1,6 +1,7 @@
 import { model, Schema, Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
 import { createOrUpdateMapTile, assignAdjacentTerrain } from "../utils/mapUtils";
+import { MapTile } from "../models/Server/MapTile";
 
 export async function createColonyWithSpiralLocation(
     userId: Types.ObjectId,
@@ -47,7 +48,7 @@ export async function createColonyWithSpiralLocation(
             
             // Generate adjacent tiles when homestead is created
             await assignAdjacentTerrain(serverId, spiralData.x, spiralData.y, 'homestead_creation', session);
-            
+        
             return colony;
 
         } catch (error) {

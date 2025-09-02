@@ -40,15 +40,21 @@ router.post('/register', async (req: Request, res: Response) => {
         const user = new User({ email, password: hashedPassword });
 
         await user.save({ session });
-      
+
         const colony = await createColonyWithSpiralLocation(user._id, server.id, colonyName || 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
         return res.status(201).json({ message: 'User created successfully' });
-    } catch (error) {
+    } catch (error: unknown) {
         errorOccurred = true;
         await session.abortTransaction();
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({
+            message: 'Server error',
+            error: {
+                message: (error as Error).message,
+                stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+            }
+        });
     } finally {
         // Always end session, but only after commit/abort
         session.endSession();
