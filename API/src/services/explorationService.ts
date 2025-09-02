@@ -1,4 +1,4 @@
-import { ExplorationDoc, ExplorationModel } from "../models/Server/Exploration";
+import { ExplorationDoc, ExplorationModel } from "../models/Player/Exploration";
 import { Settler } from "../models/Player/Settler";
 import { ColonyDoc } from "../models/Player/Colony";
 import { ClientSession } from "mongoose";

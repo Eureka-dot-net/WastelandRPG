@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { ExplorationModel } from '../models/Server/Exploration';
+import { ExplorationModel } from '../models/Player/Exploration';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
