@@ -135,7 +135,8 @@ export function enrichRewardsWithMetadata(plannedRewards: Record<string, number>
 /**
  * Get terrain details from catalogue
  */
-export function getTerrainCatalogue(terrainId: string) {
+export function getTerrainCatalogue(terrainId?: string) {
+  if (!terrainId) return null;
   return terrainCatalogue.find(terrain => terrain.terrainId === terrainId);
 }
 

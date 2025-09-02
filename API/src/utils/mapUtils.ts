@@ -1,6 +1,5 @@
 // utils/mapUtils.ts
 import { ClientSession } from 'mongoose';
-import { MapTileModel, MapTileDoc, LootInfo, ThreatInfo, EventInfo } from '../models/Server/MapTile';
 import { 
   getRandomTerrain, 
   generateTileLoot, 
@@ -9,6 +8,7 @@ import {
   getAdjacentCoordinates,
   getTerrainCatalogue 
 } from './gameUtils';
+import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
 
 /**
  * Create or update a map tile with terrain and generated content
@@ -34,8 +34,8 @@ export async function createOrUpdateMapTile(
   // Try to find existing tile first
   const query = { serverId, x, y };
   let existingTile = session 
-    ? await MapTileModel.findOne(query).session(session)
-    : await MapTileModel.findOne(query);
+    ? await MapTile.findOne(query).session(session)
+    : await MapTile.findOne(query);
 
   if (existingTile) {
     // Update existing tile if not already explored by this entity
@@ -51,9 +51,9 @@ export async function createOrUpdateMapTile(
   }
 
   // Generate tile content
-  const loot: LootInfo[] = generateTileLoot(terrain);
-  const threat: ThreatInfo | null = generateTileThreat(terrain);
-  const event: EventInfo | null = generateTileEvent(terrain);
+  const loot: ILootInfo[] = generateTileLoot(terrain);
+  const threat: IThreatInfo | null = generateTileThreat(terrain);
+  const event: IEventInfo | null = generateTileEvent(terrain);
 
   const tileData = {
     serverId,
@@ -69,8 +69,8 @@ export async function createOrUpdateMapTile(
   };
 
   return session 
-    ? await MapTileModel.create([tileData], { session }).then(docs => docs[0])
-    : await MapTileModel.create(tileData);
+    ? await MapTile.create([tileData], { session }).then(docs => docs[0])
+    : await MapTile.create(tileData);
 }
 
 /**
@@ -127,8 +127,8 @@ export async function getMapGrid(
       
       const query = { serverId, x, y };
       const tile = session 
-        ? await MapTileModel.findOne(query).session(session)
-        : await MapTileModel.findOne(query);
+        ? await MapTile.findOne(query).session(session)
+        : await MapTile.findOne(query);
       
       gridRow.push(tile);
     }
@@ -157,8 +157,8 @@ export async function getTilesInArea(
   };
 
   return session 
-    ? await MapTileModel.find(query).session(session)
-    : await MapTileModel.find(query);
+    ? await MapTile.find(query).session(session)
+    : await MapTile.find(query);
 }
 
 /**
@@ -172,8 +172,8 @@ export async function isTileExplored(
 ): Promise<boolean> {
   const query = { serverId, x, y };
   const tile = session 
-    ? await MapTileModel.findOne(query).session(session)
-    : await MapTileModel.findOne(query);
+    ? await MapTile.findOne(query).session(session)
+    : await MapTile.findOne(query);
   
   return !!tile && tile.exploredBy.length > 0;
 }
@@ -189,8 +189,8 @@ export async function getTile(
 ): Promise<MapTileDoc | null> {
   const query = { serverId, x, y };
   return session 
-    ? await MapTileModel.findOne(query).session(session)
-    : await MapTileModel.findOne(query);
+    ? await MapTile.findOne(query).session(session)
+    : await MapTile.findOne(query);
 }
 
 /**
@@ -249,8 +249,8 @@ export async function getMapGridForColony(
       
       const query = { serverId, x, y };
       const tile = session 
-        ? await MapTileModel.findOne(query).session(session)
-        : await MapTileModel.findOne(query);
+        ? await MapTile.findOne(query).session(session)
+        : await MapTile.findOne(query);
       
       // Only include tiles that this colony has explored or that are homestead tiles
       if (tile && (

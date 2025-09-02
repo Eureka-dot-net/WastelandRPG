@@ -26,6 +26,7 @@ export interface IMapTile {
   threat?: IThreatInfo | null;
   event?: IEventInfo | null;
   exploredBy: string[];
+  exploredAt: Date;
   colony?: Types.ObjectId;
 }
 
@@ -54,6 +55,7 @@ const MapTileSchema = new Schema({
   threat: { type: ThreatInfoSchema, default: null },
   event: { type: EventInfoSchema, default: null },
   exploredBy: [{ type: String, required: true, default: [] }],
+  exploredAt: { type: Date, required: false },
   colony: { type: Schema.Types.ObjectId, ref: 'Colony', required: false }
 });
 

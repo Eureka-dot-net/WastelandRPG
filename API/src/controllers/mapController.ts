@@ -4,20 +4,20 @@ import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { ExplorationModel } from '../models/Server/Exploration';
-import { 
-  calculateSettlerAdjustments, 
-  enrichRewardsWithMetadata, 
-  getTerrainCatalogue 
+import {
+  calculateSettlerAdjustments,
+  enrichRewardsWithMetadata,
+  getTerrainCatalogue
 } from '../utils/gameUtils';
-import { 
-  createOrUpdateMapTile, 
-  assignAdjacentTerrain, 
-  getMapGridForColony, 
-  getTile, 
+import {
+  createOrUpdateMapTile,
+  assignAdjacentTerrain,
+  getMapGridForColony,
+  getTile,
   formatGridForAPI,
-  canTileBeExplored 
+  canTileBeExplored
 } from '../utils/mapUtils';
-import { MapTileModel } from '../models/Server/MapTile';
+import { MapTile } from '../models/Server/MapTile';
 
 // GET /api/colonies/:colonyId/map/:x/:y
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
@@ -67,7 +67,7 @@ export const startExploration = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid settlerId' });
   }
 
-  const session = await MapTileModel.startSession();
+  const session = await MapTile.startSession();
   session.startTransaction();
 
   try {
@@ -137,11 +137,13 @@ export const startExploration = async (req: Request, res: Response) => {
     // Calculate exploration adjustments based on settler
     const baseDuration = 300000; // 5 minutes base exploration time
     const baseRewards: Record<string, number> = {};
-    
+
     // Add tile loot as base rewards
-    tile.loot.forEach(lootItem => {
-      baseRewards[lootItem.item] = lootItem.amount;
-    });
+    if (tile.loot) {
+      tile.loot.forEach(lootItem => {
+        baseRewards[lootItem.item] = lootItem.amount;
+      });
+    }
 
     const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
 
@@ -150,7 +152,7 @@ export const startExploration = async (req: Request, res: Response) => {
 
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
-    
+
     const exploration = await ExplorationModel.create([{
       serverId: colony.serverId,
       colonyId: colony._id,
@@ -241,19 +243,21 @@ export const previewExploration = async (req: Request, res: Response) => {
 
     // Check if tile exists
     const tile = await getTile(colony.serverId, tileX, tileY);
-    
+
     let previewData;
-    
+
     if (tile) {
       // Existing tile - show actual loot and terrain info
       const baseRewards: Record<string, number> = {};
-      tile.loot.forEach(lootItem => {
-        baseRewards[lootItem.item] = lootItem.amount;
-      });
+      if (tile.loot) {
+        tile.loot.forEach(lootItem => {
+          baseRewards[lootItem.item] = lootItem.amount;
+        });
+      }
 
       const baseDuration = 300000; // 5 minutes
       const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
-      
+
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
       previewData = {
@@ -363,7 +367,7 @@ export const informExplorationResult = async (req: Request, res: Response) => {
 
     // Prepare the response
     const terrainInfo = getTerrainCatalogue(tile.terrain);
-    
+
     const response: any = {
       message: `Exploration of ${terrainInfo?.name || tile.terrain} at (${tileX}, ${tileY}) has been completed!`,
       tile: {
