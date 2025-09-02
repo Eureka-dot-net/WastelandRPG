@@ -1,5 +1,6 @@
 import { model, Schema, Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
+import { MapTile } from "../models/Server/MapTile";
 
 export async function createColonyWithSpiralLocation(
     userId: Types.ObjectId,
@@ -34,7 +35,17 @@ export async function createColonyWithSpiralLocation(
                 spiralIndex: nextIndex
             });
 
-            await colony.save({ session });
+            const tile = new MapTile({
+                serverId,
+                x: spiralData.x,
+                y: spiralData.y,
+                colony: colony._id
+            });
+
+            await Promise.all([
+                tile.save({ session }),
+                colony.save({ session })
+            ]);
             return colony;
 
         } catch (error) {

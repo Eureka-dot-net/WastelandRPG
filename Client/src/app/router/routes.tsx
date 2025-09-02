@@ -9,6 +9,7 @@ import DashboardLayout from "../layout/DashboardLayout"; // Import the layout co
 import UnderConstruction from "../layout/UnderConstruction";
 import AssignmentPage from "../../features/Assignments/AssignmentPage";
 import InventoryPage from "../../features/inventory/InventoryPage";
+import { ServerProvider } from "../../lib/contexts/ServerProvider";
 
 const router = createBrowserRouter([
     {
@@ -20,7 +21,7 @@ const router = createBrowserRouter([
             
             // Protected routes
             {
-                element: <ProtectedRoute />, // This is the gatekeeper
+                element: <ServerProvider><ProtectedRoute /></ServerProvider>, // This is the gatekeeper
                 children: [
                     // Protected routes with DashboardLayout
                     {
