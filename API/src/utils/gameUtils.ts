@@ -1,6 +1,7 @@
 // utils/gameUtils.ts
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import terrainCatalogue from '../data/terrainCatalogue.json';
+import { generateRewardsFromDefinition } from '../services/gameEventsService';
 
 export interface AdjustmentEffects {
   speedEffects: string[];
@@ -143,27 +144,20 @@ export function getTerrainCatalogue(terrainId: string) {
  */
 export function generateTileLoot(terrain: string): Array<{item: string, amount: number}> {
   const terrainData = getTerrainCatalogue(terrain);
-  if (!terrainData) return [];
+  if (!terrainData?.rewards) return [];
 
-  const loot: Array<{item: string, amount: number}> = [];
+  // Use shared reward generation function - ensure we only process defined rewards
+  const definedRewards: Record<string, {min: number, max: number, chance: number}> = {};
+  for (const [itemId, config] of Object.entries(terrainData.rewards)) {
+    if (config && typeof config === 'object' && 'min' in config && 'max' in config && 'chance' in config) {
+      definedRewards[itemId] = config;
+    }
+  }
   
-  // Common loot (higher chance)
-  terrainData.commonLoot.forEach(itemId => {
-    if (Math.random() < 0.6) { // 60% chance for common loot
-      const amount = Math.floor(Math.random() * 3) + 1; // 1-3 items
-      loot.push({ item: itemId, amount });
-    }
-  });
-
-  // Rare loot (lower chance)
-  terrainData.rareLoot.forEach(itemId => {
-    if (Math.random() < 0.15) { // 15% chance for rare loot
-      const amount = Math.floor(Math.random() * 2) + 1; // 1-2 items
-      loot.push({ item: itemId, amount });
-    }
-  });
-
-  return loot;
+  const rewards = generateRewardsFromDefinition(definedRewards);
+  
+  // Convert to the expected format
+  return Object.entries(rewards).map(([item, amount]) => ({ item, amount }));
 }
 
 /**

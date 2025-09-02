@@ -7,8 +7,38 @@
     "lootMultiplier": 1.2,
     "threatLevel": 0.3,
     "eventChance": 0.15,
-    "commonLoot": ["wood", "wood", "wood", "berries", "herbs", "scrap"],
-    "rareLoot": ["survivor_notes", "ancient_seeds"],
+    "rewards": {
+      "wood": {
+        "min": 8,
+        "max": 15,
+        "chance": 1
+      },
+      "berries": {
+        "min": 3,
+        "max": 6,
+        "chance": 0.7
+      },
+      "herbs": {
+        "min": 2,
+        "max": 4,
+        "chance": 0.6
+      },
+      "scrap": {
+        "min": 2,
+        "max": 5,
+        "chance": 0.5
+      },
+      "survivor_notes": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.15
+      },
+      "ancient_seeds": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.08
+      }
+    },
     "threats": ["wild_animals", "unstable_trees"],
     "events": ["hidden_cache", "old_camp", "animal_tracks"]
   },
@@ -20,8 +50,43 @@
     "lootMultiplier": 1.5,
     "threatLevel": 0.6,
     "eventChance": 0.25,
-    "commonLoot": ["scrap", "scrap", "scrap", "concrete", "glass_shards", "metal"],
-    "rareLoot": ["electronics", "pre_war_tools", "medicines"],
+    "rewards": {
+      "scrap": {
+        "min": 15,
+        "max": 25,
+        "chance": 1
+      },
+      "metal": {
+        "min": 8,
+        "max": 12,
+        "chance": 0.8
+      },
+      "concrete": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.7
+      },
+      "glass_shards": {
+        "min": 3,
+        "max": 8,
+        "chance": 0.6
+      },
+      "electronics": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.2
+      },
+      "pre_war_tools": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.15
+      },
+      "medicines": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.12
+      }
+    },
     "threats": ["radiation_pockets", "unstable_structures", "feral_scavengers"],
     "events": ["locked_vault", "survivor_shelter", "emergency_cache"]
   },
@@ -33,8 +98,43 @@
     "lootMultiplier": 1.0,
     "threatLevel": 0.1,
     "eventChance": 0.2,
-    "commonLoot": ["vegetables", "vegetables", "fruits", "seeds", "wood"],
-    "rareLoot": ["heirloom_seeds", "garden_tools", "fertilizer"],
+    "rewards": {
+      "vegetables": {
+        "min": 6,
+        "max": 12,
+        "chance": 1
+      },
+      "fruits": {
+        "min": 4,
+        "max": 8,
+        "chance": 0.8
+      },
+      "seeds": {
+        "min": 3,
+        "max": 6,
+        "chance": 0.7
+      },
+      "wood": {
+        "min": 3,
+        "max": 7,
+        "chance": 0.6
+      },
+      "heirloom_seeds": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.15
+      },
+      "garden_tools": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.12
+      },
+      "fertilizer": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.1
+      }
+    },
     "threats": ["plant_diseases", "insect_swarms"],
     "events": ["seed_discovery", "greenhouse_ruins", "compost_pile"]
   },
@@ -46,8 +146,43 @@
     "lootMultiplier": 1.3,
     "threatLevel": 0.4,
     "eventChance": 0.3,
-    "commonLoot": ["scrap", "scrap", "cloth", "tinned_food", "wood"],
-    "rareLoot": ["trade_goods", "maps", "communication_equipment"],
+    "rewards": {
+      "scrap": {
+        "min": 10,
+        "max": 18,
+        "chance": 1
+      },
+      "cloth": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.8
+      },
+      "tinned_food": {
+        "min": 4,
+        "max": 8,
+        "chance": 0.9
+      },
+      "wood": {
+        "min": 6,
+        "max": 12,
+        "chance": 0.7
+      },
+      "trade_goods": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.2
+      },
+      "maps": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.15
+      },
+      "communication_equipment": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.08
+      }
+    },
     "threats": ["raider_patrols", "booby_traps", "territorial_survivors"],
     "events": ["trading_post", "message_board", "safe_house"]
   },
@@ -59,8 +194,43 @@
     "lootMultiplier": 0.7,
     "threatLevel": 0.2,
     "eventChance": 0.1,
-    "commonLoot": ["rocks", "bones", "ash"],
-    "rareLoot": ["meteor_fragments", "buried_cache", "fossil_fuel"],
+    "rewards": {
+      "scrap": {
+        "min": 2,
+        "max": 6,
+        "chance": 0.6
+      },
+      "rocks": {
+        "min": 3,
+        "max": 8,
+        "chance": 0.8
+      },
+      "bones": {
+        "min": 1,
+        "max": 4,
+        "chance": 0.5
+      },
+      "ash": {
+        "min": 2,
+        "max": 5,
+        "chance": 0.4
+      },
+      "meteor_fragments": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.08
+      },
+      "buried_cache": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.05
+      },
+      "fossil_fuel": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.1
+      }
+    },
     "threats": ["dust_storms", "quicksand", "mirage_confusion"],
     "events": ["oasis_discovery", "underground_bunker", "caravan_wreckage"]
   },
@@ -72,8 +242,48 @@
     "lootMultiplier": 1.1,
     "threatLevel": 0.25,
     "eventChance": 0.18,
-    "commonLoot": ["grain", "grain", "farming_tools", "rope", "scrap", "wood"],
-    "rareLoot": ["tractor_parts", "irrigation_equipment", "livestock_supplies"],
+    "rewards": {
+      "grain": {
+        "min": 8,
+        "max": 15,
+        "chance": 1
+      },
+      "scrap": {
+        "min": 6,
+        "max": 12,
+        "chance": 0.8
+      },
+      "wood": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.7
+      },
+      "farming_tools": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.6
+      },
+      "rope": {
+        "min": 2,
+        "max": 5,
+        "chance": 0.5
+      },
+      "tractor_parts": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.15
+      },
+      "irrigation_equipment": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.12
+      },
+      "livestock_supplies": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.1
+      }
+    },
     "threats": ["wild_livestock", "crop_blight", "irrigation_hazards"],
     "events": ["equipment_shed", "silo_cache", "well_discovery"]
   },
@@ -85,8 +295,48 @@
     "lootMultiplier": 1.8,
     "threatLevel": 0.8,
     "eventChance": 0.2,
-    "commonLoot": ["steel", "steel", "machinery_parts", "chemicals", "scrap", "metal"],
-    "rareLoot": ["heavy_equipment", "power_cells", "industrial_blueprints"],
+    "rewards": {
+      "steel": {
+        "min": 12,
+        "max": 20,
+        "chance": 1
+      },
+      "scrap": {
+        "min": 10,
+        "max": 18,
+        "chance": 1
+      },
+      "metal": {
+        "min": 8,
+        "max": 15,
+        "chance": 0.9
+      },
+      "machinery_parts": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.8
+      },
+      "chemicals": {
+        "min": 3,
+        "max": 8,
+        "chance": 0.7
+      },
+      "heavy_equipment": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.2
+      },
+      "power_cells": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.15
+      },
+      "industrial_blueprints": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.08
+      }
+    },
     "threats": ["toxic_waste", "mechanical_hazards", "automated_defenses"],
     "events": ["power_station", "factory_vault", "maintenance_tunnel"]
   },
@@ -98,8 +348,53 @@
     "lootMultiplier": 1.0,
     "threatLevel": 0.35,
     "eventChance": 0.25,
-    "commonLoot": ["household_items", "household_items", "clothing", "personal_effects", "scrap", "wood"],
-    "rareLoot": ["family_photos", "jewelry", "home_electronics"],
+    "rewards": {
+      "scrap": {
+        "min": 8,
+        "max": 16,
+        "chance": 1
+      },
+      "wood": {
+        "min": 6,
+        "max": 12,
+        "chance": 0.8
+      },
+      "household_items": {
+        "min": 5,
+        "max": 10,
+        "chance": 0.9
+      },
+      "clothing": {
+        "min": 3,
+        "max": 7,
+        "chance": 0.7
+      },
+      "personal_effects": {
+        "min": 2,
+        "max": 5,
+        "chance": 0.6
+      },
+      "tinned_food": {
+        "min": 2,
+        "max": 6,
+        "chance": 0.5
+      },
+      "family_photos": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.15
+      },
+      "jewelry": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.12
+      },
+      "home_electronics": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.1
+      }
+    },
     "threats": ["squatter_gangs", "house_traps", "structural_collapse"],
     "events": ["basement_shelter", "garage_workshop", "neighbor_cache"]
   },
@@ -111,8 +406,43 @@
     "lootMultiplier": 1.4,
     "threatLevel": 0.7,
     "eventChance": 0.15,
-    "commonLoot": ["contaminated_water", "marsh_gas", "mutated_plants"],
-    "rareLoot": ["chemical_compounds", "filtration_equipment", "hazmat_gear"],
+    "rewards": {
+      "scrap": {
+        "min": 4,
+        "max": 8,
+        "chance": 0.6
+      },
+      "contaminated_water": {
+        "min": 3,
+        "max": 7,
+        "chance": 0.8
+      },
+      "marsh_gas": {
+        "min": 2,
+        "max": 5,
+        "chance": 0.7
+      },
+      "mutated_plants": {
+        "min": 2,
+        "max": 6,
+        "chance": 0.6
+      },
+      "chemical_compounds": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.2
+      },
+      "filtration_equipment": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.15
+      },
+      "hazmat_gear": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.1
+      }
+    },
     "threats": ["toxic_gas", "mutated_creatures", "sinkholes"],
     "events": ["research_station", "chemical_dump", "purification_plant"]
   },
@@ -124,8 +454,43 @@
     "lootMultiplier": 2.0,
     "threatLevel": 0.9,
     "eventChance": 0.3,
-    "commonLoot": ["ammunition", "military_rations", "camouflage_gear"],
-    "rareLoot": ["weapons", "tactical_equipment", "classified_documents"],
+    "rewards": {
+      "ammunition": {
+        "min": 10,
+        "max": 20,
+        "chance": 1
+      },
+      "scrap": {
+        "min": 15,
+        "max": 25,
+        "chance": 1
+      },
+      "military_rations": {
+        "min": 8,
+        "max": 15,
+        "chance": 0.9
+      },
+      "camouflage_gear": {
+        "min": 3,
+        "max": 8,
+        "chance": 0.8
+      },
+      "weapons": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.3
+      },
+      "tactical_equipment": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.25
+      },
+      "classified_documents": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.15
+      }
+    },
     "threats": ["automated_turrets", "landmines", "security_systems"],
     "events": ["armory_access", "command_bunker", "communication_array"]
   },
@@ -137,8 +502,48 @@
     "lootMultiplier": 0.8,
     "threatLevel": 0.15,
     "eventChance": 0.12,
-    "commonLoot": ["grass", "wildflowers", "small_stones"],
-    "rareLoot": ["meteorites", "wild_herbs", "grazing_livestock"],
+    "rewards": {
+      "scrap": {
+        "min": 1,
+        "max": 4,
+        "chance": 0.4
+      },
+      "wood": {
+        "min": 2,
+        "max": 6,
+        "chance": 0.5
+      },
+      "grass": {
+        "min": 4,
+        "max": 10,
+        "chance": 0.8
+      },
+      "wildflowers": {
+        "min": 2,
+        "max": 6,
+        "chance": 0.6
+      },
+      "small_stones": {
+        "min": 3,
+        "max": 8,
+        "chance": 0.7
+      },
+      "meteorites": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.08
+      },
+      "wild_herbs": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.12
+      },
+      "grazing_livestock": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.05
+      }
+    },
     "threats": ["sudden_weather", "wild_herds", "exposure"],
     "events": ["nomad_camp", "ancient_monument", "natural_spring"]
   },
@@ -150,8 +555,43 @@
     "lootMultiplier": 1.6,
     "threatLevel": 0.5,
     "eventChance": 0.2,
-    "commonLoot": ["stone", "minerals", "mountain_herbs"],
-    "rareLoot": ["precious_metals", "cave_crystals", "mining_equipment"],
+    "rewards": {
+      "stone": {
+        "min": 12,
+        "max": 20,
+        "chance": 1
+      },
+      "minerals": {
+        "min": 8,
+        "max": 15,
+        "chance": 0.9
+      },
+      "scrap": {
+        "min": 4,
+        "max": 10,
+        "chance": 0.6
+      },
+      "mountain_herbs": {
+        "min": 3,
+        "max": 7,
+        "chance": 0.7
+      },
+      "precious_metals": {
+        "min": 1,
+        "max": 3,
+        "chance": 0.2
+      },
+      "cave_crystals": {
+        "min": 1,
+        "max": 2,
+        "chance": 0.15
+      },
+      "mining_equipment": {
+        "min": 1,
+        "max": 1,
+        "chance": 0.12
+      }
+    },
     "threats": ["rockslides", "cave_ins", "altitude_sickness"],
     "events": ["mine_shaft", "cave_shelter", "lookout_point"]
   }
