@@ -9,6 +9,7 @@ import DashboardLayout from "../layout/DashboardLayout"; // Import the layout co
 import UnderConstruction from "../layout/UnderConstruction";
 import AssignmentPage from "../../features/Assignments/AssignmentPage";
 import InventoryPage from "../../features/inventory/InventoryPage";
+import SettlerPage from "../../features/settlers/SettlerPage";
 import { ServerProvider } from "../../lib/contexts/ServerProvider";
 
 const router = createBrowserRouter([
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
                         children: [
                             { path: "/assignments", element: <AssignmentPage /> }, 
                             { path: "/inventory", element: <InventoryPage /> },
+                            { path: "/settlers", element: <SettlerPage /> },
                             { path: "/map", element: <MapPage /> },
                             { path: "/", element: <AssignmentPage /> },
                              { path: "*", element: <UnderConstruction /> },
