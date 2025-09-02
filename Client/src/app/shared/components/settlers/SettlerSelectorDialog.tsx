@@ -161,7 +161,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
       currentSettlerIds.current = newSettlerIds;
       fetchPreviews(selectedTask, settlers);
     }
-  }, [open, selectedTask, settlers, fetchPreviews]);
+  }, [open, selectedTask, settlers, fetchPreviews, previewAssignment]);
 
   const formatDuration = (ms: number) => {
     const minutes = Math.ceil(ms / 60000);

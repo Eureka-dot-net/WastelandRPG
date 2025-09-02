@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "test": "jest --runInBand",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand",
+    "lint": "eslint src --ext .ts",
     "kill": "taskkill /IM node.exe /F"
   },
   "keywords": [],
@@ -30,6 +31,8 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.3.0",
     "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
     "cross-env": "^10.0.0",
     "jest": "^30.0.5",
     "mongodb-memory-server": "^10.2.0",

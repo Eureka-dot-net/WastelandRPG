@@ -173,12 +173,12 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
         onClose={handleClose}
        
       >
-        {hasMultipleServers && (
-          <>
-            <Typography variant="subtitle2" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
+        {[
+          ...(hasMultipleServers ? [
+            <Typography key="colonies-header" variant="subtitle2" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
               Your Colonies
-            </Typography>
-            {userColonies.map((colony) => (
+            </Typography>,
+            ...userColonies.map((colony) => (
               <MenuItem
                 key={colony.serverId}
                 onClick={() => handleServerSwitch(colony.serverId)}
@@ -212,24 +212,21 @@ const ServerSelector: React.FC<ServerSelectorProps> = ({ isMobile = false }) => 
                   />
                 </Box>
               </MenuItem>
-            ))}
-          </>
-        )}
-
-        {unjoinedServers.length > 0 && (
-          <>
-            {hasMultipleServers && <Divider />}
-            <Typography variant="subtitle2" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
+            ))
+          ] : []),
+          ...(unjoinedServers.length > 0 ? [
+            ...(hasMultipleServers ? [<Divider key="divider" />] : []),
+            <Typography key="servers-header" variant="subtitle2" sx={{ px: 2, py: 1, color: 'text.secondary' }}>
               Available Servers
-            </Typography>
-            <MenuItem onClick={handleJoinServerClick}>
+            </Typography>,
+            <MenuItem key="join-server" onClick={handleJoinServerClick}>
               <ListItemIcon>
                 <AddIcon />
               </ListItemIcon>
               <ListItemText primary="Join New Server" />
             </MenuItem>
-          </>
-        )}
+          ] : [])
+        ]}
       </Menu>
 
       <Dialog open={joinDialogOpen} onClose={() => setJoinDialogOpen(false)} maxWidth="sm" fullWidth>

@@ -12,7 +12,6 @@ import {
   MenuItem,
   Chip,
   CircularProgress,
-  Alert,
 } from '@mui/material';
 import {
   Public as PublicIcon,
@@ -46,7 +45,7 @@ const getServerTypeColor = (serverType: string) => {
 };
 
 const InitialServerSelection: React.FC = () => {
-  const { data: serversData, isLoading, error } = useServers();
+  const { data: serversData, isLoading } = useServers();
   const joinServerMutation = useJoinServer();
   
   const [selectedServerId, setSelectedServerId] = useState('');
@@ -64,7 +63,7 @@ const InitialServerSelection: React.FC = () => {
       });
       
       toast.success('Successfully joined server! Welcome to the wasteland!');
-    } catch (error) {
+    } catch {
       toast.error('Failed to join server. Please try again.');
     }
   };
@@ -76,16 +75,6 @@ const InitialServerSelection: React.FC = () => {
         <Typography variant="body1" sx={{ mt: 2 }}>
           Loading servers...
         </Typography>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load servers. Please refresh the page and try again.
-        </Alert>
       </Box>
     );
   }
@@ -124,7 +113,7 @@ const InitialServerSelection: React.FC = () => {
                     <Chip
                       label={server.type}
                       size="small"
-                      color={getServerTypeColor(server.type) as any}
+                      color={getServerTypeColor(server.type) as 'success' | 'warning' | 'info'}
                     />
                   </Box>
                 </MenuItem>
