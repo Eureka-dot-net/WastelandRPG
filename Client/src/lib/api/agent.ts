@@ -7,6 +7,13 @@ export const agent = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Store logout callback to be set by AuthProvider
+let logoutCallback: (() => void) | null = null;
+
+export const setLogoutCallback = (callback: () => void) => {
+  logoutCallback = callback;
+};
+
 // Use an interceptor to automatically attach the token to every request
 agent.interceptors.request.use(
   (config) => {
@@ -20,6 +27,25 @@ agent.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle 401 errors
+agent.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear token from localStorage
+      localStorage.removeItem('token');
+      
+      // Call logout callback if available, otherwise fallback to direct navigation
+      if (logoutCallback) {
+        logoutCallback();
+      } else {
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 
 import BuildIcon from '@mui/icons-material/Build'; // Scrap Metal
@@ -18,6 +19,7 @@ import { Box, Badge, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Div
 import { useColony } from "../../lib/hooks/useColony";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import ServerSelector from "../../components/ServerSelector/ServerSelector";
+import { useAuth } from "../../lib/hooks/useAuth";
 
 import { GiCorn, GiCrownedSkull, GiHeartBeats, GiHorseshoe,  GiPerson, GiRunningNinja, GiShieldEchoes, GiWoodStick } from "react-icons/gi";
 
@@ -102,6 +104,7 @@ const DashboardTopBar: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  const { logout } = useAuth();
 
   // Get current server from context
   const { currentServerId } = useServerContext();
@@ -359,6 +362,37 @@ const DashboardTopBar: React.FC = () => {
               </ListItem>
             );
           })}
+          
+          {/* Logout Button */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => {
+                handleMobileMenuClose();
+                logout();
+              }}
+              sx={{
+                borderRadius: 1,
+                mb: 0.5,
+                color: 'error.main',
+                '&:hover': {
+                  bgcolor: 'error.main',
+                  color: 'white',
+                },
+              }}
+            >
+              <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+                <LogoutIcon />
+              </Box>
+              <ListItemText
+                primary="Logout"
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    fontWeight: 600,
+                  },
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Box>
     </Drawer>
@@ -414,7 +448,7 @@ const DashboardTopBar: React.FC = () => {
 
           {/* Navigation in top row - Desktop only */}
           {!isMobile && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               {NAV_ITEMS.map((item) => {
                 const isNavigating = navigatingTo === item.href;
                 return (
@@ -441,6 +475,27 @@ const DashboardTopBar: React.FC = () => {
                   </Button>
                 );
               })}
+              
+              {/* Logout Button */}
+              <Button
+                onClick={logout}
+                variant="outlined"
+                size="small"
+                startIcon={<LogoutIcon />}
+                sx={{
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  borderColor: 'error.main',
+                  color: 'error.main',
+                  '&:hover': {
+                    bgcolor: 'error.main',
+                    borderColor: 'error.main',
+                    color: 'white',
+                  },
+                }}
+              >
+                Logout
+              </Button>
             </Box>
           )}
         </Paper>
