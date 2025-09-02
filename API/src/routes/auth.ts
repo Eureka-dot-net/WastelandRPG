@@ -47,7 +47,11 @@ router.post('/register', async (req: Request, res: Response) => {
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error: unknown) {
         errorOccurred = true;
-        await session.abortTransaction();
+        try {
+            await session.abortTransaction();
+        } catch (abortError) {
+            console.error('Abort failed (maybe already committed)', abortError);
+        }
         res.status(500).json({
             message: 'Server error',
             error: {
