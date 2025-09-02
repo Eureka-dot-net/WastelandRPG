@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Box, Container, useMediaQuery } from '@mui/material';
+import { Box, Container, useMediaQuery, useTheme } from '@mui/material';
 import DashboardTopBar from './DashboardTopBar';
 import { useUserColonies } from '../../lib/hooks/useUserColonies';
 import InitialServerSelection from '../../components/InitialServerSelection/InitialServerSelection';
@@ -8,8 +8,9 @@ const MOBILE_HEADER_HEIGHT = 10;    // px (adjust based on your AppBar height on
 const DESKTOP_HEADER_HEIGHT = 16; 
 
 const DashboardLayout = () => {
-  // Use MUI hook for match (keep consistent with DashboardTopBar)
-  const isMobile = useMediaQuery('(max-width:900px)');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobileTopBar = useMediaQuery('(max-width:900px)');
   const { data: coloniesData, isLoading } = useUserColonies();
   const userColonies = coloniesData?.colonies || [];
   
@@ -17,7 +18,7 @@ const DashboardLayout = () => {
   if (!isLoading && userColonies.length === 0) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Container maxWidth='xl'>
+        <Container maxWidth='xl' sx={{ px: isMobile ? 1 : 2 }}>
           <InitialServerSelection />
         </Container>
       </Box>
@@ -27,7 +28,10 @@ const DashboardLayout = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <DashboardTopBar />
-      <Container maxWidth='xl' sx={{ pt: isMobile ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT }}>
+      <Container maxWidth='xl' sx={{ 
+        pt: isMobileTopBar ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT,
+        px: isMobile ? 1 : 2 // Reduced horizontal padding on mobile
+      }}>
         <Outlet />
       </Container>
     </Box>

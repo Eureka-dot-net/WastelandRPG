@@ -10,7 +10,9 @@ import {
   LinearProgress,
   Chip,
   Button,
-  Alert
+  Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   CheckCircle,
@@ -84,6 +86,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
   compact = false
 }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isNavigatingToUnlock, setIsNavigatingToUnlock] = useState(false);
   const handleUnlockNavigation = () => {
     if (unlockLink) {
@@ -116,40 +120,73 @@ const TaskCard: React.FC<TaskCardProps> = ({
       opacity: getCardOpacity(),
       border: getCardBorder(),
     }}>
-      <CardContent sx={{ flexGrow: 1, p: compact ? 2 : 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <Box display="flex" alignItems="center" gap={1}>
+      <CardContent sx={{ flexGrow: 1, p: compact ? 1.5 : isMobile ? 2 : 3 }}>
+        {/* Responsive layout - horizontal on desktop, vertical on mobile */}
+        <Box 
+          sx={{
+            mb: isMobile ? 1.5 : 2,
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: isMobile ? 'flex-start' : 'space-between',
+            alignItems: isMobile ? 'flex-start' : 'flex-start',
+            gap: isMobile ? 0.5 : 2
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0, flex: isMobile ? 'none' : 1 }}>
             {isBlocked && <Lock color="disabled" fontSize="small" />}
             {icon}
-            <Typography variant={compact ? "subtitle1" : "h6"}>
+            <Typography 
+              variant={compact ? "subtitle1" : "h6"}
+              sx={{ 
+                wordBreak: 'break-word',
+                hyphens: 'auto',
+                overflowWrap: 'break-word'
+              }}
+            >
               {name}
             </Typography>
           </Box>
-          <Box display="flex" gap={1} flexWrap="wrap">
-            {chips.map((chip, index) => (
-              <Chip
-                key={index}
-                size="small"
-                label={chip.label}
-                variant={chip.variant || "outlined"}
-                color={chip.color || "default"}
-              />
-            ))}
-            {isCompleted && <CheckCircle color="success" />}
-          </Box>
+          {chips.length > 0 && (
+            <Box 
+              display="flex" 
+              gap={1} 
+              flexWrap="wrap" 
+              sx={{ 
+                justifyContent: isMobile ? 'flex-start' : 'flex-end',
+                alignItems: 'flex-start',
+                mt: isMobile ? 0.5 : 0
+              }}
+            >
+              {chips.map((chip, index) => (
+                <Chip
+                  key={index}
+                  size="small"
+                  label={chip.label}
+                  variant={chip.variant || "outlined"}
+                  color={chip.color || "default"}
+                />
+              ))}
+              {isCompleted && <CheckCircle color="success" />}
+            </Box>
+          )}
+          {chips.length === 0 && isCompleted && (
+            <Box sx={{ mt: isMobile ? 0.5 : 0 }}>
+              <CheckCircle color="success" />
+            </Box>
+          )}
         </Box>
 
         <Typography 
           variant="body2" 
           color="text.secondary" 
-          sx={{ mb: 2, fontSize: compact ? '0.8rem' : '0.875rem' }}
+          sx={{ mb: isMobile ? 1.5 : 2, fontSize: compact ? '0.8rem' : isMobile ? '0.8rem' : '0.875rem' }}
         >
           {description}
         </Typography>
 
         {/* Blocking message */}
         {isBlocked && blockingReason && (
-          <Alert severity="info" sx={{ mb: 2 }}>
+          <Alert severity="info" sx={{ mb: isMobile ? 1.5 : 2 }}>
             <Typography variant="body2">
               {blockingReason}
             </Typography>
@@ -158,8 +195,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Completion message and unlock */}
         {isCompleted && completionMessage && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="success.main" sx={{ fontStyle: 'italic', mb: 2 }}>
+          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Typography variant="body2" color="success.main" sx={{ fontStyle: 'italic', mb: isMobile ? 1 : 2 }}>
               {completionMessage}
             </Typography>
             {unlocks && unlockLink && (
@@ -170,7 +207,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 onClick={handleUnlockNavigation}
                 disabled={isNavigatingToUnlock}
                 sx={{ mb: 1 }}
-                size={compact ? "small" : "medium"}
+                size={compact || isMobile ? "small" : "medium"}
               >
                 {isNavigatingToUnlock ? 'Loading...' : `Go to ${unlocks.charAt(0).toUpperCase() + unlocks.slice(1)}`}
               </Button>
@@ -180,12 +217,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* In progress display */}
         {isInProgress && assignedEntityName && (
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
               <Typography 
                 variant="body2" 
                 color="secondary.main" 
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact ? '0.75rem' : '0.875rem' }}
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
               >
                 <AssignmentIcon fontSize="small" /> {assignedEntityName} is working...
               </Typography>
@@ -193,7 +230,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <Typography 
                   variant="body2" 
                   color="secondary.main" 
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact ? '0.75rem' : '0.875rem' }}
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
                 >
                   <Timer fontSize="small" /> 
                   {timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : "Finishing..."}
@@ -204,13 +241,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
               variant="determinate"
               value={Math.min(progress, 100)}
               color="secondary"
-              sx={{ height: compact ? 4 : 6, borderRadius: 3 }}
+              sx={{ height: compact || isMobile ? 3 : 6, borderRadius: 3 }}
             />
           </Box>
         )}
       </CardContent>
 
-      <CardActions sx={{ p: compact ? 1.5 : 2 }}>
+      <CardActions sx={{ p: compact ? 1.5 : isMobile ? 1.5 : 2 }}>
         {actions.length === 1 ? (
           <Button
             variant={actions[0].variant || 'contained'}
@@ -220,7 +257,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             disabled={actions[0].disabled}
             startIcon={actions[0].startIcon}
             sx={{ fontWeight: 600 }}
-            size={compact ? "small" : "medium"}
+            size={compact || isMobile ? "small" : "medium"}
           >
             {actions[0].label}
           </Button>
@@ -235,7 +272,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 disabled={action.disabled}
                 startIcon={action.startIcon}
                 sx={{ fontWeight: 600, flex: action.fullWidth !== false ? 1 : 'none' }}
-                size={compact ? "small" : "medium"}
+                size={compact || isMobile ? "small" : "medium"}
               >
                 {action.label}
               </Button>

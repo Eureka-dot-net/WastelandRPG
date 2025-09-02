@@ -40,15 +40,18 @@ const StatItem: React.FC<StatItemProps> = ({
   tooltip,
   alert = false,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const content = (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
         gap: 0.5,
-        px: 1.5,
+        px: isMobile ? 1 : 1.5,
         py: 0.5,
-        fontSize: '0.85rem',
+        fontSize: isMobile ? '0.75rem' : '0.85rem',
         borderRadius: 1,
         bgcolor: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)',
@@ -76,12 +79,12 @@ const StatItem: React.FC<StatItemProps> = ({
         </Badge>
       )}
       {!alert && (
-        <Box sx={{ color, fontSize: '1.1rem' }}>
+        <Box sx={{ color, fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
            {icon}
         </Box>
       )}
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 600, color, lineHeight: 1.2 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, color, lineHeight: 1.2, fontSize: isMobile ? '0.75rem' : undefined }}>
           {value}
         </Typography>
        
@@ -502,23 +505,23 @@ const DashboardTopBar: React.FC = () => {
 
         {/* Stats Row - Desktop only */}
         {!isMobile && (
-          <Toolbar sx={{ minHeight: { xs: 48, sm: 56 }, px: 1, gap: 1, display: 'flex' }}>
+          <Toolbar sx={{ minHeight: { xs: 48, sm: 56 }, px: 1, gap: 0.5, display: 'flex' }}>
             {/* Resources Section - Left */}
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
               {resources.map((stat) => (
                 <StatItem key={stat.label} {...stat} />
               ))}
             </Box>
 
             {/* Settlers Section - Center */}
-            <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 0.5, flexGrow: 1, justifyContent: 'center' }}>
               {settlers.map((stat) => (
                 <StatItem key={stat.label} {...stat} />
               ))}
             </Box>
 
             {/* Status Section - Right */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
               {status.map((stat) => (
                 <StatItem key={stat.label} {...stat} />
               ))}
