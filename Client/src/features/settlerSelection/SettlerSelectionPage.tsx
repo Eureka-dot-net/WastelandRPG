@@ -1,6 +1,6 @@
 // File: src/components/settlers/SettlerSelection.tsx
 import  { useState, useEffect } from 'react';
-import { Container, Box, Paper } from '@mui/material';
+import { Container, Box, Paper, useTheme, useMediaQuery } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import type { Settler } from '../../lib/types/settler';
 import { useColony } from '../../lib/hooks/useColony';
@@ -15,6 +15,8 @@ import { useServerContext } from '../../lib/contexts/ServerContext';
 
 function SettlerSelection() {
   console.log('settler selection loaded');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [selectedSettler, setSelectedSettler] = useState<Settler | null>(null);
   const [settlers, setSettlers] = useState<Settler[]>([]);
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
@@ -119,15 +121,15 @@ function SettlerSelection() {
 
   // Main settler selection state
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
       <Box
         display="flex"
         flexDirection="column"
         alignItems="center"
         minHeight="100vh"
-        py={4}
+        py={isMobile ? 2 : 4}
       >
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+        <Paper elevation={3} sx={{ p: isMobile ? 2 : 4, width: '100%' }}>
           <ErrorDisplay error={settlerError} sx={{ mb: 2 }} />
           
           <PageHeader

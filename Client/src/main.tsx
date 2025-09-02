@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ReactQueryDevtools initialIsOpen={false} />
       <ThemeProvider theme={wastelandTheme}>
-        <AuthProvider>
+        <AuthProvider queryClient={queryClient}>
           <AppRouter />
         </AuthProvider>
       </ThemeProvider>

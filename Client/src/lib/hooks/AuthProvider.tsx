@@ -2,8 +2,9 @@
 import { useState, useEffect, type ReactNode, useMemo, useCallback } from 'react';
 import { AuthContext } from './useAuth';
 import { agent, setLogoutCallback } from '../api/agent';
+import type { QueryClient } from '@tanstack/react-query';
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({ children, queryClient }: { children: ReactNode; queryClient: QueryClient }) => {
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('token'));
 
   const setToken = useCallback((newToken: string | null) => {
@@ -18,8 +19,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setTokenState(null);
+    // Clear all React Query cache to prevent showing previous user's data
+    queryClient.clear();
     // Do NOT call navigate here. Components can react to `token` changes.
-  }, []);
+  }, [queryClient]);
 
   // Set up logout callback for agent
   useEffect(() => {
