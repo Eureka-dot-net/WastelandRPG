@@ -8,7 +8,13 @@ interface JoinServerData {
 
 interface JoinServerResponse {
   message: string;
-  colony: any; // Could type this more specifically later
+  colony: {
+    _id: string;
+    serverId: string;
+    colonyName: string;
+    level: number;
+    // Add other colony properties as needed
+  };
 }
 
 export const useJoinServer = () => {
