@@ -40,10 +40,10 @@ export interface IAssignment {
 
 const AssignmentSchema = new Schema(
   {
-    colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', index: true, required: true },
+    colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true },
     taskId: { type: String, required: false },
     type: { type: String,  required: true },
-    state: { type: String, default: 'available', index: true },
+    state: { type: String, default: 'available' },
     settlerId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
     dependsOn: {type: String, required: false },
     completionMessage: { type: String, required: false },
@@ -65,6 +65,7 @@ AssignmentSchema.index(
   { colonyId: 1, taskId: 1 },
   { unique: true, sparse: true }
 );
+AssignmentSchema.index({ state: 1 });
 
 export type AssignmentDoc = HydratedDocument<IAssignment>;
 

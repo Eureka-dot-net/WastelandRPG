@@ -26,12 +26,12 @@ export interface IExploration {
 
 const ExplorationSchema = new Schema(
   {
-    serverId: { type: String, required: true, index: true },
-    colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true, index: true },
+    serverId: { type: String, required: true },           // removed index: true
+    colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true }, // removed index: true
     settlerId: { type: Schema.Types.ObjectId, ref: 'Settler', required: true },
     x: { type: Number, required: true },
     y: { type: Number, required: true },
-    state: { type: String, default: 'in-progress', index: true },
+    state: { type: String, default: 'in-progress' },     // removed index: true
     startedAt: { type: Date, required: true },
     completedAt: { type: Date, required: true },
     plannedRewards: { type: Schema.Types.Mixed, required: true },
@@ -41,9 +41,8 @@ const ExplorationSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-// Unique index for (serverId, colonyId, x, y) - only one exploration per tile per colony
+// Keep your schema-level indexes
 ExplorationSchema.index({ serverId: 1, colonyId: 1, x: 1, y: 1 }, { unique: true });
-// Index for finding completed explorations
 ExplorationSchema.index({ serverId: 1, state: 1, completedAt: 1 });
 
 export type ExplorationDoc = HydratedDocument<IExploration>;
