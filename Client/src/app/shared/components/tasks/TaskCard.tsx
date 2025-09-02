@@ -10,7 +10,9 @@ import {
   LinearProgress,
   Chip,
   Button,
-  Alert
+  Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   CheckCircle,
@@ -84,6 +86,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
   compact = false
 }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isNavigatingToUnlock, setIsNavigatingToUnlock] = useState(false);
   const handleUnlockNavigation = () => {
     if (unlockLink) {
@@ -117,26 +121,59 @@ const TaskCard: React.FC<TaskCardProps> = ({
       border: getCardBorder(),
     }}>
       <CardContent sx={{ flexGrow: 1, p: compact ? 2 : 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-          <Box display="flex" alignItems="center" gap={1}>
+        {/* Responsive layout - horizontal on desktop, vertical on mobile */}
+        <Box 
+          sx={{
+            mb: 2,
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: isMobile ? 'flex-start' : 'space-between',
+            alignItems: isMobile ? 'flex-start' : 'flex-start',
+            gap: isMobile ? 1 : 2
+          }}
+        >
+          <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0, flex: isMobile ? 'none' : 1 }}>
             {isBlocked && <Lock color="disabled" fontSize="small" />}
             {icon}
-            <Typography variant={compact ? "subtitle1" : "h6"}>
+            <Typography 
+              variant={compact ? "subtitle1" : "h6"}
+              sx={{ 
+                wordBreak: 'break-word',
+                hyphens: 'auto',
+                overflowWrap: 'break-word'
+              }}
+            >
               {name}
             </Typography>
           </Box>
-          <Box display="flex" gap={1} flexWrap="wrap">
-            {chips.map((chip, index) => (
-              <Chip
-                key={index}
-                size="small"
-                label={chip.label}
-                variant={chip.variant || "outlined"}
-                color={chip.color || "default"}
-              />
-            ))}
-            {isCompleted && <CheckCircle color="success" />}
-          </Box>
+          {chips.length > 0 && (
+            <Box 
+              display="flex" 
+              gap={1} 
+              flexWrap="wrap" 
+              sx={{ 
+                justifyContent: isMobile ? 'flex-start' : 'flex-end',
+                alignItems: 'flex-start',
+                mt: isMobile ? 0.5 : 0
+              }}
+            >
+              {chips.map((chip, index) => (
+                <Chip
+                  key={index}
+                  size="small"
+                  label={chip.label}
+                  variant={chip.variant || "outlined"}
+                  color={chip.color || "default"}
+                />
+              ))}
+              {isCompleted && <CheckCircle color="success" />}
+            </Box>
+          )}
+          {chips.length === 0 && isCompleted && (
+            <Box sx={{ mt: isMobile ? 0.5 : 0 }}>
+              <CheckCircle color="success" />
+            </Box>
+          )}
         </Box>
 
         <Typography 
