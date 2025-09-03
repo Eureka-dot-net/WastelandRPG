@@ -176,4 +176,32 @@ router.delete('/:settlerId/reject', async (req, res) => {
 });
 
 
+// Get a specific settler by ID (for event interactions)
+router.get('/:settlerId', async (req, res) => {
+    const { settlerId } = req.params;
+    const colonyId = req.colonyId;
+
+    // Validate settler ID format
+    if (!mongoose.Types.ObjectId.isValid(settlerId)) {
+        return res.status(400).json({ error: 'Invalid Settler ID.' });
+    }
+
+    try {
+        // Find the settler that belongs to this colony
+        const settler = await Settler.findOne({
+            _id: settlerId,
+            colonyId: colonyId
+        });
+
+        if (!settler) {
+            return res.status(404).json({ error: 'Settler not found.' });
+        }
+
+        res.json(settler);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to retrieve settler.' });
+    }
+});
+
 export default router;
