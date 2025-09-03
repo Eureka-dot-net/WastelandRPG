@@ -18,7 +18,7 @@ import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
-import SettlerGrid from "./SettlerGrid";
+import SettlerStatusGrid from "./SettlerStatusGrid";
 
 function SettlerPage() {
   const theme = useTheme();
@@ -181,11 +181,10 @@ function SettlerPage() {
           totalValue={Math.max(totalSettlers, 10)} // Show growth potential
         />
 
-        <SettlerGrid
+        <SettlerStatusGrid
           settlers={settlers}
           actions={settlerActions}
-          gridSizes={{ xs: 12, md: 6, lg: 4 }}
-          showFullWidthActions={true}
+          gridSizes={{ xs: 12, sm: 6, md: 4, lg: 3 }}
         />
       </Container>
     );
