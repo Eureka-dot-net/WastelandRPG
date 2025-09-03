@@ -47,11 +47,11 @@ const StatItem: React.FC<StatItemProps> = ({
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: isMobile ? 'column' : 'row',
         alignItems: 'center',
-        gap: showLabel ? 0 : 0.5, // small gap when stacking vertically
+        gap: showLabel ? 0 : 0.3, // small gap when stacking vertically
         px: isMobile ? 1 : 1.5,
-        py: showLabel ? 0.3 : 0.5,
+        py: showLabel ? 0.3 : 0.3,
         fontSize: isMobile ? '0.75rem' : '0.85rem',
         borderRadius: 1,
         bgcolor: 'rgba(255,255,255,0.05)',
@@ -77,8 +77,8 @@ const StatItem: React.FC<StatItemProps> = ({
           color,
           lineHeight: 1.2,
           fontSize: isMobile ? '0.75rem' : undefined,
-          mt: { xs: 0, sm: 1 },
-          mb: { xs: 0.3, sm: 1 }
+          mt: { xs: 0, sm: 0 },
+          mb: { xs: 0.3, sm: 0.3 }
         }}
       >
         {value}
@@ -491,6 +491,7 @@ const DashboardTopBar: React.FC = () => {
               justifyContent: 'space-around',
               alignItems: 'center',
               gap: 1,
+              overflow: 'auto',
             }}
           >
             {/* Resources */}
@@ -518,7 +519,7 @@ const DashboardTopBar: React.FC = () => {
 
         {/* Stats Row - Desktop only */}
         {!isMobile && (
-          <Toolbar sx={{ minHeight: { xs: 48, sm: 56 }, px: 1, gap: 0.5, display: 'flex' }}>
+          <Toolbar sx={{ minHeight: { xs: 48, sm: 46 }, px: 1, gap: 0.5, display: 'flex' }}>
             {/* Resources Section - Left */}
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               {resources.map((stat) => (
