@@ -38,6 +38,12 @@ function AssignmentPage() {
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
+  useEffect(() => { //This can stay. If a colony changes then we do want to invalidate the queries
+    if (colonyId) {
+      queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
+    }
+  }, [colonyId, queryClient]);
+  
    // ---- PRELOAD PREVIEW DATA - Enhanced version with proper cache management ----
   useEffect(() => {
     if (!colonyId || !assignments || !colony?.settlers) return;
