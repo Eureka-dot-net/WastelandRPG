@@ -1,5 +1,10 @@
 import type { Settler } from "./settler";
 
+export interface ColonyHomestead {
+  x: number;
+  y: number;
+}
+
 export interface Colony {
   _id: string;
   userId: string;              // ObjectId as string
@@ -9,6 +14,7 @@ export interface Colony {
   colonyName: string;
   level: number;
   notoriety: number;
+  homesteadLocation: ColonyHomestead;
   settlers: Settler[];          // Array of Settler ObjectId strings
   inventory: string;           // Inventory ObjectId as string
   createdAt?: string;          // ISO date string

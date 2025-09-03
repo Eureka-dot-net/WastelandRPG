@@ -25,66 +25,89 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
 // Remove the duplicate functions - now using shared utilities from gameUtils
 
 // GET /api/colonies/:colonyId/assignments
+//GET /api/colonies/123/assignments?type=exploration
+//GET /api/colonies/123/assignments?status=in-progress,completed
+//GET /api/colonies/123/assignments?type=exploration,general&status=in-progress
 export const getAssignments = async (req: Request, res: Response) => {
   const { colonyId } = req.params;
+  const { type, status } = req.query;
 
   if (!Types.ObjectId.isValid(colonyId)) {
     return res.status(400).json({ error: 'Invalid colonyId' });
   }
 
-  // Start a session for transaction
+  const typeFilter = type ? (type as string).split(',').map(t => t.trim()) : undefined;
+  const statusFilter = status ? (status as string).split(',').map(s => s.trim()) : undefined;
+
+  const filter: any = { colonyId };
+  if (typeFilter) filter.type = { $in: typeFilter };
+  if (statusFilter) filter.state = { $in: statusFilter };
+
   const session = await Assignment.startSession();
-  session.startTransaction();
+  const MAX_RETRIES = 3;
 
-  try {
-    // Fetch existing assignments for this colony
-    const existingAssignments = await Assignment.find({ colonyId }).session(session);
+  let attempts = 0;
+  while (attempts < MAX_RETRIES) {
+    try {
+      session.startTransaction();
 
-    // Only auto-create cleanup assignments if they don't exist yet
-    const tasksToCreate = cleaningTasksCatalogue.filter(
-      task => !existingAssignments.some(a => a.taskId === task.taskId)
-    );
+      // Ensure general assignments exist if requested
+      if (!typeFilter || typeFilter.includes('general')) {
+        const existingGeneral = await Assignment.find({ colonyId, type: 'general' }).session(session);
 
-    const createdAssignments: AssignmentDoc[] = [];
+        const tasksToCreate = cleaningTasksCatalogue.filter(
+          task => !existingGeneral.some(a => a.taskId === task.taskId)
+        );
 
-    for (const taskTemplate of tasksToCreate) {
-      const plannedRewards = generateRewards(taskTemplate.rewards);
-      const assignment = await Assignment.create([{
-        colonyId,
-        taskId: taskTemplate.taskId,
-        type: 'general',
-        state: 'available',
-        name: taskTemplate.name,
-        description: taskTemplate.description,
-        dependsOn: taskTemplate.dependsOn,
-        duration: taskTemplate.duration,
-        completionMessage: taskTemplate.completionMessage,
-        unlocks: taskTemplate.unlocks,
-        plannedRewards,
-      }], { session });
-      createdAssignments.push(assignment[0]);
-    }
+        if (tasksToCreate.length > 0) {
+          const newAssignments = tasksToCreate.map(taskTemplate => ({
+            colonyId,
+            taskId: taskTemplate.taskId,
+            type: 'general',
+            state: 'available',
+            name: taskTemplate.name,
+            description: taskTemplate.description,
+            dependsOn: taskTemplate.dependsOn,
+            duration: taskTemplate.duration,
+            completionMessage: taskTemplate.completionMessage,
+            unlocks: taskTemplate.unlocks,
+            plannedRewards: generateRewards(taskTemplate.rewards),
+          }));
 
-    // Return all assignments for this colony with enriched reward metadata
-    const allAssignments = await Assignment.find({ colonyId }).session(session);
-    const assignmentsWithRewardDetails = allAssignments.map(a => {
-      return {
+          // insertMany inside transaction
+          await Assignment.insertMany(newAssignments, { session });
+        }
+      }
+
+      // Fetch all matching assignments after any auto-creation
+      const assignments = await Assignment.find(filter).session(session);
+
+      const enrichedAssignments = assignments.map(a => ({
         ...a.toObject(),
         plannedRewards: enrichRewardsWithMetadata(a.plannedRewards),
-      };
-    });
+      }));
 
-    await session.commitTransaction();
-    session.endSession();
+      await session.commitTransaction();
+      session.endSession();
 
-    res.json({ assignments: assignmentsWithRewardDetails });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch assignments' });
+      return res.json({ assignments: enrichedAssignments });
+    } catch (err: any) {
+      await session.abortTransaction();
+      attempts++;
+
+      if (err.errorLabels?.includes('TransientTransactionError') && attempts < MAX_RETRIES) {
+       // console.warn(`TransientTransactionError occurred. Retrying transaction ${attempts}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, 100 * attempts)); // small backoff
+        continue;
+      }
+
+      session.endSession();
+      console.error('Failed to fetch assignments:', err);
+      return res.status(500).json({ error: 'Failed to fetch assignments' });
+    }
   }
 };
+
 
 // POST /api/colonies/:colonyId/assignments/:assignmentId/start
 export const startAssignment = async (req: Request, res: Response) => {
@@ -163,10 +186,10 @@ export const startAssignment = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/assignments/:assignmentId/preview
+// GET /colonies/:colonyId/assignments/:assignmentId/preview?settlerId=...
 export const previewAssignment = async (req: Request, res: Response) => {
   const { assignmentId } = req.params;
-  const { settlerId } = req.body;
+  const { settlerId } = req.query as { settlerId?: string };
 
   if (!settlerId) {
     return res.status(400).json({ error: 'settlerId is required' });

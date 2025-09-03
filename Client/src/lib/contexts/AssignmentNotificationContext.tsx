@@ -57,8 +57,8 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   children,
 }) => {
   const queryClient = useQueryClient();
-  const { currentServerId : serverId, colonyId } = useServerContext();
-  // Local state
+  const { currentServerId: serverId, colonyId } = useServerContext();
+
   const [timers, setTimers] = useState<Record<string, number>>({});
   const [activeTimers, setActiveTimers] = useState<AssignmentTimer[]>([]);
   const [pendingNotifications, setPendingNotifications] = useState<NotificationState[]>([]);
@@ -67,101 +67,47 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     settler: null,
   });
 
-  // Storage keys
-  const STORAGE_KEY = `assignment_notifications_${serverId}_${colonyId}`;
   const { selectSettler, rejectSettler } = useSettler(serverId, colonyId);
-  const { informAssignment } = useAssignment(serverId, colonyId);
-
-  // Load persisted notifications from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as NotificationState[];
-        setPendingNotifications(parsed);
-      } catch (error) {
-        console.error('Failed to parse saved notifications:', error);
-      }
-    }
-  }, [STORAGE_KEY]);
-
-  // Save notifications to localStorage whenever they change
-  useEffect(() => {
-    if (pendingNotifications.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingNotifications));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [pendingNotifications, STORAGE_KEY]);
+  const { assignments, informAssignment } = useAssignment(serverId, colonyId);
 
   // Initialize timers from current assignments
-  useEffect(() => {
-    const assignments = queryClient.getQueryData<Assignment[]>(['assignments', colonyId]);
-    if (!assignments) return;
+useEffect(() => {
+  if (!assignments) return;
 
-    const inProgressAssignments = assignments.filter(
-      a => a.state === 'in-progress' && a.completedAt
-    );
+  setActiveTimers(prev => {
+    const prevIds = prev.map(t => t.assignmentId);
+    const newTimers = assignments
+      .filter(a => a.state === 'in-progress' && a.completedAt && !prevIds.includes(a._id))
+      .map(a => ({
+        assignmentId: a._id,
+        completionTime: new Date(a.completedAt!),
+        assignmentName: a.name,
+      }));
 
-    const newTimers: AssignmentTimer[] = inProgressAssignments.map(assignment => ({
-      assignmentId: assignment._id,
-      completionTime: new Date(assignment.completedAt!),
-      assignmentName: assignment.name,
-    }));
-
-    setActiveTimers(newTimers);
-
-    // Also invalidate and refetch assignments to ensure we have latest data
-    queryClient.invalidateQueries({ queryKey: ['assignments', colonyId] });
-  }, [queryClient, colonyId]);
-
-  // Listen for assignment query updates to reinitialize timers
-  useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event.query.queryKey[0] === 'assignments' &&
-        event.query.queryKey[1] === colonyId &&
-        event.type === 'updated') {
-
-        const assignments = event.query.state.data as Assignment[];
-        if (!assignments) return;
-
-        const inProgressAssignments = assignments.filter(
-          a => a.state === 'in-progress' && a.completedAt
-        );
-
-        const newTimers: AssignmentTimer[] = inProgressAssignments.map(assignment => ({
-          assignmentId: assignment._id,
-          completionTime: new Date(assignment.completedAt!),
-          assignmentName: assignment.name,
-        }));
-
-        setActiveTimers(prev => {
-          // Only update if different to avoid infinite loops
-          if (JSON.stringify(prev) !== JSON.stringify(newTimers)) {
-            return newTimers;
-          }
-          return prev;
-        });
-      }
-    });
-
-    return unsubscribe;
-  }, [queryClient, colonyId]);
+    // Only append new timers
+    return [...prev, ...newTimers];
+  });
+}, [assignments]);
 
   // Handle assignment completion
   const handleAssignmentCompletion = useCallback(async (assignmentId: string) => {
     try {
-      // Get assignment data
-      const assignments = queryClient.getQueryData<Assignment[]>(['assignments', colonyId]);
+      // Find assignment from useAssignment hook
       const assignment = assignments?.find(a => a._id === assignmentId);
       if (!assignment) return;
 
-      // Get colony data for settler info
+      // Mark as completed manually in the cache
+      queryClient.setQueryData<Assignment[]>(['assignments', colonyId], old =>
+        old?.map(a => a._id === assignmentId ? { ...a, state: 'completed' } : a) ?? []
+      );
+
+      // Get settler info from the colony cache
       const colony = queryClient.getQueryData<Colony>(['colony', serverId]);
       const settler = colony?.settlers?.find(s => s._id === assignment.settlerId);
+
       if (!settler) return;
 
-      // Prepare rewards data
+      // Prepare rewards
       const rewards: Record<string, number> = {};
       if (assignment.plannedRewards) {
         Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
@@ -174,37 +120,29 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
         });
       }
 
-      // Call the inform endpoint
+      // Call inform endpoint
       const data = await informAssignment.mutateAsync(assignmentId);
-      // const response = await agent.patch(`/colonies/${colonyId}/assignments/${assignmentId}/informed`);
-      // const data = response.data;
-
-      // // Update assignment state in cache
-      // queryClient.setQueryData<Assignment[]>(['assignments', colonyId], (old) =>
-      //   old?.map(a => a._id === assignmentId ? { ...a, state: 'informed' } : a) ?? []
-      // );
-
-      // Create notification state
-      const notificationState: NotificationState = {
-        assignmentId,
-        needsToast: true,
-        needsSettlerDialog: !!data?.foundSettler,
-        settlerData: data?.foundSettler,
-        rewards,
-        assignmentName: assignment.name,
-        assignmentDescription: assignment.description,
-        settlerName: settler.name,
-      };
 
       // Add to pending notifications
-      setPendingNotifications(prev => [...prev, notificationState]);
-
+      setPendingNotifications(prev => [
+        ...prev,
+        {
+          assignmentId,
+          needsToast: true,
+          needsSettlerDialog: !!data?.foundSettler,
+          settlerData: data?.foundSettler,
+          rewards,
+          assignmentName: assignment.name,
+          assignmentDescription: assignment.description,
+          settlerName: settler.name,
+        },
+      ]);
     } catch (error) {
       console.error('Error handling assignment completion:', error);
     }
-  }, [queryClient, informAssignment, serverId, colonyId]);
+  }, [assignments, informAssignment, queryClient, colonyId, serverId]);
 
-  // Main timer loop - check every second for completed assignments
+  // Main timer loop
   useEffect(() => {
     if (activeTimers.length === 0) return;
 
@@ -228,24 +166,19 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
       setTimers(newTimers);
       setActiveTimers(stillActiveTimers);
 
-      // Handle completed assignments
-      completedAssignments.forEach(timer => {
-        handleAssignmentCompletion(timer.assignmentId);
-      });
+      completedAssignments.forEach(timer => handleAssignmentCompletion(timer.assignmentId));
     }, 1000);
 
     return () => clearInterval(interval);
   }, [activeTimers, handleAssignmentCompletion]);
 
-  // Process pending notifications (show toasts/dialogs)
+  // Process pending notifications (toast/dialog)
   useEffect(() => {
     if (pendingNotifications.length === 0) return;
 
-    // Find first notification that needs to be processed
     const notification = pendingNotifications.find(n => n.needsToast || n.needsSettlerDialog);
     if (!notification) return;
 
-    // Show toast if needed
     if (notification.needsToast && notification.rewards) {
       showTaskCompletionToast(
         {
@@ -258,22 +191,15 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
         notification.rewards
       );
 
-      // Mark toast as shown
       setPendingNotifications(prev =>
         prev.map(n =>
-          n.assignmentId === notification.assignmentId
-            ? { ...n, needsToast: false }
-            : n
+          n.assignmentId === notification.assignmentId ? { ...n, needsToast: false } : n
         )
       );
     }
 
-    // Show settler dialog if needed
     if (notification.needsSettlerDialog && notification.settlerData && !settlerDialog.isOpen) {
-      setSettlerDialog({
-        isOpen: true,
-        settler: notification.settlerData,
-      });
+      setSettlerDialog({ isOpen: true, settler: notification.settlerData });
     }
   }, [pendingNotifications, settlerDialog.isOpen]);
 
@@ -324,41 +250,25 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     setPendingNotifications(prev => prev.filter(n => n.assignmentId !== assignmentId));
   }, []);
 
-
-  // Handle settler dialog actions
+  // Handle settler dialog approval
   const handleSettlerApproval = useCallback(async (settler: Settler, approve: boolean) => {
-
     try {
-      // Make API call based on approval
-      if (approve) {
-        console.log('Recruiting settler:', settler.name);
-        await selectSettler.mutate({ settlerId: settler._id });
+      if (approve) await selectSettler.mutate({ settlerId: settler._id });
+      else await rejectSettler.mutate({ settlerId: settler._id });
 
-      } else {
-        console.log('Rejecting settler:', settler.name);
-        await rejectSettler.mutate({ settlerId: settler._id });
-      }
-
-      // Close dialog and clear notification
       setSettlerDialog({ isOpen: false, settler: null });
 
-      // Clear the settler dialog notification
       setPendingNotifications(prev =>
-        prev.map(n =>
-          n.settlerData?._id === settler._id
-            ? { ...n, needsSettlerDialog: false }
-            : n
-        ).filter(n => !n.needsToast && !n.needsSettlerDialog) // Remove fully processed notifications
+        prev
+          .map(n => (n.settlerData?._id === settler._id ? { ...n, needsSettlerDialog: false } : n))
+          .filter(n => !n.needsToast && !n.needsSettlerDialog)
       );
-
     } catch (error) {
       console.error('Error handling settler approval:', error);
     }
-  }, [selectSettler, rejectSettler, setSettlerDialog, setPendingNotifications]);
+  }, [selectSettler, rejectSettler]);
 
-  const closeSettlerDialog = useCallback(() => {
-    setSettlerDialog({ isOpen: false, settler: null });
-  }, []);
+  const closeSettlerDialog = useCallback(() => setSettlerDialog({ isOpen: false, settler: null }), []);
 
   const value: AssignmentNotificationContextValue = {
     timers,

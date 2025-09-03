@@ -20,6 +20,7 @@ import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
+import { agent } from "../../lib/api/agent";
 
 function AssignmentPage() {
   const theme = useTheme();
@@ -27,14 +28,57 @@ function AssignmentPage() {
   const { currentServerId: serverId } = useServerContext();
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Assignment | null>(null);
+  const [startingAssignmentId, setStartingAssignmentId] = useState<string | null>(null);
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const queryClient = useQueryClient();
-  const { assignments, loadingAssignment, startAssignment, previewAssignment } = useAssignment(serverId, colonyId);
+  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['general'] });
 
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
+
+   useEffect(() => {
+    if (colonyId) {
+      queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
+    }
+  }, [colonyId, queryClient]);
+
+  // ---- PRELOAD PREVIEW DATA (this does NOT change timers logic) ----
+  useEffect(() => {
+    if (!colonyId || !assignments || !colony?.settlers) return;
+    const assignedSettlerIds = assignments
+      ?.filter(a => a.state === "in-progress")
+      .map(a => a.settlerId)
+      .filter(Boolean) || [];
+    const availableSettlers = colony.settlers.filter(settler => !assignedSettlerIds.includes(settler._id));
+
+    assignments.forEach((assignment) => {
+      const dependencyMet = !assignment.dependsOn ||
+        (assignments?.find(a => a.taskId === assignment.dependsOn)?.state === "informed" ||
+         assignments?.find(a => a.taskId === assignment.dependsOn)?.state === "completed");
+
+      const isAvailable =
+        assignment.state === "available" &&
+        dependencyMet &&
+        availableSettlers.length > 0;
+
+      if (isAvailable) {
+        availableSettlers.forEach((settler) => {
+          queryClient.prefetchQuery({
+            queryKey: ["assignmentPreview", colonyId, assignment._id, settler._id],
+            queryFn: async () => {
+              // Use the same agent.get logic as your hook
+              const url = `/colonies/${colonyId}/assignments/${assignment._id}/preview?settlerId=${settler._id}`;
+              const response = await agent.get(url);
+              return response.data;
+            },
+            staleTime: 5 * 60 * 1000,
+          });
+        });
+      }
+    });
+  }, [colonyId, assignments, colony?.settlers, queryClient]);
 
   useEffect(() => {
     if (colonyId) {
@@ -52,6 +96,7 @@ function AssignmentPage() {
 
   const handleSettlerSelect = (settler: Settler) => {
     if (selectedTask) {
+      setStartingAssignmentId(selectedTask._id);
       startAssignment.mutate(
         { assignmentId: selectedTask._id, settlerId: settler._id },
         {
@@ -96,7 +141,7 @@ function AssignmentPage() {
   const isDependencyMet = (assignment: Assignment) => {
     if (!assignment.dependsOn) return true;
     const dependentTask = assignments?.find(a => a.taskId === assignment.dependsOn);
-    return dependentTask?.state === "informed";
+    return dependentTask?.state === "informed" || dependentTask?.state === "completed";
   };
 
   const getUnlockLink = (unlocks: string) => {
@@ -149,19 +194,26 @@ function AssignmentPage() {
       {/* Tasks Grid */}
       <Grid container spacing={isMobile ? 1.5 : 3}>
         {assignments.map(assignment => {
-          const timeRemaining = timers[assignment._id] || 0;
+          // Determine time remaining
+          let timeRemaining: number | undefined;
+          if (assignment.state === 'in-progress') {
+            timeRemaining = timers[assignment._id];
+          } else if (assignment.state === 'completed' || assignment.state === 'informed') {
+            timeRemaining = 0;
+          } else {
+            timeRemaining = undefined;
+          }
 
-          // Calculate progress correctly
+          // Calculate progress
           let progress = 0;
-          if (assignment.state === "in-progress" && assignment.duration) {
-            if (assignment.startedAt && timeRemaining > 0) {
+          if (assignment.duration) {
+            if (assignment.state === 'in-progress' && timeRemaining != null && assignment.startedAt) {
               progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
-            } else if (!assignment.startedAt) {
-              progress = 0;
-            } else if (timeRemaining <= 0 && Date.now() - new Date(assignment.startedAt).getTime() < assignment.duration) {
-              progress = 0;
-            } else {
+              progress = Math.max(0, Math.min(100, progress)); // clamp between 0-100
+            } else if (assignment.state === 'completed' || assignment.state === 'informed') {
               progress = 100;
+            } else {
+              progress = 0;
             }
           }
 
@@ -169,15 +221,15 @@ function AssignmentPage() {
             ? colony.settlers.find(s => s._id === assignment.settlerId)
             : null;
 
-          // Determine task states
+          // Determine task status
           const dependencyMet = isDependencyMet(assignment);
           let status: 'available' | 'blocked' | 'in-progress' | 'completed';
 
-          if (assignment.state === "informed" || assignment.state === "completed") {
+          if (assignment.state === 'completed' || assignment.state === 'informed') {
             status = 'completed';
-          } else if (assignment.state === "in-progress") {
+          } else if (assignment.state === 'in-progress') {
             status = 'in-progress';
-          } else if (assignment.state === "available" && !dependencyMet) {
+          } else if (assignment.state === 'available' && !dependencyMet) {
             status = 'blocked';
           } else {
             status = 'available';
@@ -185,13 +237,12 @@ function AssignmentPage() {
 
           // Build actions array
           const actions = [];
-
           if (status === 'available' && dependencyMet && availableSettlers.length > 0) {
             actions.push({
               label: "Assign Settler",
               onClick: () => handleAssignClick(assignment._id),
               variant: 'contained' as const,
-              disabled: startAssignment.isPending
+              disabled: startingAssignmentId === assignment._id
             });
           } else if (status === 'available' && dependencyMet && availableSettlers.length === 0) {
             actions.push({
@@ -209,8 +260,17 @@ function AssignmentPage() {
               startIcon: <Lock fontSize="small" />
             });
           } else if (status === 'in-progress') {
+            let label = "In Progress...";
+            if (timeRemaining == null) {
+              label = "Starting...";
+            } else if (timeRemaining > 0) {
+              label = `In Progress... (${formatTimeRemaining(timeRemaining)})`;
+            } else {
+              label = "Finishing...";
+            }
+
             actions.push({
-              label: `In Progress... ${timeRemaining > 0 ? `(${formatTimeRemaining(timeRemaining)})` : "(Finishing...)"}`,
+              label,
               onClick: () => { },
               variant: 'outlined' as const,
               disabled: true
@@ -257,6 +317,7 @@ function AssignmentPage() {
         })}
       </Grid>
 
+
       {/* Enhanced Settler Selection Dialog with Assignment Effects */}
       <SettlerSelectorDialog
         open={settlerDialogOpen}
@@ -264,11 +325,11 @@ function AssignmentPage() {
         onSelect={handleSettlerSelect}
         settlers={availableSettlers}
         selectedTask={selectedTask}
-        previewAssignment={previewAssignment}
         title={`Assign Settler to: ${selectedTask?.name || ''}`}
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks."
         showSkills={true}
+        colonyId={colonyId}
         showStats={false}
         confirmPending={startAssignment.isPending}
       />

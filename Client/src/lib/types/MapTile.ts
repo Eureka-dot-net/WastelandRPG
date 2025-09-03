@@ -1,4 +1,5 @@
-import type { ExplorationRewardItem } from "./exploration";
+import type { AssignmentRewardItem } from "./assignment";
+
 
 // Each tile in the map grid
 export interface MapTile {
@@ -10,7 +11,7 @@ export interface MapTile {
     description: string;
     icon: string;
   };
-  loot?: ExplorationRewardItem[];           // Optional loot items on the tile
+  loot?: AssignmentRewardItem[];           // Optional loot items on the tile
   threat?: number;                           // Optional threat level
   event?: string;                            // Optional event description
   exploredBy: string[];                      // Names of settlers who explored the tile

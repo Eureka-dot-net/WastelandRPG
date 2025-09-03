@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { ExplorationModel } from '../models/Player/Exploration';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
@@ -18,6 +17,7 @@ import {
   canTileBeExplored
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
+import { ExplorationModel } from '../models/Player/Exploration';
 
 // GET /api/colonies/:colonyId/map/:x/:y
 export const getMapGrid5x5 = async (req: Request, res: Response) => {

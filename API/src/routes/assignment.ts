@@ -10,7 +10,7 @@ const router = Router({ mergeParams: true }); // mergeParams needed for :colonyI
 router.get('/', getAssignments);
 
 // Preview assignment effects with a settler
-router.post('/:assignmentId/preview', previewAssignment);
+router.get('/:assignmentId/preview', previewAssignment);
 
 // Start an assignment for a settler
 router.post('/:assignmentId/start', startAssignment);

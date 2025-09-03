@@ -1,0 +1,324 @@
+import React from 'react';
+import {
+  Card,
+  CardContent,
+  Box,
+  Typography,
+  Avatar,
+  Divider,
+  Chip,
+  LinearProgress,
+  Skeleton,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+import { Speed, TrendingUp, CheckCircle } from '@mui/icons-material';
+import type { Settler } from '../../../../lib/types/settler';
+import type { Assignment } from '../../../../lib/types/assignment';
+import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
+import { usePreviewAssignment } from '../../../../lib/hooks/usePreviewAssignment';
+
+const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
+
+const getSpeedChipColor = (multiplier: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
+  if (multiplier < 0.25) return "error";
+  if (multiplier < 0.66) return "warning";
+  if (multiplier < 1.0) return "secondary";
+  if (multiplier < 1.25) return "primary";
+  if (multiplier < 1.5) return "info";
+  return "success";
+};
+const getStatChipColor = (percent: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
+  if (percent <= -66) return "error";
+  if (percent < -33) return "warning";
+  if (percent < 0) return "secondary";
+  if (percent < 33) return "primary";
+  if (percent < 66) return "info";
+  return "success";
+};
+const getDurationChange = (base: number, adjusted: number) => {
+  if (base === 0) return 0;
+  return ((adjusted - base) / base) * 100;
+};
+const getLootChange = (multiplier: number) => (multiplier - 1) * 100;
+const getBarColor = (percent: number, isBonusGood: boolean = true) => {
+  if ((isBonusGood && percent > 0) || (!isBonusGood && percent < 0)) return 'success.main';
+  if ((isBonusGood && percent < 0) || (!isBonusGood && percent > 0)) return 'error.main';
+  return 'warning.main';
+};
+
+const EfficiencyBar = ({ percent, type }: { percent: number; type: 'duration' | 'loot'; }) => {
+  const barColor = getBarColor(percent, type === 'loot');
+  const base = 50;
+  const maxFill = 100;
+  const value = base + Math.max(-base, Math.min(maxFill-base, percent));
+  return (
+    <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Typography variant="caption" sx={{ minWidth: 60, fontSize: '0.7rem', color: barColor }}>
+        {(percent > 0 ? '+' : '') + percent.toFixed(0) + '%'}
+      </Typography>
+      <Box sx={{ flexGrow: 1, position: 'relative' }}>
+        <LinearProgress
+          variant="determinate"
+          value={Math.max(0, Math.min(100, value))}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: 'action.hover',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: barColor,
+              borderRadius: 4,
+            },
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            top: -1,
+            width: 2,
+            height: 10,
+            backgroundColor: 'text.secondary',
+            transform: 'translateX(-50%)',
+          }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
+const EffectChip = ({ effect }: { effect: string }) => {
+  if (effect.includes('Speed stat:')) {
+    const multiplierMatch = effect.match(/Speed stat:\s*([\d.]+)x/);
+    let multiplier = 1.0;
+    if (multiplierMatch) multiplier = parseFloat(multiplierMatch[1]);
+    let sxColor = {};
+    if (multiplier < 1.0) sxColor = { backgroundColor: '#FFD600', color: '#333' };
+    else if (multiplier >= 1.0 && multiplier < 1.25) sxColor = { backgroundColor: '#9C27B0', color: '#fff' };
+    return (
+      <Chip
+        size="small"
+        label={effect}
+        color={getSpeedChipColor(multiplier)}
+        sx={{ fontSize: '0.65rem', ...sxColor }}
+      />
+    );
+  }
+  const percentMatch = effect.match(/([+-]?\d+)%/);
+  let percent = 0;
+  if (percentMatch) percent = parseInt(percentMatch[1], 10);
+  let sxColor = {};
+  if (percent < 0 && percent >= -33) sxColor = { backgroundColor: '#FFD600', color: '#333' };
+  else if (percent >= 0 && percent < 33) sxColor = { backgroundColor: '#9C27B0', color: '#fff' };
+  return (
+    <Chip
+      size="small"
+      label={effect}
+      color={getStatChipColor(percent)}
+      sx={{ fontSize: '0.65rem', ...sxColor }}
+    />
+  );
+};
+
+const StatChip = ({ stat, value }: { stat: string, value: number }) => {
+  let percent = value;
+  if (Math.abs(value) <= 1) percent = value * 99;
+  else if (Math.abs(value) <= 10) percent = value * 10;
+  let sxColor = {};
+  if (percent < 0 && percent >= -33) sxColor = { backgroundColor: '#FFD600', color: '#333' };
+  else if (percent >= 0 && percent < 33) sxColor = { backgroundColor: '#9C27B0', color: '#fff' };
+  return (
+    <Chip
+      key={stat}
+      size="small"
+      label={`${stat}: ${percent > 0 ? "+" : ""}${percent.toFixed(0)}%`}
+      color={getStatChipColor(percent)}
+      sx={{ fontSize: '0.75rem', ...sxColor }}
+    />
+  );
+};
+
+export interface SettlerPreviewCardProps {
+  settler: Settler;
+  assignment: Assignment;
+  colonyId: string;
+  showSkills?: boolean;
+  showStats?: boolean;
+  onClick?: () => void;
+  avatarIndex?: number;
+  confirmPending?: boolean;
+}
+
+const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
+  settler,
+  assignment,
+  colonyId,
+  showSkills = true,
+  showStats = false,
+  onClick,
+  avatarIndex = 0,
+  confirmPending = false
+}) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { data: preview, isLoading, error } = usePreviewAssignment(
+    colonyId,
+    assignment._id,
+    settler._id,
+    true
+  );
+
+  const avatarColor = avatarColors[avatarIndex % avatarColors.length];
+
+  return (
+    <Card
+      sx={{
+        cursor: confirmPending ? 'default' : 'pointer',
+        transition: 'all 0.2s ease',
+        border: '1px solid #333',
+        '&:hover': {
+          transform: confirmPending ? undefined : 'translateY(-2px)',
+          boxShadow: confirmPending ? undefined : 4,
+          borderColor: confirmPending ? undefined : 'primary.main'
+        }
+      }}
+      onClick={() => !confirmPending && onClick?.()}
+    >
+      <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+        {/* Settler Basic Info */}
+        <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2} mb={isMobile ? 1.5 : 2}>
+          <Avatar
+            sx={{
+              bgcolor: avatarColor,
+              width: isMobile ? 30 : 35,
+              height: isMobile ? 30 : 35,
+              fontSize: isMobile ? '0.9rem' : '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            {settler.name.charAt(0)}
+          </Avatar>
+          <Box flex={1}>
+            <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+              {settler.name}
+            </Typography>
+          </Box>
+        </Box>
+        {/* Assignment Effects Preview */}
+        <>
+          <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
+          <Typography
+            variant="subtitle2"
+            color="primary.main"
+            sx={{ mb: isMobile ? 1 : 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
+            <CheckCircle fontSize="small" />
+            Assignment Effects
+          </Typography>
+          {isLoading ? (
+            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+              <Skeleton variant="text" width="60%" height={20} />
+              <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
+              <Skeleton variant="text" width="40%" height={20} />
+              <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
+            </Box>
+          ) : error ? (
+            <Typography variant="body2" color="error.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
+              Failed to load preview
+            </Typography>
+          ) : preview?.adjustments ? (
+            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+              {/* Duration & Speed */}
+              <Box sx={{ mb: 1.5 }}>
+                <Box display="flex" alignItems="center" gap={2} mb={0.5}>
+                  <Speed fontSize="small" color="primary" />
+                  <Typography variant="body2" fontWeight={600}>
+                    Task Duration: {formatTaskDuration(assignment.duration || 0)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
+                  </Typography>
+                </Box>
+                <EfficiencyBar
+                  percent={getDurationChange(assignment.duration || 0, preview.adjustments.adjustedDuration)}
+                  type="duration"
+                />
+              </Box>
+              {/* Loot Multiplier */}
+              <Box sx={{ mb: 1.5 }}>
+                <Box display="flex" alignItems="center" gap={2} mb={0.5}>
+                  <TrendingUp fontSize="small" color="primary" />
+                  <Typography variant="body2" fontWeight={600}>
+                    Loot Bonus
+                  </Typography>
+                </Box>
+                <EfficiencyBar
+                  percent={getLootChange(preview.adjustments.lootMultiplier)}
+                  type="loot"
+                />
+              </Box>
+              {/* Active Effects */}
+              {(preview.adjustments.effects.speedEffects.length > 0 ||
+                preview.adjustments.effects.lootEffects.length > 0 ||
+                preview.adjustments.effects.traitEffects.length > 0) && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                      Active Effects:
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" gap={0.5}>
+                      {preview.adjustments.effects.speedEffects.map((effect: string, i: number) => (
+                        <EffectChip key={`speed-${i}`} effect={effect} />
+                      ))}
+                      {preview.adjustments.effects.lootEffects.map((effect: string, i: number) => (
+                        <EffectChip key={`loot-${i}`} effect={effect} />
+                      ))}
+                      {preview.adjustments.effects.traitEffects.map((effect: string, i: number) => (
+                        <EffectChip key={`trait-${i}`} effect={effect} />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="warning.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
+              No assignment effects data available
+            </Typography>
+          )}
+        </>
+        <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
+        {/* Settler Skills */}
+        {showSkills && (
+          <>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
+              Skills:
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={0.5} mb={isMobile ? 0.5 : 1}>
+              {Object.entries(settler.skills).map(([skill, level]) => (
+                <Chip
+                  key={skill}
+                  size="small"
+                  label={`${skill}: ${level}`}
+                  variant="filled"
+                  color="secondary"
+                  sx={{ fontSize: '0.75rem' }}
+                />
+              ))}
+            </Box>
+          </>
+        )}
+        {/* Settler Stats */}
+        {showStats && (
+          <>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
+              Stats:
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={0.5}>
+              {Object.entries(settler.stats).map(([stat, value]) => (
+                <StatChip key={stat} stat={stat} value={value as number} />
+              ))}
+            </Box>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default SettlerPreviewCard;
