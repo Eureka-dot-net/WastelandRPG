@@ -106,7 +106,8 @@ const EventPage: React.FC = () => {
 
   const handleEventClick = (event: ColonyEvent) => {
     // Check if this is a settler event that might need action
-    if (event.type === 'settler' && event.meta?.settlerId && isPendingSettlerEvent(event)) {
+    if (event.type === 'assignment' && event.meta?.settlerId && isPendingSettlerEvent(event)) {
+      console.log('Found settler started:', event.meta.settlerId);
       setSelectedSettlerId(event.meta.settlerId);
       setSettlerDialogOpen(true);
       return;

@@ -9,7 +9,8 @@ export const useSettlerById = (serverId: string | null, colonyId: string | undef
       if (!serverId || !colonyId || !settlerId) {
         throw new Error('Missing required parameters');
       }
-      return agent.get(`/api/${serverId}/colony/${colonyId}/settler/${settlerId}`);
+      const res = await agent.get(`/colonies/${colonyId}/settlers/${settlerId}`);
+      return res.data;
     },
     enabled: !!serverId && !!colonyId && !!settlerId,
     staleTime: 30000, // 30 seconds
