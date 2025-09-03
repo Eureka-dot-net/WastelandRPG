@@ -175,7 +175,7 @@ export async function completeGameEvent(
 
   const baseLogMessage = `${eventName}${locationInfo} completed. Rewards ${JSON.stringify(eventDoc.plannedRewards)}`;
   const logEntry = foundSettler 
-    ? `${baseLogMessage}. A new settler has joined the colony!`
+    ? `${baseLogMessage}. A settler was found and is waiting for your decision!`
     : baseLogMessage;
 
   return {
@@ -218,8 +218,11 @@ export async function completeGameEventsForColony(
   ]);
 
   // Add logs after saving to avoid partial state issues
-  for (const entry of logEntries) {
-    await colonyManager.addLogEntry(session, eventType, entry, undefined);
+  for (let i = 0; i < logEntries.length; i++) {
+    const entry = logEntries[i];
+    const event = events[i];
+    const meta = event.settlerFoundId ? { settlerId: event.settlerFoundId } : undefined;
+    await colonyManager.addLogEntry(session, eventType, entry, meta);
   }
 }
 

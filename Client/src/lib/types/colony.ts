@@ -1,4 +1,5 @@
 import type { Settler } from "./settler";
+import type { ColonyEvent } from "./event";
 
 export interface ColonyHomestead {
   x: number;
@@ -24,4 +25,5 @@ export interface Colony {
   daysFood: number;
   scrapMetal: number;
   wood: number;
+  logs: ColonyEvent[];         // Colony event logs
 }
