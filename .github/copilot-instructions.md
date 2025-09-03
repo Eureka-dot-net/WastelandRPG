@@ -23,26 +23,79 @@
 
 ### Prerequisites
 - Node.js 22.x (LTS recommended)
-- MongoDB running locally (for development)
+- Docker (recommended) OR MongoDB installed locally
 - npm or yarn package manager
 
 ### Environment Setup
 
-**ALWAYS set up environment variables before running the API:**
+**AUTOMATIC SETUP (Recommended):**
 
-API requires `.env` file in `API/` directory:
+For quickest setup, use the provided setup script:
 ```bash
+cd API
+./setup.sh
+```
+
+This script will:
+- Start MongoDB in Docker container
+- Create `.env` file with correct configuration
+- Install dependencies
+- Verify the setup
+
+**MANUAL SETUP:**
+
+If you prefer manual setup or don't have Docker:
+
+1. **Option A: Docker MongoDB (Recommended)**
+```bash
+# Start MongoDB container
+docker run -d -p 27017:27017 --name wasteland-mongodb mongo:latest
+
+# Create .env file in API/ directory
 MONGO_URI=mongodb://localhost:27017/wasteland_rpg
 JWT_SECRET=your_jwt_secret_key
 PORT=3000
 NODE_ENV=development
 ```
 
-For testing, create `.env.test`:
+2. **Option B: Local MongoDB Installation**
 ```bash
-MONGO_URI=mongodb://localhost:27017/wasteland_rpg_test  
-NODE_ENV=test
+# Install MongoDB locally first, then:
+MONGO_URI=mongodb://localhost:27017/wasteland_rpg
+JWT_SECRET=your_jwt_secret_key
+PORT=3000
+NODE_ENV=development
 ```
+
+3. **Option C: MongoDB Atlas (Cloud)**
+```bash
+# Sign up at https://www.mongodb.com/atlas and get connection string
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/wasteland_rpg
+JWT_SECRET=your_jwt_secret_key
+PORT=3000
+NODE_ENV=development
+```
+
+4. **Option D: No Database (In-Memory Fallback)**
+```bash
+# Leave MONGO_URI unset for automatic in-memory database (requires internet access)
+JWT_SECRET=your_jwt_secret_key
+PORT=3000
+NODE_ENV=development
+```
+
+**Testing Configuration:**
+
+Create `.env.test` in `API/` directory:
+```bash
+NODE_ENV=test
+JWT_SECRET=test_secret_key
+MONGO_URI=mongodb://localhost:27017/wasteland_rpg  # Uses same Docker/local MongoDB
+```
+
+**Available Environment Files:**
+- `.env.example` - Template for development environment
+- `.env.test.example` - Template for test environment
 
 ### Bootstrap Process
 
@@ -82,10 +135,12 @@ npm run build  # Runs TypeScript check + Vite build
 cd API
 npm test  # Runs Jest test suite
 ```
-- **Important**: Tests require internet access to download MongoDB Memory Server binary
-- **Fallback**: If memory server fails, tests attempt local MongoDB connection
-- Test timeout: 10 seconds (increase if needed with `jest.setTimeout()`)
-- Run time: ~30-60 seconds (depending on MongoDB setup)
+- **Database**: Tests automatically use external MongoDB if available, fallback to in-memory
+- **Setup**: Ensure MongoDB is running (Docker container or local installation)
+- **Internet**: In-memory fallback requires internet access to download MongoDB binaries
+- **Test timeout**: 30 seconds for setup, 15 seconds for cleanup
+- **Run time**: ~30-60 seconds (depending on MongoDB setup)
+- **Database cleanup**: Test databases are automatically cleaned up
 
 **Client Tests:**
 ```bash
@@ -123,6 +178,8 @@ npm run dev  # Starts nodemon with TypeScript execution
 - Uses `nodemon` with `ts-node` for hot reloading
 - Watches `src/` directory for changes
 - Default port: 3000 (or PORT env variable)
+- **Database**: Automatically connects to configured MongoDB or starts in-memory database
+- **Startup**: Server provides clear guidance if database connection fails
 
 **Client Development Server:**
 ```bash
@@ -135,23 +192,35 @@ npm run dev  # Starts Vite dev server
 ### Common Issues & Workarounds
 
 1. **MongoDB Connection Errors**: 
-   - Ensure MongoDB is running: `mongod --dbpath /data/db`
-   - Check MONGO_URI environment variable is set
-   - For tests, ensure internet access for Memory Server download
+   - **Quick Fix**: Run `cd API && ./setup.sh` for automatic setup
+   - **Manual Fix**: Ensure MongoDB is running with `docker ps` or `mongod --version`
+   - **Environment**: Check MONGO_URI in `.env` file is correct
+   - **Fallback**: Server will attempt in-memory database if external connection fails
 
-2. **Test Timeouts**: 
-   - Tests may timeout due to MongoDB setup delays
-   - Increase timeout in `jest.config.js` if needed
-   - Consider using local MongoDB instead of Memory Server
+2. **In-Memory Database Issues**:
+   - **Internet Required**: In-memory database requires internet to download MongoDB binaries
+   - **Error**: "ENOTFOUND fastdl.mongodb.org" means no internet access for binary download
+   - **Solution**: Use Docker MongoDB or local MongoDB installation instead
 
-3. **Large Bundle Size**: 
+3. **Test Failures**: 
+   - Tests now preferentially use external MongoDB (Docker/local) over in-memory
+   - Ensure MongoDB container is running: `docker start wasteland-mongodb`
+   - Test database is automatically cleaned up between test runs
+
+4. **Port Conflicts**:
+   - MongoDB default port 27017 might be in use
+   - Change Docker port: `docker run -d -p 27018:27017 --name mongodb mongo:latest`
+   - Update MONGO_URI: `mongodb://localhost:27018/wasteland_rpg`
+
+5. **Docker Issues**:
+   - Container name conflicts: `docker rm wasteland-mongodb`
+   - Container not starting: `docker logs wasteland-mongodb`
+   - Port already in use: Use different port mapping
+
+6. **Large Bundle Size**: 
    - Client build warns about 7.5MB bundle size
    - Consider dynamic imports for code splitting
    - Material-UI and react-icons contribute significantly to size
-
-4. **Environment Variables**: 
-   - API will fail to start without proper `.env` setup
-   - Tests require `.env.test` or fallback to local MongoDB
 
 ## Project Layout & Architecture
 
