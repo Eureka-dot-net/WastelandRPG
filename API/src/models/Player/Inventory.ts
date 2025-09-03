@@ -22,7 +22,7 @@ const inventoryItemSchema = new Schema<IInventoryItem>({
   name: { type: String, required: true },
   icon: { type: String, required: true },
   quantity: { type: Number, required: true, default: 0 },
-  type: { type: String, required: true, enum: ['base', 'crafted','currency', 'farming', 'food', 'medicine', 'quest'] },
+  type: { type: String, required: true },
   properties: { type: Schema.Types.Mixed },
 });
 
