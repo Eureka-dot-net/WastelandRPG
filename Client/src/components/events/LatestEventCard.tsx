@@ -20,7 +20,8 @@ import {
   Warning,
   CheckCircle,
   Error as ErrorIcon,
-  FeedOutlined
+  FeedOutlined,
+  PersonAdd
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import type { ColonyEvent } from '../../lib/types/event';
@@ -91,6 +92,12 @@ const LatestEventCard: React.FC<LatestEventCardProps> = ({ event }) => {
     }
   };
 
+  const isPendingSettlerEvent = (event: ColonyEvent): boolean => {
+    // Check if the message indicates a pending settler
+    return event.message.includes('waiting for your decision') || 
+           event.message.includes('found and is waiting');
+  };
+
   if (!event) {
     return (
       <Paper 
@@ -151,12 +158,23 @@ const LatestEventCard: React.FC<LatestEventCardProps> = ({ event }) => {
             <Typography variant={isMobile ? 'subtitle1' : 'h6'} sx={{ fontWeight: 600 }}>
               Latest Event
             </Typography>
-            <Chip 
-              label={event.type}
-              size="small"
-              color={getEventColor(event.type) as any}
-              variant="outlined"
-            />
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Chip 
+                label={event.type}
+                size="small"
+                color={getEventColor(event.type) as 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'default'}
+                variant="outlined"
+              />
+              {isPendingSettlerEvent(event) && (
+                <Chip
+                  icon={<PersonAdd />}
+                  label="Action Required"
+                  size="small"
+                  color="warning"
+                  variant="filled"
+                />
+              )}
+            </Box>
           </Box>
           <Typography 
             variant={isMobile ? 'body2' : 'body1'} 
@@ -171,11 +189,12 @@ const LatestEventCard: React.FC<LatestEventCardProps> = ({ event }) => {
             </Typography>
             <Button
               size="small"
-              variant="outlined"
+              variant={isPendingSettlerEvent(event) ? "contained" : "outlined"}
+              color={isPendingSettlerEvent(event) ? "warning" : "primary"}
               onClick={() => navigate('/events')}
               sx={{ textTransform: 'none' }}
             >
-              View All Events
+              {isPendingSettlerEvent(event) ? "Take Action" : "View All Events"}
             </Button>
           </Box>
         </Box>

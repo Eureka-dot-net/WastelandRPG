@@ -5,7 +5,7 @@ export interface ColonyEvent {
   meta?: {
     settlerId?: string;
     assignmentId?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

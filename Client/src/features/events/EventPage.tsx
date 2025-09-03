@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Container,
   Paper,
@@ -25,13 +25,16 @@ import {
   Info,
   Warning,
   CheckCircle,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  PersonAdd
 } from '@mui/icons-material';
 import { useColony } from '../../lib/hooks/useColony';
 import { useServerContext } from '../../lib/contexts/ServerContext';
+import { useAcceptSettler, useRejectSettler } from '../../lib/hooks/useSettlerActions';
 import type { ColonyEvent } from '../../lib/types/event';
 import ErrorDisplay from '../../app/shared/components/ui/ErrorDisplay';
 import LoadingDisplay from '../../app/shared/components/ui/LoadingDisplay';
+import EventSettlerDialog from '../../components/events/EventSettlerDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 const EventPage: React.FC = () => {
@@ -39,6 +42,11 @@ const EventPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
   const { colony, colonyLoading, colonyError } = useColony(serverId);
+  const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
+  const [selectedSettlerId, setSelectedSettlerId] = useState<string | null>(null);
+
+  const acceptSettler = useAcceptSettler();
+  const rejectSettler = useRejectSettler();
 
   const getEventIcon = (eventType: string) => {
     switch (eventType.toLowerCase()) {
@@ -98,12 +106,39 @@ const EventPage: React.FC = () => {
 
   const handleEventClick = (event: ColonyEvent) => {
     // Check if this is a settler event that might need action
-    if (event.type === 'settler' && event.meta?.settlerId) {
-      // TODO: Check if settler needs acceptance/rejection
-      console.log('Settler event clicked:', event);
+    if (event.type === 'settler' && event.meta?.settlerId && isPendingSettlerEvent(event)) {
+      setSelectedSettlerId(event.meta.settlerId);
+      setSettlerDialogOpen(true);
+      return;
     }
     // For now, we'll just log the event click
     console.log('Event clicked:', event);
+  };
+
+  const isPendingSettlerEvent = (event: ColonyEvent): boolean => {
+    // Check if the message indicates a pending settler
+    return event.message.includes('waiting for your decision') || 
+           event.message.includes('found and is waiting');
+  };
+
+  const handleAcceptSettler = async () => {
+    if (!serverId || !colony || !selectedSettlerId) return;
+
+    await acceptSettler.mutateAsync({
+      serverId,
+      colonyId: colony._id,
+      settlerId: selectedSettlerId
+    });
+  };
+
+  const handleRejectSettler = async (settlerId: string) => {
+    if (!serverId || !colony) return;
+
+    await rejectSettler.mutateAsync({
+      serverId,
+      colonyId: colony._id,
+      settlerId
+    });
   };
 
   if (colonyLoading || !serverId) {
@@ -227,22 +262,44 @@ const EventPage: React.FC = () => {
                           >
                             {event.message}
                           </Typography>
-                          <Chip 
-                            label={event.type}
-                            size="small"
-                            color={getEventColor(event.type) as any}
-                            variant="outlined"
-                          />
+                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                            <Chip 
+                              label={event.type}
+                              size="small"
+                              color={getEventColor(event.type) as 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'default'}
+                              variant="outlined"
+                            />
+                            {isPendingSettlerEvent(event) && (
+                              <Chip
+                                icon={<PersonAdd />}
+                                label="Action Required"
+                                size="small"
+                                color="warning"
+                                variant="filled"
+                              />
+                            )}
+                          </Box>
                         </Box>
                       }
                       secondary={
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{ mt: 0.5, display: 'block' }}
-                        >
-                          {formatEventTime(event.timestamp)}
-                        </Typography>
+                        <Box>
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
+                            sx={{ mt: 0.5, display: 'block' }}
+                          >
+                            {formatEventTime(event.timestamp)}
+                          </Typography>
+                          {isPendingSettlerEvent(event) && (
+                            <Typography 
+                              variant="caption" 
+                              color="warning.main"
+                              sx={{ mt: 0.5, display: 'block', fontWeight: 600 }}
+                            >
+                              Click to accept or decline this settler
+                            </Typography>
+                          )}
+                        </Box>
                       }
                       sx={{
                         m: 0,
@@ -261,6 +318,20 @@ const EventPage: React.FC = () => {
           </List>
         )}
       </Paper>
+
+      {/* Settler Dialog for pending acceptances */}
+      {selectedSettlerId && (
+        <EventSettlerDialog
+          open={settlerDialogOpen}
+          onClose={() => {
+            setSettlerDialogOpen(false);
+            setSelectedSettlerId(null);
+          }}
+          settlerId={selectedSettlerId}
+          onAccept={handleAcceptSettler}
+          onReject={handleRejectSettler}
+        />
+      )}
     </Container>
   );
 };
