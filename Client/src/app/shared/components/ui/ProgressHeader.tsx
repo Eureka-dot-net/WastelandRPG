@@ -24,8 +24,8 @@ const ProgressHeader: React.FC<ProgressHeaderProps> = ({
   totalValue,
   progressColor = 'secondary',
   emoji,
-  backgroundColor = 'rgba(158, 158, 158, 0.1)',
-  borderColor = 'rgba(158, 158, 158, 0.3)'
+  backgroundColor = 'rgba(40, 40, 40, 0.3)',
+  borderColor = 'rgba(60, 60, 60, 0.5)'
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
