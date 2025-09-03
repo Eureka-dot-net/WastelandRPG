@@ -11,7 +11,7 @@ export const wastelandTheme = createTheme({
     },
     background: {
       default: '#1c2526',
-      paper: '#1c2526',
+      paper: '#1a1a1a',
     },
     text: {
       primary: '#ffffff',
@@ -99,9 +99,9 @@ export const wastelandTheme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#0a0a0aff',
           '--Paper-overlay': 'none',
-          border: '1px solid #333',
+          border: '1px solid #555',
         },
       },
     },

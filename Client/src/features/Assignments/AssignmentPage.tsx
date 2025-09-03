@@ -345,6 +345,7 @@ function AssignmentPage() {
         colonyId={colonyId}
         showStats={false}
         confirmPending={startAssignment.isPending}
+        
       />
 
       {/* Task Queue Placeholder */}

@@ -383,7 +383,7 @@ const DashboardTopBar: React.FC = () => {
         position="fixed"
         elevation={3}
         sx={{
-          bgcolor: 'background.paper',
+          bgcolor: 'black',
           borderBottom: '1px solid #333',
         }}
       >

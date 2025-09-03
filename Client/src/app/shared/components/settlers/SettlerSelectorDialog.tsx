@@ -79,9 +79,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
       onClose={handleClose}
       maxWidth={dialogMaxWidth}
       fullWidth={dialogFullWidth}
-      PaperProps={{
-        sx: { bgcolor: 'background.paper', border: '1px solid #333' }
-      }}
+      sx={{ bgcolor: 'black', border: '1px solid #000000ff' }}
     >
       <DialogTitle sx={{ color: 'primary.main', pb: 1 }}>
         <Box display="flex" alignItems="center" gap={1}>
