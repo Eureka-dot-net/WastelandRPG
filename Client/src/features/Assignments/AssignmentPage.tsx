@@ -21,6 +21,7 @@ import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
 import { agent } from "../../lib/api/agent";
+import LatestEventCard from "../../components/events/LatestEventCard";
 
 function AssignmentPage() {
   const theme = useTheme();
@@ -191,6 +192,11 @@ function AssignmentPage() {
   const completedTasks = assignments.filter(a => a.state === "informed" || a.state === "completed").length;
   const availableSettlers = getAvailableSettlers();
 
+  // Get the latest event for display
+  const latestEvent = colony.logs && colony.logs.length > 0 
+    ? [...colony.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+    : null;
+
   return (
     <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
       <ProgressHeader
@@ -203,6 +209,9 @@ function AssignmentPage() {
         totalValue={assignments.length}
         progressColor="secondary"
       />
+
+      {/* Latest Event Card */}
+      <LatestEventCard event={latestEvent} />
 
       {/* Tasks Grid */}
       <Grid container spacing={isMobile ? 1.5 : 3}>

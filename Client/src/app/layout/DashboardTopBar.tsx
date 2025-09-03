@@ -15,6 +15,7 @@ import ShieldIcon from '@mui/icons-material/Shield'; // Shield
 import VisibilityIcon from '@mui/icons-material/Visibility'; // Notoriety
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"; // Alerts
 import HomeIcon from '@mui/icons-material/Home';
+import FeedIcon from '@mui/icons-material/Feed'; // Events
 import { Box, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, Paper, type SvgIconProps } from "@mui/material";
 import { useColony } from "../../lib/hooks/useColony";
 import { useServerContext } from "../../lib/contexts/ServerContext";
@@ -137,6 +138,7 @@ const DashboardTopBar: React.FC = () => {
 
     const baseItems = [
       { label: "Assignments", href: "/assignments", icon: <WarningAmberIcon /> },
+      { label: "Events", href: "/events", icon: <FeedIcon /> },
     ];
 
     const conditionalItems = [

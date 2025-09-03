@@ -10,6 +10,7 @@ import UnderConstruction from "../layout/UnderConstruction";
 import AssignmentPage from "../../features/Assignments/AssignmentPage";
 import InventoryPage from "../../features/inventory/InventoryPage";
 import SettlerPage from "../../features/settlers/SettlerPage";
+import EventPage from "../../features/events/EventPage";
 import { ServerProvider } from "../../lib/contexts/ServerProvider";
 
 const router = createBrowserRouter([
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
                             { path: "/assignments", element: <AssignmentPage /> }, 
                             { path: "/inventory", element: <InventoryPage /> },
                             { path: "/settlers", element: <SettlerPage /> },
+                            { path: "/events", element: <EventPage /> },
                             { path: "/map", element: <MapPage /> },
                             { path: "/", element: <AssignmentPage /> },
                              { path: "*", element: <UnderConstruction /> },
