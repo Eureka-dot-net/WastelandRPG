@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplified Settler Interest Selection - Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .settler-card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px;
+            display: inline-block;
+            width: 350px;
+            vertical-align: top;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .settler-name {
+            font-size: 20px;
+            color: #4fc3f7;
+            margin-bottom: 10px;
+        }
+        .settler-backstory {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .skills-section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .skill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+        .skill-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .skill-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .skill-name {
+            text-transform: capitalize;
+            font-size: 14px;
+        }
+        .interest-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            margin-left: 4px;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+        .interest-button:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+        .interest-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.3;
+        }
+        .heart-icon {
+            font-size: 16px;
+        }
+        .heart-selected {
+            color: gold;
+        }
+        .heart-unselected {
+            color: #666;
+        }
+        .skill-value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .select-button {
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.2s ease;
+        }
+        .select-button:hover:not(:disabled) {
+            background-color: #1565c0;
+        }
+        .select-button:disabled {
+            background-color: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .interests-counter {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+        }
+        .counter-success {
+            color: #4caf50;
+        }
+        .counter-warning {
+            color: #ff9800;
+        }
+        .demo-info {
+            background-color: #1a2332;
+            border-left: 4px solid #4fc3f7;
+            padding: 16px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>👥 Simplified Settler Interest Selection</h1>
+            <p>Interests are now integrated directly with the skills display - click the hearts next to skills to select interests!</p>
+        </div>
+
+        <div class="demo-info">
+            <h3>✨ What's New in the Simplified Version:</h3>
+            <ul>
+                <li><strong>Integrated Display:</strong> Heart icons appear directly next to each skill, eliminating the separate interests section</li>
+                <li><strong>Cleaner UI:</strong> No more duplicate skill displays - everything is in one place</li>
+                <li><strong>Intuitive Interaction:</strong> Click the heart icons next to skills to select/deselect interests</li>
+                <li><strong>Visual Feedback:</strong> Gold hearts (♥) for selected interests, grey hearts (♡) for unselected</li>
+                <li><strong>Smart Validation:</strong> Hearts are disabled when maximum interests are reached</li>
+            </ul>
+        </div>
+
+        <!-- Settlers -->
+        <div class="settler-card">
+            <div class="settler-name">👤 Marcus Chen</div>
+            <div class="settler-backstory">Once an engineer in the old world, Marcus now repairs what the bombs broke. His steady hands build hope from scrap.</div>
+            
+            <div class="skills-section">
+                <div class="section-title">Skills (Select 2 interests)</div>
+                
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🛡️</span>
+                        <span class="skill-name">Combat</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'combat', 'marcus')" data-settler="marcus" data-skill="combat">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #4caf50;">8</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔧</span>
+                        <span class="skill-name">Engineering</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'engineering', 'marcus')" data-settler="marcus" data-skill="engineering">
+                            <span class="heart-icon heart-selected">♥</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #4caf50;">8</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">⚕️</span>
+                        <span class="skill-name">Medical</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'medical', 'marcus')" data-settler="marcus" data-skill="medical">
+                            <span class="heart-icon heart-selected">♥</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #ff9800;">6</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🌱</span>
+                        <span class="skill-name">Farming</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'farming', 'marcus')" data-settler="marcus" data-skill="farming" disabled>
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">4</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔨</span>
+                        <span class="skill-name">Crafting</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'crafting', 'marcus')" data-settler="marcus" data-skill="crafting" disabled>
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #ff9800;">7</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔍</span>
+                        <span class="skill-name">Scavenging</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'scavenging', 'marcus')" data-settler="marcus" data-skill="scavenging" disabled>
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">5</span>
+                </div>
+            </div>
+
+            <div class="interests-counter counter-success" id="marcus-counter">
+                2 interests selected
+            </div>
+            
+            <button class="select-button" id="marcus-button" onclick="selectSettler('marcus')">
+                Select Marcus
+            </button>
+        </div>
+
+        <div class="settler-card">
+            <div class="settler-name">👤 Sarah Rodriguez</div>
+            <div class="settler-backstory">A former paramedic who refuses to let the world's wounds go untreated. Her compassion is matched only by her determination.</div>
+            
+            <div class="skills-section">
+                <div class="section-title">Skills (Select 2 interests)</div>
+                
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🛡️</span>
+                        <span class="skill-name">Combat</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'combat', 'sarah')" data-settler="sarah" data-skill="combat">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">4</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔧</span>
+                        <span class="skill-name">Engineering</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'engineering', 'sarah')" data-settler="sarah" data-skill="engineering">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">3</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">⚕️</span>
+                        <span class="skill-name">Medical</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'medical', 'sarah')" data-settler="sarah" data-skill="medical">
+                            <span class="heart-icon heart-selected">♥</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #4caf50;">9</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🌱</span>
+                        <span class="skill-name">Farming</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'farming', 'sarah')" data-settler="sarah" data-skill="farming">
+                            <span class="heart-icon heart-selected">♥</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">5</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔨</span>
+                        <span class="skill-name">Crafting</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'crafting', 'sarah')" data-settler="sarah" data-skill="crafting" disabled>
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #ff9800;">6</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔍</span>
+                        <span class="skill-name">Scavenging</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'scavenging', 'sarah')" data-settler="sarah" data-skill="scavenging" disabled>
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #ff9800;">7</span>
+                </div>
+            </div>
+
+            <div class="interests-counter counter-success" id="sarah-counter">
+                2 interests selected
+            </div>
+            
+            <button class="select-button" id="sarah-button" onclick="selectSettler('sarah')">
+                Select Sarah
+            </button>
+        </div>
+
+        <div class="settler-card">
+            <div class="settler-name">👤 Jake Morrison</div>
+            <div class="settler-backstory">A scavenger who knows the wasteland like the back of his weathered hand. If it's out there, Jake can find it.</div>
+            
+            <div class="skills-section">
+                <div class="section-title">Skills (Select 2 interests)</div>
+                
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🛡️</span>
+                        <span class="skill-name">Combat</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'combat', 'jake')" data-settler="jake" data-skill="combat">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #ff9800;">7</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔧</span>
+                        <span class="skill-name">Engineering</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'engineering', 'jake')" data-settler="jake" data-skill="engineering">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">4</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">⚕️</span>
+                        <span class="skill-name">Medical</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'medical', 'jake')" data-settler="jake" data-skill="medical">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">3</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🌱</span>
+                        <span class="skill-name">Farming</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'farming', 'jake')" data-settler="jake" data-skill="farming">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">2</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔨</span>
+                        <span class="skill-name">Crafting</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'crafting', 'jake')" data-settler="jake" data-skill="crafting">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #d32f2f;">5</span>
+                </div>
+
+                <div class="skill-item">
+                    <div class="skill-left">
+                        <span class="skill-icon">🔍</span>
+                        <span class="skill-name">Scavenging</span>
+                        <button class="interest-button" onclick="toggleInterest(this, 'scavenging', 'jake')" data-settler="jake" data-skill="scavenging">
+                            <span class="heart-icon heart-unselected">♡</span>
+                        </button>
+                    </div>
+                    <span class="skill-value" style="color: #4caf50;">8</span>
+                </div>
+            </div>
+
+            <div class="interests-counter counter-warning" id="jake-counter">
+                Select 2 more interests
+            </div>
+            
+            <button class="select-button" id="jake-button" onclick="selectSettler('jake')" disabled>
+                Select Interests (0/2)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Track selected interests for each settler
+        const settlerInterests = {
+            marcus: ['engineering', 'medical'],
+            sarah: ['medical', 'farming'],
+            jake: []
+        };
+
+        function updateSettlerUI(settlerId) {
+            const interests = settlerInterests[settlerId];
+            const counter = document.getElementById(`${settlerId}-counter`);
+            const button = document.getElementById(`${settlerId}-button`);
+            
+            // Update counter
+            const remaining = 2 - interests.length;
+            if (interests.length === 2) {
+                counter.textContent = '2 interests selected';
+                counter.className = 'interests-counter counter-success';
+                button.textContent = `Select ${settlerId.charAt(0).toUpperCase() + settlerId.slice(1)}`;
+                button.disabled = false;
+            } else {
+                counter.textContent = `Select ${remaining} more interest${remaining !== 1 ? 's' : ''}`;
+                counter.className = 'interests-counter counter-warning';
+                button.textContent = `Select Interests (${interests.length}/2)`;
+                button.disabled = true;
+            }
+
+            // Update all heart buttons for this settler
+            const buttons = document.querySelectorAll(`button[data-settler="${settlerId}"]`);
+            buttons.forEach(btn => {
+                const skill = btn.dataset.skill;
+                const heart = btn.querySelector('.heart-icon');
+                const isSelected = interests.includes(skill);
+                const canSelect = !isSelected && interests.length < 2;
+
+                if (isSelected) {
+                    heart.textContent = '♥';
+                    heart.className = 'heart-icon heart-selected';
+                    btn.disabled = false;
+                } else {
+                    heart.textContent = '♡';
+                    heart.className = 'heart-icon heart-unselected';
+                    btn.disabled = !canSelect;
+                }
+            });
+        }
+
+        function toggleInterest(button, skill, settlerId) {
+            const interests = settlerInterests[settlerId];
+            const isSelected = interests.includes(skill);
+
+            if (isSelected) {
+                // Remove interest
+                settlerInterests[settlerId] = interests.filter(i => i !== skill);
+            } else if (interests.length < 2) {
+                // Add interest
+                settlerInterests[settlerId].push(skill);
+            }
+
+            updateSettlerUI(settlerId);
+        }
+
+        function selectSettler(settlerId) {
+            const interests = settlerInterests[settlerId];
+            if (interests.length === 2) {
+                alert(`${settlerId.charAt(0).toUpperCase() + settlerId.slice(1)} selected with interests: ${interests.join(', ')}`);
+            }
+        }
+
+        // Initialize UI on page load
+        window.onload = function() {
+            Object.keys(settlerInterests).forEach(updateSettlerUI);
+        };
+    </script>
+</body>
+</html>

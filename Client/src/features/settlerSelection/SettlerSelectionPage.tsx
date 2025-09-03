@@ -23,6 +23,10 @@ function SettlerSelection() {
   const [settlerError, setSettlerError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [shouldNavigate, setShouldNavigate] = useState<boolean>(false);
+  
+  // Track selected interests for each settler
+  const [settlerInterests, setSettlerInterests] = useState<Record<string, string[]>>({});
+  
   const { currentServerId: serverId } = useServerContext();
 
   const { colony, colonyLoading, colonyError } = useColony(serverId);
@@ -39,6 +43,14 @@ function SettlerSelection() {
         const newSettlers: Settler[] = await onboardSettler.mutateAsync();
         console.log("newSettlers: " + newSettlers);
         setSettlers(newSettlers);
+        
+        // Initialize interests state with existing interests from settlers
+        const initialInterests: Record<string, string[]> = {};
+        newSettlers.forEach(settler => {
+          initialInterests[settler._id] = settler.interests || [];
+        });
+        setSettlerInterests(initialInterests);
+        
       } catch (error) {
         console.error("Error onboarding settlers:", error);
         setSettlerError("Failed to load settlers. Please try again.");
@@ -53,10 +65,43 @@ function SettlerSelection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colony]);
 
+  const handleInterestToggle = (settlerId: string, interest: string) => {
+    setSettlerInterests(prev => {
+      const currentInterests = prev[settlerId] || [];
+      const isSelected = currentInterests.includes(interest);
+      
+      if (isSelected) {
+        // Remove interest
+        return {
+          ...prev,
+          [settlerId]: currentInterests.filter(i => i !== interest)
+        };
+      } else {
+        // Add interest if under limit
+        if (currentInterests.length < 2) {
+          return {
+            ...prev,
+            [settlerId]: [...currentInterests, interest]
+          };
+        }
+      }
+      
+      return prev;
+    });
+  };
+
+  const canSelectSettler = (settlerId: string) => {
+    const interests = settlerInterests[settlerId] || [];
+    return interests.length === 2;
+  };
+
   const handleSelectSettler = (settler: Settler) => {
     if (colony) {
+      const selectedInterests = settlerInterests[settler._id] || [];
+      
       selectSettler.mutate({
-        settlerId: settler._id
+        settlerId: settler._id,
+        interests: selectedInterests
       }, {
         onError: (error) => {
           console.error("Error selecting settler:", error);
@@ -144,15 +189,26 @@ function SettlerSelection() {
             settlers={settlers}
             actions={[
               {
-                label: (settler: Settler) => selectSettler.isPending ? 'Selecting...' : `Select ${settler.name.split(' ')[0]}`,
+                label: (settler: Settler) => {
+                  const canSelect = canSelectSettler(settler._id);
+                  const interests = settlerInterests[settler._id] || [];
+                  
+                  if (selectSettler.isPending) return 'Selecting...';
+                  if (!canSelect) return `Select Interests (${interests.length}/2)`;
+                  return `Select ${settler.name.split(' ')[0]}`;
+                },
                 onClick: handleSelectSettler,
                 variant: 'contained',
                 color: 'primary',
-                disabled: selectSettler.isPending
+                disabled: (settler: Settler) => selectSettler.isPending || !canSelectSettler(settler._id)
               }
             ]}
             gridSizes={{ xs: 12, md: 4 }}
             showFullWidthActions={true}
+            selectedInterests={settlerInterests}
+            onInterestToggle={handleInterestToggle}
+            maxInterests={2}
+            showInterestSelection={true}
           />
         </Paper>
       </Box>
