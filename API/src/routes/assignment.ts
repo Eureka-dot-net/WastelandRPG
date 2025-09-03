@@ -1,6 +1,7 @@
 // routes/assignmentRoutes.ts
 import { Router } from 'express';
 import { getAssignments, startAssignment, informAssignment, previewAssignment } from '../controllers/assignmentController';
+import { updateCompletedTasks } from '../middleware/updateCompletedTasks';
 
 
 const router = Router({ mergeParams: true }); // mergeParams needed for :colonyId
@@ -10,11 +11,11 @@ const router = Router({ mergeParams: true }); // mergeParams needed for :colonyI
 router.get('/', getAssignments);
 
 // Preview assignment effects with a settler
-router.get('/:assignmentId/preview', previewAssignment);
+router.get('/:assignmentId/preview',  previewAssignment);
 
 // Start an assignment for a settler
-router.post('/:assignmentId/start', startAssignment);
+router.post('/:assignmentId/start', updateCompletedTasks, startAssignment);
 
-router.patch("/:assignmentId/informed", informAssignment);
+router.patch("/:assignmentId/informed", updateCompletedTasks, informAssignment);
 
 export default router;

@@ -8,7 +8,9 @@ import {
   Button,
   Typography,
   Box,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import SettlerCard from '../../../../features/settlers/SettlerCard';
@@ -23,6 +25,8 @@ interface FoundSettlerDialogProps {
   isLoading?: boolean;
 }
 
+
+
 const FoundSettlerDialog: React.FC<FoundSettlerDialogProps> = ({
   open,
   settler,
@@ -31,6 +35,9 @@ const FoundSettlerDialog: React.FC<FoundSettlerDialogProps> = ({
   onReject,
   isLoading = false
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   if (!settler) return null;
 
   const handleApprove = () => {
@@ -43,6 +50,8 @@ const FoundSettlerDialog: React.FC<FoundSettlerDialogProps> = ({
     // Don't automatically close - let the parent handle it after API success
   };
 
+
+
   return (
     <Dialog
       open={open}
@@ -51,8 +60,12 @@ const FoundSettlerDialog: React.FC<FoundSettlerDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          maxHeight: '90vh'
+          backgroundColor: '#000000',
+          backgroundImage: 'linear-gradient(145deg, #000000 0%, #111111 50%, #000000 100%)',
+          border: '1px solid #333333',
+          borderRadius: isMobile ? 1 : 2,
+          boxShadow: '0 8px 32px rgba(211, 47, 47, 0.3), 0 0 0 1px rgba(211, 47, 47, 0.1)',
+          minHeight: isMobile ? 'auto' : '200px',
         }
       }}
     >
@@ -61,8 +74,8 @@ const FoundSettlerDialog: React.FC<FoundSettlerDialogProps> = ({
           <Typography variant="h5" component="div" color="primary">
             Settler Discovered!
           </Typography>
-          <IconButton 
-            onClick={onClose} 
+          <IconButton
+            onClick={onClose}
             size="small"
             disabled={isLoading}
           >

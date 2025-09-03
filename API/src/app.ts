@@ -57,6 +57,6 @@ app.use('/api/dev', devRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership, updateCompletedTasks, settlerRoutes);
-app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, updateCompletedTasks, assignmentRoutes);
+app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, assignmentRoutes);
 app.use('/api/colonies/:colonyId/inventory', authenticate, requireColonyOwnership, updateCompletedTasks, inventoryRoutes);
 app.use('/api/colonies/:colonyId/map', authenticate, requireColonyOwnership, updateCompletedTasks, mapRoutes);
