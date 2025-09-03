@@ -15,7 +15,7 @@ export const wastelandTheme = createTheme({
     },
     text: {
       primary: '#ffffff',
-      secondary: '#333333',
+      secondary: '#b0b0b0',
     },
     error: {
       main: '#ff5722',
