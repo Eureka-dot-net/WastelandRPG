@@ -137,7 +137,7 @@ const SettlerStatusCard: React.FC<SettlerStatusCardProps> = ({
         <Box mb={1.5}>
           <Box display="flex" alignItems="center" gap={1} mb={0.5}>
             <Restaurant color="secondary" fontSize="small" />
-            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Hunger</Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Fullness</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
               {100 - (settler.hunger || 0)}%
             </Typography>
