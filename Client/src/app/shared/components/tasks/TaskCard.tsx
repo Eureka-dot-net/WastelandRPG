@@ -38,33 +38,33 @@ export interface TaskCardProps {
   name: string;
   description: string;
   icon?: React.ReactNode;
-  
+
   // Task status
   status: 'available' | 'blocked' | 'in-progress' | 'completed';
-  
+
   // Progress (for in-progress tasks)
   progress?: number;
   timeRemaining?: number;
   assignedEntityName?: string; // Could be settler name or other entity
-  
+
   // Completion
   completionMessage?: string;
   unlocks?: string;
   unlockLink?: string;
-  
+
   // Blocking
   blockingReason?: string;
-  
+
   // Additional info
   chips?: Array<{
     label: string;
     variant?: 'filled' | 'outlined';
     color?: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
   }>;
-  
+
   // Actions
   actions: TaskCardAction[];
-  
+
   // Styling
   compact?: boolean;
 }
@@ -120,9 +120,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
       opacity: getCardOpacity(),
       border: getCardBorder(),
     }}>
-      <CardContent sx={{ flexGrow: 1, p: compact ? 1.5 : isMobile ? 2 : 3 }}>
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          p: compact ? 1.5 : isMobile ? 2 : 3,
+          pb: 1 // <-- Reduce bottom padding
+        }}
+      >
         {/* Responsive layout - horizontal on desktop, vertical on mobile */}
-        <Box 
+        <Box
           sx={{
             mb: isMobile ? 1.5 : 2,
             display: 'flex',
@@ -135,9 +141,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <Box display="flex" alignItems="center" gap={1} sx={{ minWidth: 0, flex: isMobile ? 'none' : 1 }}>
             {isBlocked && <Lock color="disabled" fontSize="small" />}
             {icon}
-            <Typography 
+            <Typography
               variant={compact ? "subtitle1" : "h6"}
-              sx={{ 
+              sx={{
                 wordBreak: 'break-word',
                 hyphens: 'auto',
                 overflowWrap: 'break-word'
@@ -147,11 +153,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </Typography>
           </Box>
           {chips.length > 0 && (
-            <Box 
-              display="flex" 
-              gap={1} 
-              flexWrap="wrap" 
-              sx={{ 
+            <Box
+              display="flex"
+              gap={1}
+              flexWrap="wrap"
+              sx={{
                 justifyContent: isMobile ? 'flex-start' : 'flex-end',
                 alignItems: 'flex-start',
                 mt: isMobile ? 0.5 : 0
@@ -176,9 +182,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
           )}
         </Box>
 
-        <Typography 
-          variant="body2" 
-          color="text.secondary" 
+        <Typography
+          variant="body2"
+          color="text.secondary"
           sx={{ mb: isMobile ? 1.5 : 2, fontSize: compact ? '0.8rem' : isMobile ? '0.8rem' : '0.875rem' }}
         >
           {description}
@@ -195,7 +201,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Completion message and unlock */}
         {isCompleted && completionMessage && (
-          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+          <Box sx={{ mb: 0 }}>
             <Typography variant="body2" color="success.main" sx={{ fontStyle: 'italic', mb: isMobile ? 1 : 2 }}>
               {completionMessage}
             </Typography>
@@ -217,22 +223,22 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* In progress display */}
         {isInProgress && assignedEntityName && (
-          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+          <Box sx={{ mb: 0 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography 
-                variant="body2" 
-                color="secondary.main" 
+              <Typography
+                variant="body2"
+                color="secondary.main"
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
               >
                 <AssignmentIcon fontSize="small" /> {assignedEntityName} is working...
               </Typography>
               {timeRemaining !== undefined && (
-                <Typography 
-                  variant="body2" 
-                  color="secondary.main" 
+                <Typography
+                  variant="body2"
+                  color="secondary.main"
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
                 >
-                  <Timer fontSize="small" /> 
+                  <Timer fontSize="small" />
                   {timeRemaining > 0 ? formatTimeRemaining(timeRemaining) : "Finishing..."}
                 </Typography>
               )}
@@ -247,7 +253,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
         )}
       </CardContent>
 
-      <CardActions sx={{ p: compact ? 1.5 : isMobile ? 1.5 : 2 }}>
+      <CardActions
+        sx={{
+          pt: 1, // <-- remove top padding
+          mb: 0
+        }}
+      >
         {actions.length === 1 ? (
           <Button
             variant={actions[0].variant || 'contained'}

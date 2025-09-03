@@ -317,7 +317,7 @@ function AssignmentPage() {
           }
 
           return (
-            <Grid size={{ xs: 12, md: 6 }} key={assignment._id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={assignment._id}>
               <TaskCard
                 id={assignment._id}
                 name={assignment.name}
