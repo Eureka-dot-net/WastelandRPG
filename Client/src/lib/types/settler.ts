@@ -3,6 +3,7 @@ export interface SettlerItem {
   name: string;
   type: string;
   description?: string;
+  quantity?: number; // Added for carry items
 }
 
 export interface Equipment {
@@ -11,6 +12,7 @@ export interface Equipment {
 
 export interface SettlerTrait {
   traitId: string;
+  name?: string; // Added optional name property
   type: string;
   description: string;
   icon: string;
@@ -48,8 +50,11 @@ export interface Settler {
   status: "idle" | "busy" | "resting";
   health: number;
   morale: number;
+  hunger: number;
+  energy: number;
   carry: SettlerItem[];
   equipment: Equipment;
+  foodConsumption: number;
   maxCarrySlots: number;
   createdAt: string;               // ISO date string
 }
