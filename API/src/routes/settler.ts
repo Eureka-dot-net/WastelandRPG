@@ -68,12 +68,18 @@ import { Colony } from '../models/Player/Colony';
 
 router.post('/:settlerId/select', async (req, res) => {
     const { settlerId } = req.params;
+    const { interests } = req.body;
     const colonyId = req.colonyId;
     const colony = req.colony;
 
     // Check if the provided settlerId is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(settlerId)) {
         return res.status(400).json({ error: 'Invalid Settler ID.' });
+    }
+
+    // Validate interests if provided
+    if (interests && (!Array.isArray(interests) || interests.length > 2)) {
+        return res.status(400).json({ error: 'Interests must be an array of up to 2 skill names.' });
     }
 
     const session = await Settler.startSession();
@@ -94,7 +100,12 @@ router.post('/:settlerId/select', async (req, res) => {
             return res.status(404).json({ error: 'Settler not found or already activated.' });
         }
 
-        // Step 2: Activate the chosen settler.
+        // Step 2: Update interests if provided
+        if (interests && interests.length > 0) {
+            chosenSettler.interests = interests;
+        }
+
+        // Step 3: Activate the chosen settler.
         chosenSettler.isActive = true;
         await chosenSettler.save({ session });
 
@@ -105,7 +116,7 @@ router.post('/:settlerId/select', async (req, res) => {
 
         await colony.save({ session });
 
-        // Step 3: Delete the other two.
+        // Step 4: Delete the other two.
         // Find all other inactive settlers for this player and delete them.
         await Settler.deleteMany({
             _id: { $ne: chosenSettler._id }, // Not equal to the chosen settler's ID

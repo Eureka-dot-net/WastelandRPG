@@ -4,6 +4,7 @@ import React from 'react';
 import { Person, Security, Build, LocalHospital, Agriculture, Science, Star, Speed, Psychology, Shield } from '@mui/icons-material';
 import type { Settler } from '../../lib/types/settler';
 import DynamicIcon from '../../app/shared/components/DynamicIcon';
+import InterestDisplay from '../../app/shared/components/settlers/InterestDisplay';
 import { Card, CardContent, Box, Typography, Divider, LinearProgress, Tooltip, Chip, Avatar, CardActions, Button, Grid } from '@mui/material';
 
 interface SettlerCardAction {
@@ -11,19 +12,21 @@ interface SettlerCardAction {
   onClick: (settler: Settler) => void;
   variant?: 'contained' | 'outlined' | 'text';
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
-  disabled?: boolean;
+  disabled?: boolean | ((settler: Settler) => boolean);
 }
 
 interface SettlerCardProps {
   settler: Settler;
   actions: SettlerCardAction[];
   showFullWidth?: boolean;
+  customContent?: (settler: Settler) => React.ReactNode;
 }
 
 const SettlerCard: React.FC<SettlerCardProps> = ({
   settler,
   actions,
-  showFullWidth = false
+  showFullWidth = false,
+  customContent
 }) => {
   const getSkillIcon = (skill: string) => {
     const icons: Record<string, React.ReactElement> = {
@@ -168,6 +171,24 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
           ))}
         </Box>
 
+        {/* Display interests if they exist */}
+        {settler.interests && settler.interests.length > 0 && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" color="text.primary" gutterBottom>
+              Interests
+            </Typography>
+            <Box display="flex" justifyContent="center" mb={2}>
+              <InterestDisplay
+                availableInterests={settler.interests}
+                selectedInterests={settler.interests}
+                readonly={true}
+                size="small"
+              />
+            </Box>
+          </>
+        )}
+
         <Typography variant="subtitle1" color="text.primary" gutterBottom>
           Status
         </Typography>
@@ -179,6 +200,9 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
             Morale: {settler.morale}%
           </Typography>
         </Box>
+
+        {/* Custom content insertion point */}
+        {customContent && customContent(settler)}
       </CardContent>
 
       <CardActions sx={{ p: 2 }}>
@@ -189,7 +213,7 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
             fullWidth
             size="large"
             onClick={() => actions[0].onClick(settler)}
-            disabled={actions[0].disabled}
+            disabled={typeof actions[0].disabled === 'function' ? actions[0].disabled(settler) : actions[0].disabled}
             sx={{
               fontSize: '1rem',
               fontWeight: 600
@@ -207,7 +231,7 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
                   fullWidth
                   size="large"
                   onClick={() => action.onClick(settler)}
-                  disabled={action.disabled}
+                  disabled={typeof action.disabled === 'function' ? action.disabled(settler) : action.disabled}
                   sx={{
                     fontSize: '0.9rem',
                     fontWeight: 600

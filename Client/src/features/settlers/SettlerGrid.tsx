@@ -9,7 +9,7 @@ interface SettlerAction {
   onClick: (settler: Settler) => void;
   variant?: 'contained' | 'outlined' | 'text';
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
-  disabled?: boolean;
+  disabled?: boolean | ((settler: Settler) => boolean);
 }
 
 interface SettlerGridProps {
@@ -23,13 +23,15 @@ interface SettlerGridProps {
     xl?: number;
   };
   showFullWidthActions?: boolean;
+  customContent?: (settler: Settler) => React.ReactNode;
 }
 
 const SettlerGrid: React.FC<SettlerGridProps> = ({
   settlers,
   actions,
   gridSizes = { xs: 12, md: 4 },
-  showFullWidthActions = true
+  showFullWidthActions = true,
+  customContent
 }) => {
   return (
     <Grid container spacing={3}>
@@ -39,6 +41,7 @@ const SettlerGrid: React.FC<SettlerGridProps> = ({
             settler={settler}
             actions={actions}
             showFullWidth={showFullWidthActions}
+            customContent={customContent}
           />
         </Grid>
       ))}

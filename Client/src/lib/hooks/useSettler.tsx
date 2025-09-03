@@ -28,13 +28,15 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
   const selectSettler = useMutation({
     mutationFn: async ({
       settlerId,
+      interests
     }: {
       settlerId: string;
+      interests?: string[];
     }) => {
       if (!colonyId) throw new Error("colonyId is required to select a settler.");
       const res = await agent.post(
         `/colonies/${colonyId}/settlers/${settlerId}/select`,
-        {}, // body is empty
+        { interests }, // Send interests in the body
         {
           headers: { "Content-Type": "application/json" },
         }
