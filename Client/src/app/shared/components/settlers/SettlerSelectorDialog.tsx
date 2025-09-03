@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -46,6 +46,27 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Focus management to prevent ARIA-hidden accessibility warnings
+  useEffect(() => {
+    if (open && cancelButtonRef.current) {
+      // Small delay to ensure dialog is fully rendered
+      const timeoutId = setTimeout(() => {
+        cancelButtonRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [open]);
+
+  // Enhanced onClose handler with proper focus management
+  const handleClose = () => {
+    // Blur any currently focused element within the dialog before closing
+    if (document.activeElement && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  };
 
   // Dialog width logic
   const isSingleSettler = settlers.length === 1;
@@ -55,7 +76,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth={dialogMaxWidth}
       fullWidth={dialogFullWidth}
       PaperProps={{
@@ -121,7 +142,12 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="inherit" disabled={confirmPending}>
+        <Button 
+          ref={cancelButtonRef}
+          onClick={handleClose} 
+          color="inherit" 
+          disabled={confirmPending}
+        >
           Cancel
         </Button>
       </DialogActions>
