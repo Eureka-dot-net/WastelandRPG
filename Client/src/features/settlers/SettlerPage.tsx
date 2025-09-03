@@ -7,7 +7,7 @@ import {
 import { 
   Person, Security, Build, LocalHospital, Agriculture, Science, Star, 
   Speed, Psychology, Shield, ExpandMore, ExpandLess, Inventory,
-  Restaurant, BatteryFull, Favorite, SentimentSatisfied
+  Restaurant, BatteryFull, Favorite, SentimentSatisfied, ArrowBack
 } from '@mui/icons-material';
 
 import { useColony } from "../../lib/hooks/useColony";
@@ -18,6 +18,7 @@ import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
+import SettlerStatusGrid from "./SettlerStatusGrid";
 
 function SettlerPage() {
   const theme = useTheme();
@@ -25,6 +26,8 @@ function SettlerPage() {
   const { currentServerId: serverId } = useServerContext();
   const [isLoading, setIsLoading] = useState(false);
   const [backstoryExpanded, setBackstoryExpanded] = useState(false);
+  const [selectedSettler, setSelectedSettler] = useState<Settler | null>(null);
+  const [viewMode, setViewMode] = useState<'overview' | 'detail'>('overview');
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
@@ -80,6 +83,18 @@ function SettlerPage() {
     }
   };
 
+  const handleViewDetails = (settler: Settler) => {
+    setSelectedSettler(settler);
+    setViewMode('detail');
+    setBackstoryExpanded(false); // Reset expanded state when viewing new settler
+  };
+
+  const handleBackToOverview = () => {
+    setSelectedSettler(null);
+    setViewMode('overview');
+    setBackstoryExpanded(false);
+  };
+
   const handleBanishSettler = async (settler: Settler) => {
     if (!colonyId) return;
     
@@ -88,7 +103,8 @@ function SettlerPage() {
       await rejectSettler.mutateAsync({
         settlerId: settler._id
       });
-      // Note: The mutation should handle cache updates automatically
+      // Go back to overview after banishing
+      handleBackToOverview();
     } catch (error) {
       console.error("Error banishing settler:", error);
     } finally {
@@ -117,15 +133,12 @@ function SettlerPage() {
 
   const settlers = colony.settlers || [];
   const totalSettlers = settlers.length;
-  
-  // Display the first settler for detailed view
-  const settler = settlers[0];
 
   if (totalSettlers === 0) {
     return (
       <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
         <ProgressHeader
-          title="Settler Details"
+          title="Settlers"
           emoji="👤"
           alertMessage="Your colony has no settlers yet. Recruit your first settler to begin building your wasteland community."
           alertSeverity="warning"
@@ -145,38 +158,86 @@ function SettlerPage() {
     );
   }
 
+  // Overview mode - show all settlers in a grid
+  if (viewMode === 'overview') {
+    const settlerActions = [
+      {
+        label: "View Details",
+        onClick: handleViewDetails,
+        variant: 'contained' as const,
+        color: 'primary' as const
+      }
+    ];
+
+    return (
+      <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
+        <ProgressHeader
+          title="Settlers"
+          emoji="👤"
+          alertMessage={`Managing ${totalSettlers} settler${totalSettlers > 1 ? 's' : ''} in your colony`}
+          alertSeverity="info"
+          progressLabel="Colony Population"
+          currentValue={totalSettlers}
+          totalValue={Math.max(totalSettlers, 10)} // Show growth potential
+        />
+
+        <SettlerStatusGrid
+          settlers={settlers}
+          actions={settlerActions}
+          gridSizes={{ xs: 12, sm: 6, md: 4, lg: 3 }}
+        />
+      </Container>
+    );
+  }
+
+  // Detail mode - show selected settler details
+  const settler = selectedSettler!;
+
   return (
     <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
+      {/* Header with back button */}
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBack />}
+          onClick={handleBackToOverview}
+          sx={{ minWidth: 'auto' }}
+        >
+          Back to Overview
+        </Button>
+      </Box>
+      
       <ProgressHeader
         title="Settler Details"
         emoji="👤"
         alertMessage={`Viewing details for ${settler.name}`}
         alertSeverity="info"
-        progressLabel="Current Settler"
-        currentValue={1}
+        progressLabel={`Settler ${settlers.indexOf(settler) + 1} of ${totalSettlers}`}
+        currentValue={settlers.indexOf(settler) + 1}
         totalValue={totalSettlers}
       />
 
       <Grid container spacing={isMobile ? 2 : 3}>
-        {/* Top Section: Avatar, Name, Status, Quick Stats */}
+        {/* Top Section: Avatar, Name, Status, Quick Stats - Made smaller */}
         <Grid size={12}>
           <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} gap={3} alignItems={isMobile ? 'center' : 'flex-start'}>
-                {/* Avatar and basic info */}
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}> {/* Reduced padding */}
+              <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} gap={2} alignItems={isMobile ? 'center' : 'flex-start'}> {/* Reduced gap */}
+                {/* Avatar and basic info - Made smaller */}
                 <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
                   <Avatar 
                     sx={{ 
-                      width: 80, 
-                      height: 80, 
+                      width: 60,
+                      height: 60,
                       bgcolor: theme.palette.primary.main,
-                      fontSize: '2rem'
+                      fontSize: '1.5rem'
                     }}
                   >
-                    <Person fontSize="large" />
+                    <Person fontSize="medium" />
                   </Avatar>
                   <Chip 
                     label={settler.status.toUpperCase()} 
+                    size="small"
                     sx={{ 
                       bgcolor: getStatusColor(settler.status),
                       color: 'white',
@@ -187,25 +248,25 @@ function SettlerPage() {
 
                 {/* Name and Quick Stats */}
                 <Box flex={1}>
-                  <Typography variant="h4" color="primary" gutterBottom>
+                  <Typography variant="h5" color="primary" gutterBottom>
                     {settler.name}
                   </Typography>
                   
-                  <Typography variant="h6" color="text.primary" gutterBottom sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1" color="text.primary" gutterBottom sx={{ mt: 1.5 }}>
                     Quick Stats
                   </Typography>
                   
-                  <Grid container spacing={2}>
+                  <Grid container spacing={1.5}>
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Favorite color="error" />
+                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                        <Favorite color="error" fontSize="small" />
                         <Typography variant="body2">Health</Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={settler.health}
                         color={getQuickStatColor(settler.health)}
-                        sx={{ height: 8, borderRadius: 4 }}
+                        sx={{ height: 6, borderRadius: 3 }}
                       />
                       <Typography variant="caption" color="text.secondary">
                         {settler.health}%
@@ -213,15 +274,15 @@ function SettlerPage() {
                     </Grid>
                     
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <SentimentSatisfied color="primary" />
+                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                        <SentimentSatisfied color="primary" fontSize="small" />
                         <Typography variant="body2">Morale</Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={settler.morale}
                         color={getQuickStatColor(settler.morale)}
-                        sx={{ height: 8, borderRadius: 4 }}
+                        sx={{ height: 6, borderRadius: 3 }}
                       />
                       <Typography variant="caption" color="text.secondary">
                         {settler.morale}%
@@ -229,15 +290,15 @@ function SettlerPage() {
                     </Grid>
 
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <Restaurant color="secondary" />
+                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                        <Restaurant color="secondary" fontSize="small" />
                         <Typography variant="body2">Hunger</Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={Math.max(0, 100 - (settler.hunger || 0))}
                         color={getQuickStatColor(Math.max(0, 100 - (settler.hunger || 0)))}
-                        sx={{ height: 8, borderRadius: 4 }}
+                        sx={{ height: 6, borderRadius: 3 }}
                       />
                       <Typography variant="caption" color="text.secondary">
                         {100 - (settler.hunger || 0)}%
@@ -245,15 +306,15 @@ function SettlerPage() {
                     </Grid>
 
                     <Grid size={{ xs: 6, sm: 3 }}>
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <BatteryFull color="info" />
+                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                        <BatteryFull color="info" fontSize="small" />
                         <Typography variant="body2">Energy</Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={settler.energy || 100}
                         color={getQuickStatColor(settler.energy || 100)}
-                        sx={{ height: 8, borderRadius: 4 }}
+                        sx={{ height: 6, borderRadius: 3 }}
                       />
                       <Typography variant="caption" color="text.secondary">
                         {settler.energy || 100}%
@@ -266,17 +327,17 @@ function SettlerPage() {
           </Card>
         </Grid>
 
-        {/* Main Content: Left and Right Columns */}
+        {/* Main Content: Left and Right Columns - Made more compact */}
         <Grid size={{ xs: 12, md: 6 }}>
           {/* Left Column: Core Stats and Skills */}
           <Card sx={{ height: 'fit-content' }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}> {/* Reduced padding */}
               {/* Core Stats */}
-              <Typography variant="h6" color="text.primary" gutterBottom>
+              <Typography variant="subtitle1" color="text.primary" gutterBottom> {/* Reduced from h6 */}
                 Core Stats
               </Typography>
               {Object.entries(settler.stats).map(([stat, value]) => (
-                <Box key={stat} mb={2}>
+                <Box key={stat} mb={1.5}> {/* Reduced margin */}
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
                     <Box display="flex" alignItems="center" gap={1}>
                       {getStatIcon(stat)}
@@ -292,19 +353,19 @@ function SettlerPage() {
                     variant="determinate"
                     value={(value / 20) * 100}
                     color={getStatColor(value)}
-                    sx={{ height: 6, borderRadius: 3 }}
+                    sx={{ height: 4, borderRadius: 2 }}
                   />
                 </Box>
               ))}
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 1.5 }} /> {/* Reduced margin */}
 
               {/* Skills */}
-              <Typography variant="h6" color="text.primary" gutterBottom>
+              <Typography variant="subtitle1" color="text.primary" gutterBottom>
                 Skills
               </Typography>
               {Object.entries(settler.skills).map(([skill, value]) => (
-                <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+                <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                   <Box display="flex" alignItems="center" gap={1}>
                     {getSkillIcon(skill)}
                     <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
@@ -323,12 +384,12 @@ function SettlerPage() {
         <Grid size={{ xs: 12, md: 6 }}>
           {/* Right Column: Traits and Interests */}
           <Card sx={{ height: 'fit-content' }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               {/* Traits */}
-              <Typography variant="h6" color="text.primary" gutterBottom>
+              <Typography variant="subtitle1" color="text.primary" gutterBottom>
                 Traits
               </Typography>
-              <Box display="flex" flexWrap="wrap" gap={1} mb={3}>
+              <Box display="flex" flexWrap="wrap" gap={1} mb={2}> {/* Reduced gap and margin */}
                 {settler.traits.map((trait) => (
                   <Tooltip
                     key={trait.traitId}
@@ -337,35 +398,36 @@ function SettlerPage() {
                   >
                     <Chip
                       avatar={
-                        <Avatar sx={{ width: 20, height: 20, bgcolor: 'transparent' }}>
+                        <Avatar sx={{ width: 18, height: 18, bgcolor: 'transparent' }}>
                           <DynamicIcon name={trait.icon || 'GiQuestionMark'} />
                         </Avatar>
                       }
                       label={trait.name || trait.traitId}
                       color={trait.type === "positive" ? "success" : "error"}
                       variant="outlined"
+                      size="small"
                       sx={{
                         borderRadius: 2,
                         bgcolor: trait.type === "positive" ? "#2a3d2a" : "#3d2a2a",
                         color: '#fff',
                         borderColor: trait.type === "positive" ? "#4a704a" : "#704a4a",
-                        fontSize: '0.75rem',
-                        height: 28,
+                        fontSize: '0.7rem',
+                        height: 24,
                         '&:hover': {
                           bgcolor: trait.type === "positive" ? "#3a4d3a" : "#4d3a3a",
                           borderColor: trait.type === "positive" ? "#6a906a" : "#905a5a"
                         },
-                        '& .MuiChip-avatar': { width: 20, height: 20 },
+                        '& .MuiChip-avatar': { width: 18, height: 18 },
                       }}
                     />
                   </Tooltip>
                 ))}
               </Box>
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 1.5 }} />
 
               {/* Interests */}
-              <Typography variant="h6" color="text.primary" gutterBottom>
+              <Typography variant="subtitle1" color="text.primary" gutterBottom>
                 Interests
               </Typography>
               <Box display="flex" flexWrap="wrap" gap={1}>
@@ -374,6 +436,7 @@ function SettlerPage() {
                     key={index}
                     label={interest}
                     variant="outlined"
+                    size="small"
                     sx={{
                       borderColor: theme.palette.secondary.main,
                       color: theme.palette.secondary.main,
@@ -388,44 +451,48 @@ function SettlerPage() {
           </Card>
         </Grid>
 
-        {/* Bottom Section: Equipment and Inventory */}
+        {/* Bottom Section: Equipment and Inventory - Made more compact */}
         <Grid size={12}>
           <Card>
-            <CardContent>
-              <Typography variant="h6" color="text.primary" gutterBottom>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+              <Typography variant="subtitle1" color="text.primary" gutterBottom> {/* Reduced from h6 */}
                 Equipment & Inventory
               </Typography>
               
-              <Grid container spacing={2}>
+              <Grid container spacing={1.5}> {/* Reduced spacing */}
                 {/* Equipment Slots */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle1" color="text.primary" gutterBottom>
+                  <Typography variant="body1" color="text.primary" gutterBottom> {/* Reduced from subtitle1 */}
                     Equipment
                   </Typography>
                   
-                  <Box display="flex" gap={2} mb={2}>
-                    <Card variant="outlined" sx={{ p: 2, minWidth: 80, textAlign: 'center' }}>
+                  <Box display="flex" gap={1.5} mb={1.5}> {/* Reduced gap and margin */}
+                    <Card variant="outlined" sx={{ p: 1.5, minWidth: 70, textAlign: 'center' }}> {/* Reduced padding and width */}
                       <Typography variant="caption" color="text.secondary">Weapon</Typography>
-                      <Box sx={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box sx={{ height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {settler.equipment.weapon ? (
                           <Tooltip title={settler.equipment.weapon.name}>
-                            <Typography variant="body2">{settler.equipment.weapon.name}</Typography>
+                            <Box>
+                              <Typography variant="caption">{settler.equipment.weapon.name}</Typography>
+                            </Box>
                           </Tooltip>
                         ) : (
-                          <Typography variant="body2" color="text.disabled">None</Typography>
+                          <Typography variant="caption" color="text.disabled">None</Typography>
                         )}
                       </Box>
                     </Card>
                     
-                    <Card variant="outlined" sx={{ p: 2, minWidth: 80, textAlign: 'center' }}>
+                    <Card variant="outlined" sx={{ p: 1.5, minWidth: 70, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary">Armor</Typography>
-                      <Box sx={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box sx={{ height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {settler.equipment.armor ? (
                           <Tooltip title={settler.equipment.armor.name}>
-                            <Typography variant="body2">{settler.equipment.armor.name}</Typography>
+                            <Box>
+                              <Typography variant="caption">{settler.equipment.armor.name}</Typography>
+                            </Box>
                           </Tooltip>
                         ) : (
-                          <Typography variant="body2" color="text.disabled">None</Typography>
+                          <Typography variant="caption" color="text.disabled">None</Typography>
                         )}
                       </Box>
                     </Card>
@@ -434,15 +501,15 @@ function SettlerPage() {
 
                 {/* Carry Inventory */}
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle1" color="text.primary" gutterBottom>
+                  <Typography variant="body1" color="text.primary" gutterBottom>
                     Carry Inventory ({settler.carry.length}/{settler.maxCarrySlots})
                   </Typography>
                   
-                  <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={1}>
+                  <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5}> {/* Reduced gap */}
                     {Array.from({ length: settler.maxCarrySlots }).map((_, index) => {
                       const item = settler.carry[index];
                       return (
-                        <Card key={index} variant="outlined" sx={{ p: 1, minHeight: 60, textAlign: 'center' }}>
+                        <Card key={index} variant="outlined" sx={{ p: 0.5, minHeight: 50, textAlign: 'center' }}> {/* Reduced padding and height */}
                           {item ? (
                             <Tooltip title={`${item.name}${item.quantity ? ` (${item.quantity})` : ''}`}>
                               <Box>
@@ -458,7 +525,7 @@ function SettlerPage() {
                               </Box>
                             </Tooltip>
                           ) : (
-                            <Box sx={{ color: 'text.disabled', pt: 1 }}>
+                            <Box sx={{ color: 'text.disabled', pt: 0.5 }}>
                               <Inventory fontSize="small" />
                               <Typography variant="caption" display="block">Empty</Typography>
                             </Box>
@@ -473,33 +540,34 @@ function SettlerPage() {
           </Card>
         </Grid>
 
-        {/* Expandable Section: Backstory */}
+        {/* Expandable Section: Backstory - Made more compact */}
         <Grid size={12}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography variant="h6" color="text.primary">
+                <Typography variant="subtitle1" color="text.primary"> {/* Reduced from h6 */}
                   Backstory & Details
                 </Typography>
                 <IconButton 
                   onClick={() => setBackstoryExpanded(!backstoryExpanded)}
                   sx={{ color: 'text.secondary' }}
+                  size="small"
                 >
                   {backstoryExpanded ? <ExpandLess /> : <ExpandMore />}
                 </IconButton>
               </Box>
               
               <Collapse in={backstoryExpanded}>
-                <Box mt={2}>
+                <Box mt={1.5}> {/* Reduced margin */}
                   <Typography variant="body2" color="text.secondary" paragraph>
                     {settler.backstory}
                   </Typography>
                   
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 1.5 }} /> {/* Reduced margin */}
                   
-                  <Grid container spacing={2}>
+                  <Grid container spacing={1.5}> {/* Reduced spacing */}
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <Typography variant="subtitle2" color="text.primary">
+                      <Typography variant="body2" color="text.primary"> {/* Reduced from subtitle2 */}
                         Food Consumption
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -508,7 +576,7 @@ function SettlerPage() {
                     </Grid>
                     
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <Typography variant="subtitle2" color="text.primary">
+                      <Typography variant="body2" color="text.primary">
                         Joined Colony
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -517,7 +585,7 @@ function SettlerPage() {
                     </Grid>
                     
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <Typography variant="subtitle2" color="text.primary">
+                      <Typography variant="body2" color="text.primary">
                         Theme
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -531,16 +599,16 @@ function SettlerPage() {
           </Card>
         </Grid>
 
-        {/* Actions */}
+        {/* Actions - Made more compact */}
         <Grid size={12}>
-          <Box display="flex" justifyContent="center" gap={2}>
+          <Box display="flex" justifyContent="center" gap={1.5}> {/* Reduced gap */}
             <Button
               variant="outlined"
               color="error"
-              size="large"
+              size="medium"
               onClick={() => handleBanishSettler(settler)}
               disabled={rejectSettler.isPending || isLoading}
-              sx={{ minWidth: 120 }}
+              sx={{ minWidth: 100 }}
             >
               {rejectSettler.isPending || isLoading ? 'Banishing...' : 'Banish Settler'}
             </Button>
@@ -549,9 +617,9 @@ function SettlerPage() {
             <Button
               variant="outlined"
               color="primary"
-              size="large"
+              size="medium"
               disabled
-              sx={{ minWidth: 120 }}
+              sx={{ minWidth: 100 }}
             >
               Assign Task
             </Button>
@@ -559,9 +627,9 @@ function SettlerPage() {
             <Button
               variant="outlined"
               color="secondary"
-              size="large"
+              size="medium"
               disabled
-              sx={{ minWidth: 120 }}
+              sx={{ minWidth: 100 }}
             >
               Heal
             </Button>
@@ -569,9 +637,9 @@ function SettlerPage() {
             <Button
               variant="outlined"
               color="info"
-              size="large"
+              size="medium"
               disabled
-              sx={{ minWidth: 120 }}
+              sx={{ minWidth: 100 }}
             >
               Equip
             </Button>
