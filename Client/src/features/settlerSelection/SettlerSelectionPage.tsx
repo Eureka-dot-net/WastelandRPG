@@ -1,6 +1,6 @@
 // File: src/components/settlers/SettlerSelection.tsx
 import  { useState, useEffect } from 'react';
-import { Container, Box, Paper, useTheme, useMediaQuery, Typography } from '@mui/material';
+import { Container, Box, Paper, useTheme, useMediaQuery } from '@mui/material';
 import { Navigate } from 'react-router-dom';
 import type { Settler } from '../../lib/types/settler';
 import { useColony } from '../../lib/hooks/useColony';
@@ -11,7 +11,6 @@ import PageHeader from '../../app/shared/components/ui/PageHeader';
 import SuccessModal from '../../app/shared/components/ui/SuccessModal';
 import SettlerGrid from '../settlers/SettlerGrid';
 import { useServerContext } from '../../lib/contexts/ServerContext';
-import InterestDisplay from '../../app/shared/components/settlers/InterestDisplay';
 
 
 function SettlerSelection() {
@@ -33,9 +32,6 @@ function SettlerSelection() {
   const { colony, colonyLoading, colonyError } = useColony(serverId);
   const colonyId = colony?._id ?? null;
   const { onboardSettler, selectSettler } = useSettler(serverId, colonyId);
-
-  // Available interests (based on skills from the backend)
-  const availableInterests = ['combat', 'scavenging', 'farming', 'crafting', 'medical', 'engineering'];
 
   useEffect(() => {
     console.log("colony: " + colony);
@@ -209,30 +205,10 @@ function SettlerSelection() {
             ]}
             gridSizes={{ xs: 12, md: 4 }}
             showFullWidthActions={true}
-            customContent={(settler) => (
-              <Box sx={{ mt: 2, mb: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  Choose 2 Interests
-                </Typography>
-                <InterestDisplay
-                  availableInterests={availableInterests}
-                  selectedInterests={settlerInterests[settler._id] || []}
-                  onInterestToggle={(interest) => handleInterestToggle(settler._id, interest)}
-                  maxSelection={2}
-                  size="medium"
-                  showLabels={true}
-                />
-                {settlerInterests[settler._id]?.length !== 2 && (
-                  <Typography 
-                    variant="caption" 
-                    color="warning.main" 
-                    sx={{ mt: 1, display: 'block', textAlign: 'center' }}
-                  >
-                    Select two interests to continue
-                  </Typography>
-                )}
-              </Box>
-            )}
+            selectedInterests={settlerInterests}
+            onInterestToggle={handleInterestToggle}
+            maxInterests={2}
+            showInterestSelection={true}
           />
         </Paper>
       </Box>

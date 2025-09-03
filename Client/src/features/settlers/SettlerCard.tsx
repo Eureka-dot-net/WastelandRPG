@@ -1,11 +1,10 @@
 // File: src/components/settlers/SettlerCard.tsx
 import React from 'react';
 
-import { Person, Security, Build, LocalHospital, Agriculture, Science, Star, Speed, Psychology, Shield } from '@mui/icons-material';
+import { Person, Security, Build, LocalHospital, Agriculture, Science, Star, Speed, Psychology, Shield, Favorite, FavoriteBorder } from '@mui/icons-material';
 import type { Settler } from '../../lib/types/settler';
 import DynamicIcon from '../../app/shared/components/DynamicIcon';
-import InterestDisplay from '../../app/shared/components/settlers/InterestDisplay';
-import { Card, CardContent, Box, Typography, Divider, LinearProgress, Tooltip, Chip, Avatar, CardActions, Button, Grid } from '@mui/material';
+import { Card, CardContent, Box, Typography, Divider, LinearProgress, Tooltip, Chip, Avatar, CardActions, Button, Grid, IconButton } from '@mui/material';
 
 interface SettlerCardAction {
   label: string | ((settler: Settler) => string);
@@ -20,13 +19,22 @@ interface SettlerCardProps {
   actions: SettlerCardAction[];
   showFullWidth?: boolean;
   customContent?: (settler: Settler) => React.ReactNode;
+  // Interest selection props
+  selectedInterests?: string[];
+  onInterestToggle?: (interest: string) => void;
+  maxInterests?: number;
+  showInterestSelection?: boolean;
 }
 
 const SettlerCard: React.FC<SettlerCardProps> = ({
   settler,
   actions,
   showFullWidth = false,
-  customContent
+  customContent,
+  selectedInterests = [],
+  onInterestToggle,
+  maxInterests = 2,
+  showInterestSelection = false
 }) => {
   const getSkillIcon = (skill: string) => {
     const icons: Record<string, React.ReactElement> = {
@@ -117,22 +125,69 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
         <Divider sx={{ my: 2 }} />
 
         <Typography variant="subtitle1" color="text.primary" gutterBottom>
-          Skills
+          Skills {showInterestSelection && `(Select ${maxInterests} interests)`}
         </Typography>
         {Object.entries(settler.skills)
-          .map(([skill, value]) => (
-            <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Box display="flex" alignItems="center" gap={1}>
-                {getSkillIcon(skill)}
-                <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                  {skill}
+          .map(([skill, value]) => {
+            const isInterest = selectedInterests.includes(skill);
+            const canSelect = !isInterest && selectedInterests.length < maxInterests;
+            const canToggle = showInterestSelection && (isInterest || canSelect);
+            
+            return (
+              <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  {getSkillIcon(skill)}
+                  <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                    {skill}
+                  </Typography>
+                  {showInterestSelection && (
+                    <IconButton
+                      size="small"
+                      onClick={() => onInterestToggle && onInterestToggle(skill)}
+                      disabled={!canToggle}
+                      sx={{
+                        ml: 0.5,
+                        p: 0.25,
+                        color: isInterest ? 'gold' : 'grey.500',
+                        '&:hover': canToggle ? {
+                          color: isInterest ? 'gold' : 'grey.300',
+                          backgroundColor: 'transparent'
+                        } : {},
+                        '&.Mui-disabled': {
+                          color: 'grey.700'
+                        }
+                      }}
+                    >
+                      {isInterest ? (
+                        <Favorite sx={{ fontSize: 16 }} />
+                      ) : (
+                        <FavoriteBorder sx={{ fontSize: 16 }} />
+                      )}
+                    </IconButton>
+                  )}
+                  {!showInterestSelection && settler.interests?.includes(skill) && (
+                    <Favorite sx={{ fontSize: 16, color: 'gold', ml: 0.5 }} />
+                  )}
+                </Box>
+                <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
+                  {value}
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
-                {value}
-              </Typography>
-            </Box>
-          ))}
+            );
+          })}
+
+        {showInterestSelection && (
+          <Typography 
+            variant="caption" 
+            color={selectedInterests.length === maxInterests ? "success.main" : "warning.main"}
+            sx={{ mt: 1, display: 'block', textAlign: 'center' }}
+          >
+            {selectedInterests.length === maxInterests 
+              ? `${maxInterests} interests selected` 
+              : `Select ${maxInterests - selectedInterests.length} more interest${maxInterests - selectedInterests.length !== 1 ? 's' : ''}`
+            }
+          </Typography>
+        )}
 
         <Divider sx={{ my: 2 }} />
 
@@ -171,23 +226,6 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
           ))}
         </Box>
 
-        {/* Display interests if they exist */}
-        {settler.interests && settler.interests.length > 0 && (
-          <>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle1" color="text.primary" gutterBottom>
-              Interests
-            </Typography>
-            <Box display="flex" justifyContent="center" mb={2}>
-              <InterestDisplay
-                availableInterests={settler.interests}
-                selectedInterests={settler.interests}
-                readonly={true}
-                size="small"
-              />
-            </Box>
-          </>
-        )}
 
         <Typography variant="subtitle1" color="text.primary" gutterBottom>
           Status

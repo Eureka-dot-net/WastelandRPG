@@ -24,6 +24,11 @@ interface SettlerGridProps {
   };
   showFullWidthActions?: boolean;
   customContent?: (settler: Settler) => React.ReactNode;
+  // Interest selection props
+  selectedInterests?: Record<string, string[]>;
+  onInterestToggle?: (settlerId: string, interest: string) => void;
+  maxInterests?: number;
+  showInterestSelection?: boolean;
 }
 
 const SettlerGrid: React.FC<SettlerGridProps> = ({
@@ -31,7 +36,11 @@ const SettlerGrid: React.FC<SettlerGridProps> = ({
   actions,
   gridSizes = { xs: 12, md: 4 },
   showFullWidthActions = true,
-  customContent
+  customContent,
+  selectedInterests,
+  onInterestToggle,
+  maxInterests = 2,
+  showInterestSelection = false
 }) => {
   return (
     <Grid container spacing={3}>
@@ -42,6 +51,10 @@ const SettlerGrid: React.FC<SettlerGridProps> = ({
             actions={actions}
             showFullWidth={showFullWidthActions}
             customContent={customContent}
+            selectedInterests={selectedInterests?.[settler._id] || []}
+            onInterestToggle={onInterestToggle ? (interest) => onInterestToggle(settler._id, interest) : undefined}
+            maxInterests={maxInterests}
+            showInterestSelection={showInterestSelection}
           />
         </Grid>
       ))}
