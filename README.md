@@ -35,43 +35,65 @@ Welcome to *Wasteland RPG*, a text-based colony management simulation set in a h
 ## Getting Started
 
 ### Prerequisites
-- Node.js (latest LTS version recommended)
+- Node.js (latest LTS version recommended)  
 - npm or yarn
-- MongoDB (for backend data storage)
+- Docker (recommended) OR MongoDB installed locally
 
-### Installation
+### Quick Setup
+
+**Option 1: Automatic Setup (Recommended)**
+```bash
+git clone https://github.com/Eureka-dot-net/WastelandRPG.git
+cd WastelandRPG/API
+./setup.sh  # Automatically configures MongoDB and environment
+npm run dev
+```
+
+**Option 2: Manual Setup**
 1. Clone the repository:
    ```bash
-   git clone https://github.com/eureka.net/wasteland-rpg.git
-   cd wasteland-rpg
+   git clone https://github.com/Eureka-dot-net/WastelandRPG.git
+   cd WastelandRPG
    ```
-2. Install dependencies:
-   - Backend:
-     ```bash
-     cd backend
-     npm install
-     ```
-   - Frontend:
-     ```bash
-     cd ../frontend
-     npm install
-     ```
-3. Set up environment variables:
-   - Create a `.env` file in the `backend` directory with your MongoDB URI and any API keys (e.g., `MONGO_URI=mongodb://localhost:27017/wasteland_rpg`).
-4. Start the application:
-   - Backend:
-     ```bash
-     cd backend
-     npm run dev
-     ```
-   - Frontend:
-     ```bash
-     cd ../frontend
-     npm run dev
-     ```
-5. Access the app at `http://localhost:3000` (or your configured port).
+
+2. Set up MongoDB (choose one):
+   ```bash
+   # Docker (recommended)
+   docker run -d -p 27017:27017 --name mongodb mongo:latest
+   
+   # Or install MongoDB locally
+   # https://docs.mongodb.com/manual/installation/
+   ```
+
+3. Install and configure API:
+   ```bash
+   cd API
+   npm install
+   cp .env.example .env
+   # Edit .env and set MONGO_URI=mongodb://localhost:27017/wasteland_rpg
+   npm run dev
+   ```
+
+4. Install and start Client:
+   ```bash
+   cd ../Client
+   npm install
+   npm run dev
+   ```
+
+5. Access the app at `http://localhost:5173` (Client) and API at `http://localhost:3000`
+
+### Database Options
+
+The API supports multiple database configurations:
+
+1. **Docker MongoDB** (recommended): `docker run -d -p 27017:27017 --name mongodb mongo:latest`
+2. **Local MongoDB**: Install locally and use default connection
+3. **MongoDB Atlas**: Free cloud database at https://www.mongodb.com/atlas  
+4. **In-Memory Database**: Automatic fallback when no external database is configured (requires internet access)
 
 ### Known Issues
+- **Database Connection**: Use the setup script or follow database setup instructions above
 - **Login Token Expiry**: Current implementation has token expiry bugs; work in progress to stabilize authentication.
 
 ## Development
