@@ -15,7 +15,7 @@ import ShieldIcon from '@mui/icons-material/Shield'; // Shield
 import VisibilityIcon from '@mui/icons-material/Visibility'; // Notoriety
 import WarningAmberIcon from "@mui/icons-material/WarningAmber"; // Alerts
 import HomeIcon from '@mui/icons-material/Home';
-import { Box, Badge, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, Paper, type SvgIconProps } from "@mui/material";
+import { Box, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, Paper, type SvgIconProps } from "@mui/material";
 import { useColony } from "../../lib/hooks/useColony";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import ServerSelector from "../../components/ServerSelector/ServerSelector";
@@ -29,7 +29,6 @@ type StatItemProps = {
   value: string | number;
   color?: string;
   tooltip?: string;
-  alert?: boolean;
   showLabel?: boolean; // New prop for mobile tiny text
 };
 
@@ -39,21 +38,20 @@ const StatItem: React.FC<StatItemProps> = ({
   value,
   color = 'text.primary',
   tooltip,
-  alert = false,
   showLabel = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const content = (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: showLabel ? 'column' : 'row',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: showLabel ? 0.2 : 0.5,
+        gap: showLabel ? 0 : 0.5, // small gap when stacking vertically
         px: isMobile ? 1 : 1.5,
-        py: showLabel ? 0.8 : 0.5,
+        py: showLabel ? 0.3 : 0.5,
         fontSize: isMobile ? '0.75rem' : '0.85rem',
         borderRadius: 1,
         bgcolor: 'rgba(255,255,255,0.05)',
@@ -65,48 +63,44 @@ const StatItem: React.FC<StatItemProps> = ({
         }
       }}
     >
-      {alert && (
-        <Badge
-          color="error"
-          variant="dot"
+      <Box sx={{
+        color,
+        fontSize: isMobile ? '0.9rem' : '1.1rem',
+        lineHeight: 1,
+      }}>
+          {React.isValidElement(icon) ? React.cloneElement(icon, { fontSize: 'inherit' }) : icon}
+      </Box>
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 600,
+          color,
+          lineHeight: 1.2,
+          fontSize: isMobile ? '0.75rem' : undefined,
+          mt: { xs: 0, sm: 1 },
+          mb: { xs: 0.3, sm: 1 }
+        }}
+      >
+        {value}
+      </Typography>
+      {showLabel && (
+        <Typography
+          variant="caption"
           sx={{
-            '& .MuiBadge-badge': {
-              top: 1,
-              right: 2,
-            }
+            fontSize: '0.6rem',
+            lineHeight: 1,
+            color: 'text.secondary',
+            textAlign: 'center',
           }}
         >
-          <Box sx={{ color, fontSize: '0.9rem' }}>
-             {React.isValidElement(icon) ? React.cloneElement(icon, { fontSize: 'inherit' }) : icon}
-          </Box>
-        </Badge>
-      )}
-      {!alert && (
-        <Box sx={{ color, fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
-           {icon}
-        </Box>
-      )}
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, color, lineHeight: 1.2, fontSize: isMobile ? '0.75rem' : undefined }}>
-          {value}
+          {label}
         </Typography>
-        {showLabel && (
-          <Typography variant="caption" sx={{ 
-            fontSize: '0.6rem', 
-            lineHeight: 1, 
-            color: 'text.secondary',
-            textAlign: 'center'
-          }}>
-            {label}
-          </Typography>
-        )}
-      </Box>
+      )}
     </Box>
   );
 
-  
-  return  (
-    <Tooltip title={tooltip || value + ' ' + label} arrow>
+  return (
+    <Tooltip title={tooltip || `${value} ${label}`} arrow>
       {content}
     </Tooltip>
   );
@@ -309,38 +303,6 @@ const DashboardTopBar: React.FC = () => {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* Resources in mobile menu */}
-        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-          Resources
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-          {resources.map((stat) => (
-            <StatItem key={stat.label} {...stat} />
-          ))}
-        </Box>
-
-        {/* Settlers in mobile menu */}
-        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-          Settlers ({settlerStats.total})
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-          {settlers.map((stat) => (
-            <StatItem key={stat.label} {...stat} />
-          ))}
-        </Box>
-
-        {/* Status in mobile menu */}
-        <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-          Status
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-          {status.map((stat) => (
-            <StatItem key={stat.label} {...stat} />
-          ))}
-        </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
         {/* Navigation in mobile menu */}
         <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
           Navigation
@@ -377,6 +339,8 @@ const DashboardTopBar: React.FC = () => {
               </ListItem>
             );
           })}
+
+          <Divider sx={{ mb: 2 }} />
           
           {/* Logout Button */}
           <ListItem disablePadding>
@@ -531,14 +495,14 @@ const DashboardTopBar: React.FC = () => {
           >
             {/* Resources */}
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {resources.slice(0, 2).map((stat) => (
+              {resources.map((stat) => (
                 <StatItem key={stat.label} {...stat} showLabel={true} />
               ))}
             </Box>
 
             {/* Settlers */}
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {settlers.slice(0, 2).map((stat) => (
+              {settlers.map((stat) => (
                 <StatItem key={stat.label} {...stat} showLabel={true} />
               ))}
             </Box>

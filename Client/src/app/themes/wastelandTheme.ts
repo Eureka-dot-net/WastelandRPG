@@ -100,6 +100,7 @@ export const wastelandTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#1a1a1a',
+          '--Paper-overlay': 'none',
           border: '1px solid #333',
         },
       },

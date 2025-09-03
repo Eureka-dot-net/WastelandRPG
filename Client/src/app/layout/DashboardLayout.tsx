@@ -29,7 +29,7 @@ const DashboardLayout = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <DashboardTopBar />
       <Container maxWidth='xl' sx={{ 
-        pt: isMobileTopBar ? MOBILE_HEADER_HEIGHT : DESKTOP_HEADER_HEIGHT,
+        pt: isMobileTopBar ? MOBILE_HEADER_HEIGHT + 2 : DESKTOP_HEADER_HEIGHT,
         px: isMobile ? 1 : 2 // Reduced horizontal padding on mobile
       }}>
         <Outlet />
