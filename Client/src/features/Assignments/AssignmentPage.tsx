@@ -38,21 +38,26 @@ function AssignmentPage() {
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
-   useEffect(() => {
+  useEffect(() => { //This can stay. If a colony changes then we do want to invalidate the queries
     if (colonyId) {
       queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
     }
   }, [colonyId, queryClient]);
-
-  // ---- PRELOAD PREVIEW DATA (this does NOT change timers logic) ----
+  
+   // ---- PRELOAD PREVIEW DATA - Enhanced version with proper cache management ----
   useEffect(() => {
     if (!colonyId || !assignments || !colony?.settlers) return;
+    
+    // Get available settlers (not assigned to in-progress tasks)
     const assignedSettlerIds = assignments
       ?.filter(a => a.state === "in-progress")
       .map(a => a.settlerId)
       .filter(Boolean) || [];
     const availableSettlers = colony.settlers.filter(settler => !assignedSettlerIds.includes(settler._id));
 
+    // Prefetch assignment previews for all available assignments
+    const prefetchPromises: Promise<void>[] = [];
+    
     assignments.forEach((assignment) => {
       const dependencyMet = !assignment.dependsOn ||
         (assignments?.find(a => a.taskId === assignment.dependsOn)?.state === "informed" ||
@@ -65,21 +70,29 @@ function AssignmentPage() {
 
       if (isAvailable) {
         availableSettlers.forEach((settler) => {
-          queryClient.prefetchQuery({
+          const prefetchPromise = queryClient.prefetchQuery({
             queryKey: ["assignmentPreview", colonyId, assignment._id, settler._id],
             queryFn: async () => {
-              // Use the same agent.get logic as your hook
               const url = `/colonies/${colonyId}/assignments/${assignment._id}/preview?settlerId=${settler._id}`;
               const response = await agent.get(url);
               return response.data;
             },
             staleTime: 5 * 60 * 1000,
+          }).catch(error => {
+            console.warn(`Failed to prefetch preview for assignment ${assignment._id} and settler ${settler._id}:`, error);
           });
+          prefetchPromises.push(prefetchPromise);
         });
       }
     });
+
+    // Optional: Log prefetch activity for debugging
+    if (prefetchPromises.length > 0) {
+      console.log(`Prefetching ${prefetchPromises.length} assignment previews for available assignments`);
+    }
   }, [colonyId, assignments, colony?.settlers, queryClient]);
 
+  // Invalidate assignment queries when colony changes to ensure fresh data
   useEffect(() => {
     if (colonyId) {
       queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });

@@ -95,9 +95,18 @@ export const getAssignments = async (req: Request, res: Response) => {
       await session.abortTransaction();
       attempts++;
 
-      if (err.errorLabels?.includes('TransientTransactionError') && attempts < MAX_RETRIES) {
-       // console.warn(`TransientTransactionError occurred. Retrying transaction ${attempts}/${MAX_RETRIES}...`);
-        await new Promise(r => setTimeout(r, 100 * attempts)); // small backoff
+      // Handle different types of errors with appropriate retry logic
+      const shouldRetry = (
+        err.errorLabels?.includes('TransientTransactionError') ||
+        err.message?.includes('Write conflict during plan execution') ||
+        err.codeName === 'WriteConflict'
+      ) && attempts < MAX_RETRIES;
+
+      if (shouldRetry) {
+        // console.warn(`Database conflict occurred. Retrying transaction ${attempts}/${MAX_RETRIES}...`);
+        // Exponential backoff with jitter to reduce thundering herd
+        const backoffTime = 100 * attempts + Math.random() * 50;
+        await new Promise(r => setTimeout(r, backoffTime));
         continue;
       }
 
