@@ -79,15 +79,64 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
       onClose={handleClose}
       maxWidth={dialogMaxWidth}
       fullWidth={dialogFullWidth}
-      sx={{ bgcolor: 'black', border: '1px solid #000000ff' }}
+      PaperProps={{
+        sx: {
+          backgroundColor: '#000000',
+          backgroundImage: 'linear-gradient(145deg, #000000 0%, #111111 50%, #000000 100%)',
+          border: '1px solid #333333',
+          borderRadius: isMobile ? 1 : 2,
+          boxShadow: '0 8px 32px rgba(211, 47, 47, 0.3), 0 0 0 1px rgba(211, 47, 47, 0.1)',
+          minHeight: isMobile ? 'auto' : '200px',
+        }
+      }}
     >
-      <DialogTitle sx={{ color: 'primary.main', pb: 1 }}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Person color="primary" />
-          {title}
+      <DialogTitle sx={{ 
+        color: 'primary.main', 
+        pb: isMobile ? 0.5 : 1,
+        pt: isMobile ? 1.5 : 2,
+        px: isMobile ? 2 : 3,
+        fontSize: isMobile ? '1rem' : '1.25rem',
+        fontWeight: 600
+      }}>
+        <Box display="flex" alignItems="center" gap={isMobile ? 0.75 : 1}>
+          <Person 
+            color="primary" 
+            sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem' }}
+          />
+          <Typography 
+            variant={isMobile ? 'subtitle1' : 'h6'} 
+            component="span"
+            sx={{ 
+              fontSize: isMobile ? '0.95rem' : '1.1rem',
+              fontWeight: 600,
+              lineHeight: 1.2
+            }}
+          >
+            {title}
+          </Typography>
         </Box>
       </DialogTitle>
-      <DialogContent sx={{ pt: isMobile ? 1 : 2, maxHeight: '70vh', overflowY: 'auto' }}>
+      <DialogContent sx={{ 
+        pt: isMobile ? 0.5 : 1, 
+        pb: isMobile ? 1 : 1.5,
+        px: isMobile ? 2 : 3,
+        maxHeight: isMobile ? '60vh' : '70vh', 
+        overflowY: 'auto',
+        '&::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: '#1a1a1a',
+          borderRadius: '3px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: '#555',
+          borderRadius: '3px',
+          '&:hover': {
+            background: '#666',
+          },
+        },
+      }}>
         {settlers.length > 0 && selectedTask && colonyId ? (
           isSingleSettler ? (
             <Box
@@ -95,7 +144,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
               justifyContent="center"
               alignItems="center"
               sx={{
-                minHeight: isMobile ? 'auto' : 150,
+                minHeight: isMobile ? 'auto' : 120,
                 width: '100%',
               }}
             >
@@ -112,7 +161,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
               />
             </Box>
           ) : (
-            <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={isMobile ? 1 : 2}>
+            <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={isMobile ? 0.75 : 1.5}>
               {settlers.map((settler, index) => (
                 <SettlerPreviewCard
                   key={settler._id}
@@ -129,22 +178,59 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
             </Box>
           )
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4, width: '100%' }}>
-            <Typography variant="body1" color="text.secondary">
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: isMobile ? 2 : 3, 
+            px: isMobile ? 1 : 2,
+            width: '100%',
+            opacity: 0.8
+          }}>
+            <Typography 
+              variant={isMobile ? "body2" : "body1"} 
+              color="text.secondary"
+              sx={{ 
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                mb: isMobile ? 0.5 : 1
+              }}
+            >
               {emptyStateMessage}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                fontSize: isMobile ? '0.7rem' : '0.8rem',
+                lineHeight: 1.3,
+                opacity: 0.7
+              }}
+            >
               {emptyStateSubMessage}
             </Typography>
           </Box>
         )}
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{
+        px: isMobile ? 2 : 3,
+        pb: isMobile ? 1.5 : 2,
+        pt: isMobile ? 0.5 : 1,
+        borderTop: '1px solid #333333',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)'
+      }}>
         <Button 
           ref={cancelButtonRef}
           onClick={handleClose} 
           color="inherit" 
           disabled={confirmPending}
+          size={isMobile ? "small" : "medium"}
+          sx={{
+            fontSize: isMobile ? '0.8rem' : '0.875rem',
+            minWidth: isMobile ? '60px' : '80px',
+            textTransform: 'none',
+            fontWeight: 500,
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            }
+          }}
         >
           Cancel
         </Button>

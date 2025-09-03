@@ -184,55 +184,81 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
       }}
       onClick={() => !confirmPending && onClick?.()}
     >
-      <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+      <CardContent sx={{ p: isMobile ? 1 : 1.5 }}>
         {/* Settler Basic Info */}
-        <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2} mb={isMobile ? 1.5 : 2}>
+        <Box display="flex" alignItems="center" gap={isMobile ? 1 : 1.5} mb={isMobile ? 1 : 1.5}>
           <Avatar
             sx={{
               bgcolor: avatarColor,
-              width: isMobile ? 30 : 35,
-              height: isMobile ? 30 : 35,
-              fontSize: isMobile ? '0.9rem' : '1rem',
+              width: isMobile ? 28 : 32,
+              height: isMobile ? 28 : 32,
+              fontSize: isMobile ? '0.8rem' : '0.9rem',
               fontWeight: 'bold'
             }}
           >
             {settler.name.charAt(0)}
           </Avatar>
           <Box flex={1}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+            <Typography 
+              variant={isMobile ? "subtitle1" : "h6"} 
+              fontWeight={600} 
+              sx={{ 
+                mb: 0.25,
+                fontSize: isMobile ? '0.9rem' : '1rem',
+                lineHeight: 1.2
+              }}
+            >
               {settler.name}
             </Typography>
           </Box>
         </Box>
         {/* Assignment Effects Preview */}
         <>
-          <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
+          <Divider sx={{ mb: isMobile ? 1 : 1.5 }} />
           <Typography
             variant="subtitle2"
             color="primary.main"
-            sx={{ mb: isMobile ? 1 : 1.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+            sx={{ 
+              mb: isMobile ? 0.75 : 1, 
+              fontWeight: 600, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              fontSize: isMobile ? '0.75rem' : '0.875rem'
+            }}
           >
-            <CheckCircle fontSize="small" />
+            <CheckCircle sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} />
             Assignment Effects
           </Typography>
           {isLoading ? (
-            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
-              <Skeleton variant="text" width="60%" height={20} />
-              <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
-              <Skeleton variant="text" width="40%" height={20} />
-              <Skeleton variant="rectangular" width="100%" height={8} sx={{ my: 1, borderRadius: 4 }} />
+            <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+              <Skeleton variant="text" width="60%" height={16} />
+              <Skeleton variant="rectangular" width="100%" height={6} sx={{ my: 0.75, borderRadius: 3 }} />
+              <Skeleton variant="text" width="40%" height={16} />
+              <Skeleton variant="rectangular" width="100%" height={6} sx={{ my: 0.75, borderRadius: 3 }} />
             </Box>
           ) : error ? (
-            <Typography variant="body2" color="error.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Typography 
+              variant="body2" 
+              color="error.main" 
+              sx={{ 
+                mb: isMobile ? 1 : 1.5,
+                fontSize: isMobile ? '0.75rem' : '0.8rem'
+              }}
+            >
               Failed to load preview
             </Typography>
           ) : preview?.adjustments ? (
-            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
               {/* Duration & Speed */}
-              <Box sx={{ mb: 1.5 }}>
-                <Box display="flex" alignItems="center" gap={2} mb={0.5}>
-                  <Speed fontSize="small" color="primary" />
-                  <Typography variant="body2" fontWeight={600}>
+              <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                  <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                  <Typography 
+                    variant="body2" 
+                    fontWeight={600}
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                  >
                     Task Duration: {formatTaskDuration(assignment.duration || 0)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
                   </Typography>
                 </Box>
@@ -242,10 +268,14 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                 />
               </Box>
               {/* Loot Multiplier */}
-              <Box sx={{ mb: 1.5 }}>
-                <Box display="flex" alignItems="center" gap={2} mb={0.5}>
-                  <TrendingUp fontSize="small" color="primary" />
-                  <Typography variant="body2" fontWeight={600}>
+              <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                  <TrendingUp sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                  <Typography 
+                    variant="body2" 
+                    fontWeight={600}
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                  >
                     Loot Bonus
                   </Typography>
                 </Box>
@@ -259,10 +289,18 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                 preview.adjustments.effects.lootEffects.length > 0 ||
                 preview.adjustments.effects.traitEffects.length > 0) && (
                   <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: 0.4, 
+                        display: 'block',
+                        fontSize: isMobile ? '0.65rem' : '0.7rem'
+                      }}
+                    >
                       Active Effects:
                     </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={0.5}>
+                    <Box display="flex" flexWrap="wrap" gap={0.4}>
                       {preview.adjustments.effects.speedEffects.map((effect: string, i: number) => (
                         <EffectChip key={`speed-${i}`} effect={effect} />
                       ))}
@@ -277,19 +315,34 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                 )}
             </Box>
           ) : (
-            <Typography variant="body2" color="warning.main" sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Typography 
+              variant="body2" 
+              color="warning.main" 
+              sx={{ 
+                mb: isMobile ? 1 : 1.5,
+                fontSize: isMobile ? '0.75rem' : '0.8rem'
+              }}
+            >
               No assignment effects data available
             </Typography>
           )}
         </>
-        <Divider sx={{ mb: isMobile ? 1.5 : 2 }} />
+        <Divider sx={{ mb: isMobile ? 1 : 1.5 }} />
         {/* Settler Skills */}
         {showSkills && (
           <>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
+            <Typography 
+              variant="subtitle2" 
+              color="text.secondary" 
+              sx={{ 
+                mb: isMobile ? 0.4 : 0.75, 
+                fontWeight: 600,
+                fontSize: isMobile ? '0.75rem' : '0.8rem'
+              }}
+            >
               Skills:
             </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5} mb={isMobile ? 0.5 : 1}>
+            <Box display="flex" flexWrap="wrap" gap={0.4} mb={isMobile ? 0.4 : 0.75}>
               {Object.entries(settler.skills).map(([skill, level]) => (
                 <Chip
                   key={skill}
@@ -297,7 +350,7 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                   label={`${skill}: ${level}`}
                   variant="filled"
                   color="secondary"
-                  sx={{ fontSize: '0.75rem' }}
+                  sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
                 />
               ))}
             </Box>
@@ -306,10 +359,18 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
         {/* Settler Stats */}
         {showStats && (
           <>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: isMobile ? 0.5 : 1, fontWeight: 600 }}>
+            <Typography 
+              variant="subtitle2" 
+              color="text.secondary" 
+              sx={{ 
+                mb: isMobile ? 0.4 : 0.75, 
+                fontWeight: 600,
+                fontSize: isMobile ? '0.75rem' : '0.8rem'
+              }}
+            >
               Stats:
             </Typography>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
+            <Box display="flex" flexWrap="wrap" gap={0.4}>
               {Object.entries(settler.stats).map(([stat, value]) => (
                 <StatChip key={stat} stat={stat} value={value as number} />
               ))}
