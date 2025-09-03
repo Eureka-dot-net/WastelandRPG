@@ -80,11 +80,11 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
           </Typography>
         </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, minHeight: '80px' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, minHeight: '40px' }}>
           {settler.backstory}
         </Typography>
 
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 1 }} />
 
         <Typography variant="subtitle1" color="text.primary" gutterBottom>
           Core Stats
