@@ -93,25 +93,6 @@ function AssignmentPage() {
     }
   }, [colonyId, queryClient]);
 
-  // Enhanced cache invalidation when assignments complete or change state
-  useEffect(() => {
-    if (!colonyId || !assignments) return;
-    
-    // When assignments change (especially when they complete and new ones become available),
-    // invalidate any stale assignment preview queries to ensure fresh prefetching
-    const completedOrInformedAssignments = assignments.filter(
-      a => a.state === 'completed' || a.state === 'informed'
-    );
-    
-    if (completedOrInformedAssignments.length > 0) {
-      // Invalidate all assignment preview queries to trigger fresh prefetching
-      queryClient.invalidateQueries({ 
-        queryKey: ["assignmentPreview", colonyId],
-        exact: false 
-      });
-    }
-  }, [assignments, colonyId, queryClient]);
-
   const handleAssignClick = (taskId: string) => {
     const task = assignments?.find(a => a._id === taskId);
     if (task) {
