@@ -15,7 +15,8 @@ import {
   getTile,
   formatGridForAPI,
   canTileBeExplored,
-  createOrGetUserMapTile
+  createOrGetUserMapTile,
+  hasColonyExploredTile
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
@@ -124,7 +125,7 @@ export const startExploration = async (req: Request, res: Response) => {
     }
 
     // Create or get UserMapTile record for this colony's exploration
-    const userMapTile = await createOrGetUserMapTile(
+    await createOrGetUserMapTile(
       tile._id.toString(),
       colony._id.toString(),
       session
@@ -263,6 +264,12 @@ export const previewExploration = async (req: Request, res: Response) => {
 
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
+      // Check if this colony has already explored this tile using UserMapTile
+      const alreadyExplored = await hasColonyExploredTile(
+        tile._id.toString(),
+        colony._id.toString()
+      );
+
       previewData = {
         terrain: {
           type: tile.terrain,
@@ -276,8 +283,8 @@ export const previewExploration = async (req: Request, res: Response) => {
         event: tile.event,
         duration: adjustments.adjustedDuration,
         adjustments: adjustments.effects,
-        alreadyExplored: tile.exploredBy.includes(settler.name),
-        exploredBy: tile.exploredBy.filter(e => e !== 'auto_generated')
+        alreadyExplored,
+        exploredBy: [] // Deprecated field, keeping for backward compatibility
       };
     } else {
       // Unknown tile - show estimated info
