@@ -66,9 +66,12 @@ export async function createOrUpdateMapTile(
     ...(colony && { colony })
   };
 
-  return session 
-    ? await MapTile.create([tileData], { session }).then(docs => docs[0])
-    : await MapTile.create(tileData);
+  if (session) {
+    const tile = new MapTile(tileData);
+    return await tile.save({ session });
+  } else {
+    return await MapTile.create(tileData);
+  }
 }
 
 /**
@@ -129,7 +132,7 @@ export async function assignAdjacentTerrain(
   
   // Bulk create new tiles
   const createdTiles = session 
-    ? await MapTile.create(tilesToCreate, { session })
+    ? await MapTile.create(tilesToCreate, { session, ordered: true })
     : await MapTile.create(tilesToCreate);
   
   return [...existingTiles, ...createdTiles];
@@ -413,9 +416,12 @@ export async function createUserMapTile(
     exploredAt: new Date()
   };
 
-  return session 
-    ? await UserMapTile.create([userTileData], { session }).then(docs => docs[0])
-    : await UserMapTile.create(userTileData);
+  if (session) {
+    const userTile = new UserMapTile(userTileData);
+    return await userTile.save({ session });
+  } else {
+    return await UserMapTile.create(userTileData);
+  }
 }
 
 /**
@@ -468,9 +474,12 @@ export async function createOrGetUserMapTile(
       exploredAt: new Date()
     };
 
-    userTile = session 
-      ? await UserMapTile.create([userTileData], { session }).then(docs => docs[0])
-      : await UserMapTile.create(userTileData);
+    if (session) {
+      const newUserTile = new UserMapTile(userTileData);
+      userTile = await newUserTile.save({ session });
+    } else {
+      userTile = await UserMapTile.create(userTileData);
+    }
   }
 
   return userTile as UserMapTileDoc;
