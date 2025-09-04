@@ -139,13 +139,7 @@ useEffect(() => {
   const getAvailableSettlers = () => {
     if (!colony?.settlers) return [];
 
-    // Get settlers who aren't currently assigned to in_progress tasks
-    const assignedSettlerIds = assignments
-      ?.filter(a => a.state === "in-progress")
-      .map(a => a.settlerId)
-      .filter(Boolean) || [];
-
-    return colony.settlers.filter(settler => !assignedSettlerIds.includes(settler._id));
+    return colony.settlers.filter(settler => settler.status === "idle");
   };
 
   const isDependencyMet = (assignment: Assignment) => {

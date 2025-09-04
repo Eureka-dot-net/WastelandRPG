@@ -150,8 +150,10 @@ export function useAssignment(
             return response.data;
         },
         onMutate: async (assignmentId) => {
+            // Cancel ongoing queries for assignments
             await queryClient.cancelQueries({ queryKey: ["assignments", colonyId] });
 
+            // Snapshot previous assignment data
             const queries = queryClient.getQueryCache().findAll({
                 queryKey: ["assignments", colonyId],
             });
@@ -160,6 +162,17 @@ export function useAssignment(
                 data: query.state.data as Assignment[] | undefined,
             }));
 
+            // Find the settlerId from the cached assignment
+            let settlerId: string | undefined;
+            queries.forEach((query) => {
+                const data = query.state.data as Assignment[] | undefined;
+                const assignment = data?.find((a) => a._id === assignmentId);
+                if (assignment?.settlerId) {
+                    settlerId = assignment.settlerId;
+                }
+            });
+
+            // Optimistically update assignment state to informed
             queries.forEach((query) => {
                 queryClient.setQueryData<Assignment[]>(query.queryKey, (old) =>
                     old?.map((a) =>
@@ -168,35 +181,28 @@ export function useAssignment(
                 );
             });
 
-            return { prevData }; // now typed correctly
+            // Optimistically update settler to idle (if found)
+            if (settlerId) {
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
+                    old
+                        ? {
+                            ...old,
+                            settlers: old.settlers.map((s) =>
+                                s._id === settlerId ? { ...s, status: "idle" } : s
+                            ),
+                        }
+                        : old
+                );
+            }
+
+            return { prevData };
         },
         onError: (_, __, context) => {
             context?.prevData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
         },
-        onSuccess: (data) => {
-            if (data.state === "informed") {
-                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
-                    if (!old) return old;
 
-                    let unlocks = old.unlocks;
-                    if (data.unlocks) {
-                        unlocks = { ...unlocks, [data.unlocks]: true };
-                    }
-
-                    return {
-                        ...old,
-                        unlocks,
-                        settlers: old.settlers.map((s) =>
-                            s._id === data.foundSettler?._id
-                                ? { ...s, status: "idle" }
-                                : s
-                        ),
-                    };
-                });
-            }
-        },
     });
 
 
