@@ -212,29 +212,39 @@ useEffect(() => {
       {/* Tasks Grid */}
       <Grid container spacing={isMobile ? 1.5 : 3}>
         {assignments.map(assignment => {
-          // Determine time remaining
+          // Determine time remaining and calculate progress
           let timeRemaining: number | undefined;
+          let progress = 0;
+          
           if (assignment.state === 'in-progress') {
-            timeRemaining = timers[assignment._id];
+            // For in-progress assignments, calculate both timeRemaining and progress
+            if (assignment.completedAt && assignment.duration) {
+              // Calculate directly from completion time for immediate feedback
+              const now = Date.now();
+              const completionTime = new Date(assignment.completedAt).getTime();
+              const calculatedTimeRemaining = completionTime - now;
+              
+              if (calculatedTimeRemaining > 0) {
+                timeRemaining = calculatedTimeRemaining;
+                progress = ((assignment.duration - calculatedTimeRemaining) / assignment.duration) * 100;
+              } else {
+                timeRemaining = 0;
+                progress = 100;
+              }
+            } else {
+              // Fallback to timer context if completedAt not available
+              timeRemaining = timers[assignment._id];
+              if (timeRemaining != null && assignment.duration) {
+                progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
+              }
+            }
+            progress = Math.max(0, Math.min(100, progress)); // clamp between 0-100
           } else if (assignment.state === 'completed' || assignment.state === 'informed') {
             timeRemaining = 0;
+            progress = 100;
           } else {
             timeRemaining = undefined;
-          }
-
-          // Calculate progress
-          let progress = 0;
-          if (assignment.duration) {
-            if (assignment.state === 'in-progress' && timeRemaining != null) {
-              // Calculate progress based on time remaining, regardless of startedAt
-              // This ensures progress bar works immediately when timer is available
-              progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
-              progress = Math.max(0, Math.min(100, progress)); // clamp between 0-100
-            } else if (assignment.state === 'completed' || assignment.state === 'informed') {
-              progress = 100;
-            } else {
-              progress = 0;
-            }
+            progress = 0;
           }
 
           const assignedSettler = assignment.settlerId
