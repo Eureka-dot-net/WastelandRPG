@@ -164,11 +164,16 @@ export function useAssignment(
 
             // Find the settlerId from the cached assignment
             let settlerId: string | undefined;
+            let newUnlock: string | undefined;
             queries.forEach((query) => {
                 const data = query.state.data as Assignment[] | undefined;
                 const assignment = data?.find((a) => a._id === assignmentId);
+                console.log("Found assignment for informing:", assignment);
                 if (assignment?.settlerId) {
                     settlerId = assignment.settlerId;
+                }
+                if (assignment?.unlocks) {
+                    newUnlock = assignment.unlocks;
                 }
             });
 
@@ -183,17 +188,25 @@ export function useAssignment(
 
             // Optimistically update settler to idle (if found)
             if (settlerId) {
-                queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
-                    old
-                        ? {
-                            ...old,
-                            settlers: old.settlers.map((s) =>
-                                s._id === settlerId ? { ...s, status: "idle" } : s
-                            ),
-                        }
-                        : old
-                );
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                    if (!old) return old;
+                
+                    const newUnlocks = { ...old.unlocks };
+                    if (newUnlock) {
+                        newUnlocks[newUnlock as keyof typeof old.unlocks] = true;
+                        console.log(`Unlocked feature: ${newUnlock}`);
+                    }
+
+                    return {
+                        ...old,
+                        unlocks: newUnlocks,
+                        settlers: old.settlers.map((s) =>
+                            s._id === settlerId ? { ...s, status: "idle" } : s
+                        ),
+                    };
+                });
             }
+
 
             return { prevData };
         },

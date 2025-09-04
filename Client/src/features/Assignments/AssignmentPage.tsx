@@ -84,9 +84,6 @@ function AssignmentPage() {
       });
     });
 
-    console.log(
-      `Prefetching ${availableAssignments.length * availableSettlers.length} assignment previews`
-    );
   }, [colonyId, assignments, colony?.settlers, queryClient]);
 
   // Invalidate assignment queries when colony changes to ensure fresh data
@@ -222,11 +219,6 @@ function AssignmentPage() {
             : assignment.state === 'completed' || assignment.state === 'informed'
               ? 100
               : 0;
-
-          if (assignment.state === 'in-progress') {
-            console.log(`Duration: ${assignment.duration}, TimeRemaining: ${timeRemaining}`);
-            console.log(`Assignment ${assignment.name} is in-progress with ${timeRemaining} seconds remaining. Progress: ${progress.toFixed(2)}%`);
-          }
 
           const assignedSettler = assignment.settlerId
             ? colony.settlers.find(s => s._id === assignment.settlerId)
