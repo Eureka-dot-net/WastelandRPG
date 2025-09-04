@@ -5,6 +5,7 @@ import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
+import { logError, logWarn } from '../utils/logger';
 import {
   calculateSettlerAdjustments,
   generateRewards,
@@ -111,7 +112,7 @@ export const getAssignments = async (req: Request, res: Response) => {
       }
 
       session.endSession();
-      console.error('Failed to fetch assignments:', err);
+      logError('Failed to fetch assignments', err, { colonyId: req.colonyId });
       return res.status(500).json({ error: 'Failed to fetch assignments' });
     }
   }
@@ -190,7 +191,11 @@ export const startAssignment = async (req: Request, res: Response) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error(err);
+    logError('Failed to start assignment', err, { 
+      colonyId: req.colonyId, 
+      assignmentId: req.params.assignmentId,
+      settlerId: req.body.settlerId 
+    });
     res.status(500).json({ error: 'Failed to start assignment' });
   }
 };
@@ -238,7 +243,7 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
     for (const settlerId of settlerIdArray) {
       const settler = settlerMap.get(settlerId);
       if (!settler) {
-        console.warn(`Settler ${settlerId} not found`);
+        logWarn('Settler not found in batch assignment preview', { settlerId, colonyId: req.colonyId });
         continue;
       }
 
@@ -247,7 +252,7 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
       for (const assignmentId of assignmentIdArray) {
         const assignment = assignmentMap.get(assignmentId);
         if (!assignment) {
-          console.warn(`Assignment ${assignmentId} not found`);
+          logWarn('Assignment not found in batch preview', { assignmentId, colonyId: req.colonyId });
           continue;
         }
 
@@ -261,7 +266,11 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
             adjustments
           };
         } catch (error) {
-          console.error(`Error calculating adjustments for settler ${settlerId} and assignment ${assignmentId}:`, error);
+          logError('Error calculating adjustments in batch assignment preview', error, { 
+            settlerId, 
+            assignmentId, 
+            colonyId: req.colonyId 
+          });
           results[settlerId][assignmentId] = { error: 'Failed to calculate preview' };
         }
       }
@@ -269,7 +278,7 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
 
     res.json({ results });
   } catch (err) {
-    console.error('Error in batch assignment preview:', err);
+    logError('Error in batch assignment preview', err, { colonyId: req.colonyId });
     res.status(500).json({ error: 'Failed to preview assignments' });
   }
 };
@@ -309,7 +318,11 @@ export const previewAssignment = async (req: Request, res: Response) => {
       adjustments
     });
   } catch (err) {
-    console.error(err);
+    logError('Failed to preview assignment', err, { 
+      colonyId: req.colonyId, 
+      assignmentId: req.params.assignmentId,
+      settlerId: req.query.settlerId 
+    });
     res.status(500).json({ error: 'Failed to preview assignment' });
   }
 };
@@ -350,7 +363,10 @@ export const informAssignment = async (req: Request, res: Response) => {
       foundSettler,
     });
   } catch (err) {
-    console.error(err);
+    logError('Failed to inform assignment', err, { 
+      colonyId: req.colonyId, 
+      assignmentId: req.params.assignmentId 
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 };

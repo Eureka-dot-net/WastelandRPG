@@ -6,6 +6,7 @@ import { Colony } from '../models/Player/Colony';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
 import { authenticate } from '../middleware/auth';
+import { logError, logInfo, logWarn } from '../utils/logger';
 
 const router = Router();
 
@@ -21,18 +22,18 @@ router.post('/register', async (req: Request, res: Response) => {
     // Validate serverId
     const server = getServerById(serverId);
     if (!server) {
+        logWarn('Registration attempt with invalid server', { email, serverId });
         return res.status(400).json({ message: 'Invalid server selected' });
     }
 
     const session = await User.startSession();
     session.startTransaction();
 
-    let errorOccurred = false;
-
     try {
         const existingUser = await User.findOne({ email }).session(session);
         if (existingUser) {
             await session.abortTransaction();
+            logWarn('Registration attempt with existing email', { email });
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -44,14 +45,25 @@ router.post('/register', async (req: Request, res: Response) => {
         const colony = await createColonyWithSpiralLocation(user._id, server.id, colonyName || 'First Colony', server.type, server.name, 5, 5, session);
 
         await session.commitTransaction();
+        
+        logInfo('User registered successfully', { 
+          userId: user._id, 
+          email, 
+          serverId: server.id,
+          serverName: server.name,
+          colonyName: colony.colonyName 
+        });
+        
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error: unknown) {
-        errorOccurred = true;
         try {
             await session.abortTransaction();
         } catch (abortError) {
-            console.error('Abort failed (maybe already committed)', abortError);
+            logError('Transaction abort failed during registration', abortError);
         }
+        
+        logError('Failed to register user', error, { email, serverId });
+        
         res.status(500).json({
             message: 'Server error',
             error: {
@@ -71,21 +83,31 @@ router.post('/login', async (req: Request, res: Response) => {
 
     try {
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!user) {
+            logWarn('Login attempt with non-existent email', { email });
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!isMatch) {
+            logWarn('Login attempt with incorrect password', { email, userId: user._id });
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string);
+        
+        logInfo('User logged in successfully', { userId: user._id, email });
 
         return res.json({ token });
     } catch (error) {
+        logError('Login failed', error, { email });
         res.status(500).json({ message: 'Server error', error });
     }
 });
 
 // Token validation endpoint
 router.get('/validate', authenticate, async (req: Request, res: Response) => {
+    logInfo('Token validation successful', { userId: req.userId });
     return res.json({ valid: true, userId: req.userId });
 });
 

@@ -8,6 +8,7 @@ import { SettlerManager } from '../managers/SettlerManager';
 import { ColonyManager } from '../managers/ColonyManager';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
+import { logError } from '../utils/logger';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.get('/colonies', authenticate, async (req: Request, res: Response) => {
 
     return res.json({ colonies: coloniesViewModels });
   } catch (error) {
+    logError('Failed to retrieve colonies', error, { userId });
     return res.status(500).json({ message: 'Failed to retrieve colonies', error });
   }
 });
@@ -90,6 +92,7 @@ router.post('/:serverId/join', authenticate, async (req: Request, res: Response)
       colony: viewModel
     });
   } catch (error) {
+    logError('Failed to join server', error, { userId, serverId, colonyName, serverName: server.name });
     return res.status(500).json({ message: 'Failed to join server', error });
   }
 });

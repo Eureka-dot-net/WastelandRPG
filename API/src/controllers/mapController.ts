@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
+import { logError, logWarn } from '../utils/logger';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
@@ -52,7 +53,11 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
       grid: formattedGrid
     });
   } catch (err) {
-    console.error('Error fetching map grid:', err);
+    logError('Error fetching map grid', err, { 
+      colonyId: req.colonyId, 
+      centerX, 
+      centerY 
+    });
     res.status(500).json({ error: 'Failed to fetch map grid' });
   }
 };
@@ -217,7 +222,12 @@ export const startExploration = async (req: Request, res: Response) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error('Error starting exploration:', err);
+    logError('Error starting exploration', err, { 
+      colonyId: req.colonyId, 
+      x: req.body.x, 
+      y: req.body.y,
+      settlerId: req.body.settlerId 
+    });
     res.status(500).json({ error: 'Failed to start exploration' });
   }
 };
@@ -261,7 +271,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
     for (const settlerId of settlerIdArray) {
       const settler = settlerMap.get(settlerId);
       if (!settler) {
-        console.warn(`Settler ${settlerId} not found`);
+        logWarn('Settler not found in batch exploration preview', { settlerId, colonyId: req.colonyId });
         continue;
       }
 
@@ -351,7 +361,12 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
           };
 
         } catch (error) {
-          console.error(`Error calculating preview for settler ${settlerId} at (${x}, ${y}):`, error);
+          logError('Error calculating exploration preview for settler', error, { 
+            settlerId, 
+            x, 
+            y, 
+            colonyId: req.colonyId 
+          });
           results[settlerId][coordKey] = { error: 'Failed to calculate preview' };
         }
       }
@@ -359,7 +374,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
 
     res.json({ results });
   } catch (err) {
-    console.error('Error in batch exploration preview:', err);
+    logError('Error in batch exploration preview', err, { colonyId: req.colonyId });
     res.status(500).json({ error: 'Failed to preview explorations' });
   }
 };
@@ -471,7 +486,12 @@ export const previewExploration = async (req: Request, res: Response) => {
     });
 
   } catch (err) {
-    console.error('Error previewing exploration:', err);
+    logError('Error previewing exploration', err, { 
+      colonyId: req.colonyId, 
+      x, 
+      y, 
+      settlerId 
+    });
     res.status(500).json({ error: 'Failed to preview exploration' });
   }
 };

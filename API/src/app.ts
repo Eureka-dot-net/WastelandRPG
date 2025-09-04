@@ -14,7 +14,10 @@ import devRoutes from './routes/dev';
 import { authenticate } from './middleware/auth';
 import { requireColonyOwnership } from './middleware/colonyOwnership';
 import { updateCompletedTasks } from './middleware/updateCompletedTasks';
+import { requestLogger } from './middleware/requestLogger';
+import { errorHandler } from './middleware/errorHandler';
 import { dailyBatch } from './jobs/daillyBatch';
+import { logInfo } from './utils/logger';
 
 
 export const app = express();
@@ -27,6 +30,9 @@ if (process.env.NODE_ENV === 'test') {
 
 // Configure middleware and routes immediately
 app.use(express.json());
+
+// Request logging middleware (before routes)
+app.use(requestLogger);
 
 
 app.use((req, res, next) => {
@@ -44,6 +50,7 @@ app.use((req, res, next) => {
 
 cron.schedule('0 0 * * *', () => {
   // Your batch process code here
+  logInfo('Running daily batch process');
   dailyBatch();
 });
 
@@ -60,3 +67,6 @@ app.use('/api/colonies/:colonyId/settlers', authenticate, requireColonyOwnership
 app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwnership, assignmentRoutes);
 app.use('/api/colonies/:colonyId/inventory', authenticate, requireColonyOwnership, updateCompletedTasks, inventoryRoutes);
 app.use('/api/colonies/:colonyId/map', authenticate, requireColonyOwnership, updateCompletedTasks, mapRoutes);
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
