@@ -51,12 +51,14 @@ export async function createOrUpdateMapTile(
   const loot: ILootInfo[] = generateTileLoot(terrain);
   const threat: IThreatInfo | null = generateTileThreat(terrain);
   const event: IEventInfo | null = generateTileEvent(terrain);
+  const icon = colony ? "GiVillage" : getTerrainCatalogue(terrain)?.icon || '❓';
 
   const tileData = {
     serverId,
     x,
     y,
     terrain,
+    icon,
     loot,
     threat,
     event,
@@ -306,7 +308,7 @@ export function formatGridForAPI(
             terrain: { type: tile.terrain, ...(getTerrainCatalogue(tile.terrain) || {}) },
             loot: tile.loot,
             threat: tile.threat,
-           // icon: tile.icon
+            icon: tile.icon,
             assignments: tileAssignments,
             event: tile.event,
             exploredAt: tile.exploredAt,

@@ -19,7 +19,7 @@ import {
   hasColonyExploredTile
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
-import { Assignment } from '../models/Player/Assignment';
+import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 
 // GET /api/colonies/:colonyId/map?x=0&y=0
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
@@ -164,20 +164,19 @@ export const startExploration = async (req: Request, res: Response) => {
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
 
-    const exploration = await Assignment.create([{
+    const exploration = new Assignment({
       serverId: colony.serverId,
       colonyId: colony._id,
       settlerId,
-      location: {
-        x: tileX,
-        y: tileY
-      },
+      location: { x: tileX, y: tileY },
       state: 'in-progress',
       startedAt: new Date(),
       completedAt,
       plannedRewards: adjustments.adjustedPlannedRewards,
       adjustments
-    }], { session });
+    });
+
+    await exploration.save({ session });
 
     // Log the exploration
     const colonyManager = new ColonyManager(colony);
@@ -191,24 +190,9 @@ export const startExploration = async (req: Request, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
-    const terrainInfo = getTerrainCatalogue(tile.terrain);
-
     res.json({
-      exploration: {
-        id: exploration[0]._id,
-        settlerId,
-        settlerName: settler.name,
-        startedAt: new Date(),
-        completedAt,
-        coordinates: { x: tileX, y: tileY },
-        terrain: {
-          type: tile.terrain,
-          name: terrainInfo?.name || tile.terrain,
-          description: terrainInfo?.description || 'Unknown terrain',
-          icon: terrainInfo?.icon || 'GiQuestionMark'
-        },
-        plannedRewards: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards)
-      },
+      ...exploration.toObject(),
+      plannedRewards: enrichRewardsWithMetadata(exploration.plannedRewards),
       adjustments
     });
 

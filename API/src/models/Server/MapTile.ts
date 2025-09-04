@@ -24,6 +24,7 @@ export interface IMapTile {
   terrain?: string;
   loot?: ILootInfo[];
   threat?: IThreatInfo | null;
+  icon: string;
   event?: IEventInfo | null;
   exploredAt: Date;
   colony?: Types.ObjectId;
@@ -53,6 +54,7 @@ const MapTileSchema = new Schema({
   loot: { type: [LootInfoSchema], required: false },
   threat: { type: ThreatInfoSchema, default: null },
   event: { type: EventInfoSchema, default: null },
+  icon: { type: String, required: true },
   exploredAt: { type: Date, required: false },
   colony: { type: Schema.Types.ObjectId, ref: 'Colony', required: false }
 });
