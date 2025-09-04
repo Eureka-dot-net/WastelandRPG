@@ -274,6 +274,7 @@ export async function canTileBeExplored(
 
 /**
  * Get a 5x5 grid of tiles centered on x,y coordinates, filtered for colony's fog of war
+ * OPTIMIZED VERSION: Uses bulk queries instead of individual tile lookups
  */
 export async function getMapGridForColony(
   serverId: string,
@@ -285,6 +286,41 @@ export async function getMapGridForColony(
   const gridSize = 5;
   const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
   
+  // Calculate grid boundaries for bulk query
+  const minX = centerX - offset;
+  const maxX = centerX + offset;
+  const minY = centerY - offset;
+  const maxY = centerY + offset;
+  
+  // Bulk query 1: Get all tiles in the 5x5 area
+  const allTiles = await getTilesInArea(serverId, minX, maxX, minY, maxY, session);
+  
+  // Create a lookup map for tiles by coordinates
+  const tileMap = new Map<string, MapTileDoc>();
+  const tileIds: string[] = [];
+  
+  allTiles.forEach(tile => {
+    const key = `${tile.x},${tile.y}`;
+    tileMap.set(key, tile);
+    tileIds.push(tile._id.toString());
+  });
+  
+  // Bulk query 2: Get all UserMapTiles for this colony in the area
+  const exploredTilesQuery = {
+    colonyId,
+    serverTile: { $in: tileIds }
+  };
+  
+  const exploredTiles = session 
+    ? await UserMapTile.find(exploredTilesQuery).session(session)
+    : await UserMapTile.find(exploredTilesQuery);
+  
+  // Create a lookup set for explored tile IDs
+  const exploredTileIds = new Set(
+    exploredTiles.map(userTile => userTile.serverTile.toString())
+  );
+  
+  // Build the grid using lookup maps
   const grid: (MapTileDoc | null)[][] = [];
   
   for (let row = 0; row < gridSize; row++) {
@@ -293,26 +329,14 @@ export async function getMapGridForColony(
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
       const y = centerY - offset + row;
+      const key = `${x},${y}`;
       
-      const query = { serverId, x, y };
-      const tile = session 
-        ? await MapTile.findOne(query).session(session)
-        : await MapTile.findOne(query);
+      const tile = tileMap.get(key);
       
-      // Only include tiles that this colony has explored using UserMapTile
-      if (tile) {
-        const hasExplored = await hasColonyExploredTile(
-          tile._id.toString(),
-          colonyId,
-          session
-        );
-        if (hasExplored) {
-          gridRow.push(tile);
-        } else {
-          gridRow.push(null); // Fog of war
-        }
+      if (tile && exploredTileIds.has(tile._id.toString())) {
+        gridRow.push(tile);
       } else {
-        gridRow.push(null); // Tile doesn't exist yet
+        gridRow.push(null); // Fog of war or tile doesn't exist
       }
     }
     
@@ -335,8 +359,10 @@ export function formatGridForAPI(
       row.map((tile, colIndex) => {
         const explored = !!tile;
 
-        // All assignments associated with this tile
-        const tileAssignments = assignments.filter(a => a.location && a.location.x === colIndex && a.location.y === rowIndex);
+        // All assignments associated with this tile (use world coordinates, not grid coordinates)
+        const tileAssignments = tile 
+          ? assignments.filter(a => a.location && a.location.x === tile.x && a.location.y === tile.y)
+          : [];
 
         const canExplore = !explored && (
           (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
