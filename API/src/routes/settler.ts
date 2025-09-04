@@ -1,4 +1,5 @@
 import express from 'express';
+import { logError } from '../utils/logger';
 
 const router = express.Router({ mergeParams: true });
 
@@ -56,6 +57,7 @@ router.post('/onboard', async (req, res) => {
 
     } catch (err) {
         await session.abortTransaction();
+        logError('Failed to onboard settlers', err, { colonyId });
         return res.status(500).json({ error: "Internal server error" });
     } finally {
         session.endSession();
@@ -131,7 +133,7 @@ router.post('/:settlerId/select', async (req, res) => {
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
-        console.error(err);
+        logError('Failed to select settler', err, { settlerId, colonyId, interests });
         res.status(500).json({ error: 'Failed to select settler.' });
     }
 });
@@ -181,7 +183,7 @@ router.delete('/:settlerId/reject', async (req, res) => {
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
-        console.error(err);
+        logError('Failed to reject settler', err, { settlerId, colonyId });
         res.status(500).json({ error: 'Failed to reject settler.' });
     }
 });
@@ -210,7 +212,7 @@ router.get('/:settlerId', async (req, res) => {
 
         res.json(settler);
     } catch (err) {
-        console.error(err);
+        logError('Failed to retrieve settler', err, { settlerId, colonyId });
         res.status(500).json({ error: 'Failed to retrieve settler.' });
     }
 });
