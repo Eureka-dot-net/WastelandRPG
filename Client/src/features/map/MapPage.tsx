@@ -64,7 +64,7 @@ function MapPage() {
     explorableTiles.forEach(({ x, y }) => {
       availableSettlers.forEach(settler => {
         queryClient.prefetchQuery({
-          queryKey: ["assignmentPreview", colonyId, x.toString(), y.toString(), settler._id],
+          queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settler._id],
           queryFn: async () => {
             const response = await fetch(`/api/colonies/${colonyId}/map/preview`, {
               method: 'POST',
