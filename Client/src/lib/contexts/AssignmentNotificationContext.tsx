@@ -242,7 +242,20 @@ useEffect(() => {
       assignmentName: assignment.name,
     };
 
+    // Calculate immediate time remaining for instant progress bar feedback
+    const now = Date.now();
+    const timeRemaining = timer.completionTime.getTime() - now;
+    
+    // Update both active timers and current timer values immediately
     setActiveTimers(prev => [...prev.filter(t => t.assignmentId !== assignment._id), timer]);
+    
+    // Only set timer if assignment is still in progress (timeRemaining > 0)
+    if (timeRemaining > 0) {
+      setTimers(prev => ({
+        ...prev,
+        [assignment._id]: timeRemaining
+      }));
+    }
   }, []);
 
   // Clear a notification
