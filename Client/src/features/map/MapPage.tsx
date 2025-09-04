@@ -12,9 +12,10 @@ import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotific
 import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
-import type { MapTileAPI } from "../../lib/types/MapResponse ";
+import type { MapResponse, MapTileAPI } from "../../lib/types/MapResponse ";
 import type { Settler } from "../../lib/types/settler";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
+import { agent } from "../../lib/api/agent";
 
 
 function MapPage() {
@@ -86,6 +87,33 @@ function MapPage() {
       );
     }
   }, [colonyId, map?.grid?.tiles, availableSettlers, centerX, centerY, queryClient]);
+
+  useEffect(() => {
+  if (!colonyId || !serverId) return;
+
+  const adjacentPositions = [
+    { x: centerX, y: centerY + 1 }, // Up
+    { x: centerX, y: centerY - 1 }, // Down
+    { x: centerX - 1, y: centerY }, // Left
+    { x: centerX + 1, y: centerY }  // Right
+  ];
+
+  adjacentPositions.forEach(({ x, y }) => {
+    queryClient.prefetchQuery({
+      queryKey: ["map", colonyId, x, y],
+      queryFn: async () => {
+        const url = `/colonies/${colonyId}/map?x=${x}&y=${y}`;
+        const response = await agent.get(url);
+        return response.data as MapResponse;
+      },
+      staleTime: 10 * 60 * 1000, // 10 minutes - longer since maps change less frequently
+    }).catch(err => {
+      console.warn(`Failed to prefetch map at (${x}, ${y}):`, err);
+    });
+  });
+
+  console.log(`Preloading 4 adjacent map grids around position (${centerX}, ${centerY})`);
+}, [colonyId, serverId, centerX, centerY, queryClient]);
 
   const handleTileClick = (tile: MapTileAPI) => {
     if (!tile.canExplore || !availableSettlers.length) return;

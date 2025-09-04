@@ -359,10 +359,13 @@ export function formatGridForAPI(
       row.map((tile, colIndex) => {
         const explored = !!tile;
 
+        // When an exploration is started an assignment is created but the tile isn't explored yet.
+        // that is why we need to check this assignment using grid coordinates
+        const tileAssignments = assignments.filter(a => a.location && a.location.x === colIndex && a.location.y === rowIndex);
         // All assignments associated with this tile (use world coordinates, not grid coordinates)
-        const tileAssignments = tile 
-          ? assignments.filter(a => a.location && a.location.x === tile.x && a.location.y === tile.y)
-          : [];
+        // const tileAssignments = tile 
+        //   ? assignments.filter(a => a.location && a.location.x === tile.x && a.location.y === tile.y)
+        //   : [];
 
         const canExplore = !explored && (
           (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
