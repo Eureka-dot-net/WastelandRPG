@@ -225,7 +225,9 @@ useEffect(() => {
           // Calculate progress
           let progress = 0;
           if (assignment.duration) {
-            if (assignment.state === 'in-progress' && timeRemaining != null && assignment.startedAt) {
+            if (assignment.state === 'in-progress' && timeRemaining != null) {
+              // Calculate progress based on time remaining, regardless of startedAt
+              // This ensures progress bar works immediately when timer is available
               progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
               progress = Math.max(0, Math.min(100, progress)); // clamp between 0-100
             } else if (assignment.state === 'completed' || assignment.state === 'informed') {
