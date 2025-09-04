@@ -73,6 +73,7 @@ export async function createOrUpdateMapTile(
 
 /**
  * Assign terrain to adjacent tiles when a tile is explored
+ * Optimized to use bulk operations for better performance
  */
 export async function assignAdjacentTerrain(
   serverId: string,
@@ -81,23 +82,57 @@ export async function assignAdjacentTerrain(
   session?: ClientSession
 ): Promise<MapTileDoc[]> {
   const adjacentCoords = getAdjacentCoordinates(centerX, centerY);
-  const createdTiles: MapTileDoc[] = [];
-
-  for (const coord of adjacentCoords) {
-    try {
-      const tile = await createOrUpdateMapTile(serverId, coord.x, coord.y, {
-        session
-      });
-      createdTiles.push(tile);
-    } catch (error: any) {
-      // Ignore duplicate key errors for concurrent operations
-      if (error.code !== 11000) {
-        console.error(`Error creating adjacent tile at ${coord.x},${coord.y}:`, error);
-      }
-    }
+  
+  // First, check which tiles already exist to avoid duplicates
+  const existingTilesQuery = {
+    serverId,
+    $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
+  };
+  
+  const existingTiles = session 
+    ? await MapTile.find(existingTilesQuery).session(session)
+    : await MapTile.find(existingTilesQuery);
+    
+  const existingCoordsSet = new Set(
+    existingTiles.map(tile => `${tile.x},${tile.y}`)
+  );
+  
+  // Filter out coordinates that already have tiles
+  const newCoords = adjacentCoords.filter(
+    coord => !existingCoordsSet.has(`${coord.x},${coord.y}`)
+  );
+  
+  if (newCoords.length === 0) {
+    return existingTiles; // All tiles already exist
   }
-
-  return createdTiles;
+  
+  // Generate tile data for bulk creation
+  const tilesToCreate = newCoords.map(coord => {
+    const terrain = getRandomTerrain();
+    const loot: ILootInfo[] = generateTileLoot(terrain);
+    const threat: IThreatInfo | null = generateTileThreat(terrain);
+    const event: IEventInfo | null = generateTileEvent(terrain);
+    const icon = getTerrainCatalogue(terrain)?.icon || '❓';
+    
+    return {
+      serverId,
+      x: coord.x,
+      y: coord.y,
+      terrain,
+      icon,
+      loot,
+      threat,
+      event,
+      exploredAt: new Date()
+    };
+  });
+  
+  // Bulk create new tiles
+  const createdTiles = session 
+    ? await MapTile.create(tilesToCreate, { session })
+    : await MapTile.create(tilesToCreate);
+  
+  return [...existingTiles, ...createdTiles];
 }
 
 /**
@@ -191,7 +226,7 @@ export async function getTile(
 
 /**
  * Check if a tile can be explored (must be adjacent to an explored tile or homestead)
- * Updated to use UserMapTile for efficient colony-specific exploration tracking
+ * Optimized to use bulk queries instead of sequential lookups
  */
 export async function canTileBeExplored(
   serverId: string,
@@ -206,25 +241,35 @@ export async function canTileBeExplored(
     return true;
   }
 
-  // Check if any adjacent tile has been explored by this colony using UserMapTile
+  // Get all adjacent coordinates
   const adjacentCoords = getAdjacentCoordinates(x, y);
   
-  for (const coord of adjacentCoords) {
-    const adjacentTile = await getTile(serverId, coord.x, coord.y, session);
-    if (adjacentTile) {
-      // Check if this colony has explored this adjacent tile
-      const hasExplored = await hasColonyExploredTile(
-        adjacentTile._id.toString(),
-        colonyId,
-        session
-      );
-      if (hasExplored) {
-        return true; // Adjacent tile is explored by this colony
-      }
-    }
+  // Bulk query: Get all adjacent tiles that exist in a single query
+  const adjacentTilesQuery = {
+    serverId,
+    $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
+  };
+  
+  const adjacentTiles = session 
+    ? await MapTile.find(adjacentTilesQuery).session(session)
+    : await MapTile.find(adjacentTilesQuery);
+
+  if (adjacentTiles.length === 0) {
+    return false; // No adjacent tiles exist
   }
 
-  return false; // No adjacent explored tiles
+  // Bulk query: Check if this colony has explored any of the adjacent tiles
+  const adjacentTileIds = adjacentTiles.map(tile => tile._id.toString());
+  const exploredTilesQuery = {
+    colonyId,
+    serverTile: { $in: adjacentTileIds }
+  };
+  
+  const exploredTile = session 
+    ? await UserMapTile.findOne(exploredTilesQuery).session(session)
+    : await UserMapTile.findOne(exploredTilesQuery);
+
+  return exploredTile !== null; // True if any adjacent tile is explored by this colony
 }
 
 /**
