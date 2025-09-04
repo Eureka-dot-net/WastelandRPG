@@ -61,31 +61,29 @@ function MapPage() {
       });
     });
 
-    // Prefetch all combinations of explorable tiles × available settlers
-    explorableTiles.forEach(({ x, y }) => {
-      availableSettlers.forEach(settler => {
-        queryClient.prefetchQuery({
-          queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settler._id],
-          queryFn: async () => {
-            const response = await fetch(`/api/colonies/${colonyId}/map/preview`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x, y, settlerId: settler._id })
-            });
-            return response.json();
-          },
-          staleTime: 5 * 60 * 1000, // 5 minutes
-        }).catch(err => {
-          console.warn(`Failed to prefetch exploration preview for tile (${x}, ${y}) and settler ${settler._id}:`, err);
-        });
-      });
-    });
-
-    if (explorableTiles.length > 0 && availableSettlers.length > 0) {
+    // Use batch prefetch instead of individual requests
+    const settlerIds = availableSettlers.map(s => s._id);
+    
+    if (explorableTiles.length > 0 && settlerIds.length > 0) {
       console.log(
-        `Prefetching ${explorableTiles.length * availableSettlers.length} exploration previews`
+        `Batch prefetching ${settlerIds.length} settlers × ${explorableTiles.length} tiles = ${settlerIds.length * explorableTiles.length} exploration previews`
       );
+      
+      queryClient.prefetchQuery({
+        queryKey: ["mapExplorationPreviewBatch", colonyId, settlerIds.sort(), explorableTiles],
+        queryFn: async () => {
+          const settlerIdsParam = settlerIds.join(',');
+          const coordinatesParam = explorableTiles.map(coord => `${coord.x}:${coord.y}`).join(',');
+          const url = `/colonies/${colonyId}/map/preview-batch?settlerIds=${settlerIdsParam}&coordinates=${coordinatesParam}`;
+          const response = await agent.get(url);
+          return response.data;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      }).catch(err => {
+        console.warn('Failed to prefetch batch exploration previews:', err);
+      });
     }
+
   }, [colonyId, map?.grid?.tiles, availableSettlers, centerX, centerY, queryClient]);
 
   useEffect(() => {
