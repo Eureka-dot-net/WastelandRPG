@@ -20,14 +20,12 @@ export async function createOrUpdateMapTile(
   y: number,
   options: {
     terrain?: string;
-    exploredBy?: string;
     colony?: string;
     session?: ClientSession;
   } = {}
 ): Promise<MapTileDoc> {
   const {
     terrain = getRandomTerrain(),
-    exploredBy = 'system',
     colony,
     session
   } = options;
@@ -61,7 +59,6 @@ export async function createOrUpdateMapTile(
     loot,
     threat,
     event,
-    exploredBy: [exploredBy], // Keep for backward compatibility but minimize usage
     exploredAt: new Date(),
     ...(colony && { colony })
   };
@@ -78,7 +75,6 @@ export async function assignAdjacentTerrain(
   serverId: string,
   centerX: number,
   centerY: number,
-  exploredBy: string,
   session?: ClientSession
 ): Promise<MapTileDoc[]> {
   const adjacentCoords = getAdjacentCoordinates(centerX, centerY);
@@ -87,7 +83,6 @@ export async function assignAdjacentTerrain(
   for (const coord of adjacentCoords) {
     try {
       const tile = await createOrUpdateMapTile(serverId, coord.x, coord.y, {
-        exploredBy: 'auto_generated',
         session
       });
       createdTiles.push(tile);
@@ -173,7 +168,7 @@ export async function isTileExplored(
     ? await MapTile.findOne(query).session(session)
     : await MapTile.findOne(query);
   
-  return !!tile && tile.exploredBy.length > 0;
+  return !!tile;
 }
 
 /**
@@ -298,7 +293,6 @@ export function formatGridForAPI(grid: (MapTileDoc | null)[][]): any {
           loot: tile.loot,
           threat: tile.threat,
           event: tile.event,
-          exploredBy: tile.exploredBy,
           exploredAt: tile.exploredAt,
           colony: tile.colony
         } : null)

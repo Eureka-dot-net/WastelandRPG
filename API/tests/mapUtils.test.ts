@@ -16,7 +16,6 @@ describe('MapUtils UserMapTile functions', () => {
       x: 5,
       y: 10,
       terrain: 'wasteland',
-      exploredBy: ['system'],
       exploredAt: new Date()
     });
 
@@ -38,7 +37,6 @@ describe('MapUtils UserMapTile functions', () => {
       x: 3,
       y: 7,
       terrain: 'forest',
-      exploredBy: ['system'],
       exploredAt: new Date()
     });
 
@@ -67,7 +65,6 @@ describe('MapUtils UserMapTile functions', () => {
       x: 1,
       y: 2,
       terrain: 'desert',
-      exploredBy: ['system'],
       exploredAt: new Date()
     });
 

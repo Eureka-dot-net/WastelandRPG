@@ -16,7 +16,6 @@ describe('UserMapTile functionality', () => {
       x: 0,
       y: 0,
       terrain: 'center',
-      exploredBy: ['system'],
       exploredAt: new Date()
     });
 
@@ -52,7 +51,6 @@ describe('UserMapTile functionality', () => {
       x: 0,
       y: 0,
       terrain: 'center',
-      exploredBy: ['system'],
       exploredAt: new Date()
     });
 

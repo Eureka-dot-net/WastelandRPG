@@ -14,7 +14,6 @@ export interface MapTile {
   loot?: AssignmentRewardItem[];           // Optional loot items on the tile
   threat?: number;                           // Optional threat level
   event?: string;                            // Optional event description
-  exploredBy: string[];                      // Names of settlers who explored the tile
 }
 
 // The full 5x5 grid response from the API

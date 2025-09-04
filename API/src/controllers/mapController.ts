@@ -133,7 +133,7 @@ export const startExploration = async (req: Request, res: Response) => {
 
     // Create adjacent tiles when exploring a completely new area
     if (isNewTile) {
-      await assignAdjacentTerrain(colony.serverId, tileX, tileY, 'auto_generated', session);
+      await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
     }
 
     // Calculate exploration adjustments based on settler
@@ -283,8 +283,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         event: tile.event,
         duration: adjustments.adjustedDuration,
         adjustments: adjustments.effects,
-        alreadyExplored,
-        exploredBy: [] // Deprecated field, keeping for backward compatibility
+        alreadyExplored
       };
     } else {
       // Unknown tile - show estimated info
@@ -303,8 +302,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
         estimatedDuration: adjustments.adjustedDuration,
         adjustments: adjustments.effects,
-        alreadyExplored: false,
-        exploredBy: []
+        alreadyExplored: false
       };
     }
 
