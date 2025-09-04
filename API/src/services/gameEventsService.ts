@@ -10,6 +10,7 @@ import { ColonyManager } from "../managers/ColonyManager";
 import { generateSettler } from "./settlerGenerator";
 import { ClientSession } from "mongoose";
 import itemsCatalogue from '../data/itemsCatalogue.json';
+import { getTile, createOrGetUserMapTile } from '../utils/mapUtils';
 
 function getItemCatalogue(itemId: string) {
   return itemsCatalogue.find(item => item.itemId === itemId);
@@ -148,6 +149,19 @@ export async function completeGameEvent(
     eventDoc.settlerFoundId = newSettler._id;
   }
 
+  // Handle exploration-specific completion logic
+  if (eventType === 'exploration' && eventDoc.location) {
+    const { x, y } = eventDoc.location;
+    
+    // Get or create the MapTile (authoritative source for tile content)
+    const tile = await getTile(colony.serverId, x, y, session);
+    
+    if (tile) {
+      // Create UserMapTile record to track this colony's exploration
+      await createOrGetUserMapTile(tile._id.toString(), colony._id.toString(), session);
+    }
+  }
+
   // Generate appropriate log entry
   let eventName: string;
   let locationInfo = '';
@@ -158,7 +172,7 @@ export async function completeGameEvent(
       break;
     case 'exploration':
       eventName = 'Exploration';
-      locationInfo = ` at (${eventDoc.x}, ${eventDoc.y})`;
+      locationInfo = eventDoc.location ? ` at (${eventDoc.location.x}, ${eventDoc.location.y})` : '';
       break;
     case 'farming':
       eventName = 'Farming';

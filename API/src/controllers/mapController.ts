@@ -14,7 +14,9 @@ import {
   getMapGridForColony,
   getTile,
   formatGridForAPI,
-  canTileBeExplored
+  canTileBeExplored,
+  createOrGetUserMapTile,
+  hasColonyExploredTile
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
@@ -110,30 +112,28 @@ export const startExploration = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Cannot explore this tile - it must be adjacent to already explored tiles or homestead' });
     }
 
-    // Get or create the tile
+    // Get or create the tile (MapTile remains authoritative for content)
     let tile = await getTile(colony.serverId, tileX, tileY, session);
     let isNewTile = false;
 
     if (!tile) {
-      // This should not happen if canTileBeExplored works correctly, but create it as a safety
+      // Create new MapTile (another player hasn't explored this yet)
       tile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, {
-        exploredBy: settler.name,
-        colony: colony._id.toString(),
         session
       });
       isNewTile = true;
-    } else if (!tile.exploredBy.includes(settler.name)) {
-      // Update existing tile
-      tile.exploredBy.push(settler.name);
-      if (!tile.colony) {
-        tile.colony = colony._id;
-      }
-      tile = await tile.save({ session });
     }
 
-    // Create adjacent tiles when exploring (if new exploration)
-    if (isNewTile || !tile.exploredBy.some(explorer => explorer !== 'auto_generated')) {
-      await assignAdjacentTerrain(colony.serverId, tileX, tileY, settler.name, session);
+    // Create or get UserMapTile record for this colony's exploration
+    await createOrGetUserMapTile(
+      tile._id.toString(),
+      colony._id.toString(),
+      session
+    );
+
+    // Create adjacent tiles when exploring a completely new area
+    if (isNewTile) {
+      await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
     }
 
     // Calculate exploration adjustments based on settler
@@ -264,6 +264,12 @@ export const previewExploration = async (req: Request, res: Response) => {
 
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
+      // Check if this colony has already explored this tile using UserMapTile
+      const alreadyExplored = await hasColonyExploredTile(
+        tile._id.toString(),
+        colony._id.toString()
+      );
+
       previewData = {
         terrain: {
           type: tile.terrain,
@@ -277,8 +283,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         event: tile.event,
         duration: adjustments.adjustedDuration,
         adjustments: adjustments.effects,
-        alreadyExplored: tile.exploredBy.includes(settler.name),
-        exploredBy: tile.exploredBy.filter(e => e !== 'auto_generated')
+        alreadyExplored
       };
     } else {
       // Unknown tile - show estimated info
@@ -297,8 +302,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
         estimatedDuration: adjustments.adjustedDuration,
         adjustments: adjustments.effects,
-        alreadyExplored: false,
-        exploredBy: []
+        alreadyExplored: false
       };
     }
 
