@@ -1,11 +1,11 @@
 import { useState } from "react";
 import {
-  Container, Grid, useTheme, useMediaQuery, Box, Typography, Avatar, 
+  Container, Grid, useTheme, useMediaQuery, Box, Typography, Avatar,
   LinearProgress, Card, CardContent, Chip, Divider, Button, IconButton,
   Collapse, Tooltip
 } from "@mui/material";
-import { 
-  Person, Security, Build, LocalHospital, Agriculture, Science, Star, 
+import {
+  Person, Security, Build, LocalHospital, Agriculture, Science, Star,
   Speed, Psychology, Shield, ExpandMore, ExpandLess, Inventory,
   Restaurant, BatteryFull, Favorite, SentimentSatisfied, ArrowBack
 } from '@mui/icons-material';
@@ -97,7 +97,7 @@ function SettlerPage() {
 
   const handleBanishSettler = async (settler: Settler) => {
     if (!colonyId) return;
-    
+
     setIsLoading(true);
     try {
       await rejectSettler.mutateAsync({
@@ -206,7 +206,7 @@ function SettlerPage() {
           Back to Overview
         </Button>
       </Box>
-      
+
       <ProgressHeader
         title="Settler Details"
         emoji="👤"
@@ -225,8 +225,8 @@ function SettlerPage() {
               <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} gap={2} alignItems={isMobile ? 'center' : 'flex-start'}> {/* Reduced gap */}
                 {/* Avatar and basic info - Made smaller */}
                 <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
-                  <Avatar 
-                    sx={{ 
+                  <Avatar
+                    sx={{
                       width: 60,
                       height: 60,
                       bgcolor: theme.palette.primary.main,
@@ -235,10 +235,10 @@ function SettlerPage() {
                   >
                     <Person fontSize="medium" />
                   </Avatar>
-                  <Chip 
-                    label={settler.status.toUpperCase()} 
+                  <Chip
+                    label={settler.status.toUpperCase()}
                     size="small"
-                    sx={{ 
+                    sx={{
                       bgcolor: getStatusColor(settler.status),
                       color: 'white',
                       fontWeight: 600
@@ -251,11 +251,11 @@ function SettlerPage() {
                   <Typography variant="h5" color="primary" gutterBottom>
                     {settler.name}
                   </Typography>
-                  
+
                   <Typography variant="subtitle1" color="text.primary" gutterBottom sx={{ mt: 1.5 }}>
                     Quick Stats
                   </Typography>
-                  
+
                   <Grid container spacing={1.5}>
                     <Grid size={{ xs: 6, sm: 3 }}>
                       <Box display="flex" alignItems="center" gap={1} mb={0.5}>
@@ -272,7 +272,7 @@ function SettlerPage() {
                         {settler.health}%
                       </Typography>
                     </Grid>
-                    
+
                     <Grid size={{ xs: 6, sm: 3 }}>
                       <Box display="flex" alignItems="center" gap={1} mb={0.5}>
                         <SentimentSatisfied color="primary" fontSize="small" />
@@ -375,12 +375,13 @@ function SettlerPage() {
                       </Typography>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
-                        {value}/20
-                      </Typography>
                       {isFavorite && (
                         <Favorite sx={{ fontSize: 16, color: 'gold' }} />
                       )}
+                      <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
+                        {value}/20
+                      </Typography>
+
                     </Box>
                   </Box>
                 );
@@ -466,14 +467,14 @@ function SettlerPage() {
               <Typography variant="subtitle1" color="text.primary" gutterBottom> {/* Reduced from h6 */}
                 Equipment & Inventory
               </Typography>
-              
+
               <Grid container spacing={1.5}> {/* Reduced spacing */}
                 {/* Equipment Slots */}
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="body1" color="text.primary" gutterBottom> {/* Reduced from subtitle1 */}
                     Equipment
                   </Typography>
-                  
+
                   <Box display="flex" gap={1.5} mb={1.5}> {/* Reduced gap and margin */}
                     <Card variant="outlined" sx={{ p: 1.5, minWidth: 70, textAlign: 'center' }}> {/* Reduced padding and width */}
                       <Typography variant="caption" color="text.secondary">Weapon</Typography>
@@ -489,7 +490,7 @@ function SettlerPage() {
                         )}
                       </Box>
                     </Card>
-                    
+
                     <Card variant="outlined" sx={{ p: 1.5, minWidth: 70, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary">Armor</Typography>
                       <Box sx={{ height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -512,7 +513,7 @@ function SettlerPage() {
                   <Typography variant="body1" color="text.primary" gutterBottom>
                     Carry Inventory ({settler.carry.length}/{settler.maxCarrySlots})
                   </Typography>
-                  
+
                   <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5}> {/* Reduced gap */}
                     {Array.from({ length: settler.maxCarrySlots }).map((_, index) => {
                       const item = settler.carry[index];
@@ -556,7 +557,7 @@ function SettlerPage() {
                 <Typography variant="subtitle1" color="text.primary"> {/* Reduced from h6 */}
                   Backstory & Details
                 </Typography>
-                <IconButton 
+                <IconButton
                   onClick={() => setBackstoryExpanded(!backstoryExpanded)}
                   sx={{ color: 'text.secondary' }}
                   size="small"
@@ -564,15 +565,15 @@ function SettlerPage() {
                   {backstoryExpanded ? <ExpandLess /> : <ExpandMore />}
                 </IconButton>
               </Box>
-              
+
               <Collapse in={backstoryExpanded}>
                 <Box mt={1.5}> {/* Reduced margin */}
                   <Typography variant="body2" color="text.secondary" paragraph>
                     {settler.backstory}
                   </Typography>
-                  
+
                   <Divider sx={{ my: 1.5 }} /> {/* Reduced margin */}
-                  
+
                   <Grid container spacing={1.5}> {/* Reduced spacing */}
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <Typography variant="body2" color="text.primary"> {/* Reduced from subtitle2 */}
@@ -582,7 +583,7 @@ function SettlerPage() {
                         {settler.foodConsumption || 1} units/day
                       </Typography>
                     </Grid>
-                    
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <Typography variant="body2" color="text.primary">
                         Joined Colony
@@ -591,7 +592,7 @@ function SettlerPage() {
                         {new Date(settler.createdAt).toLocaleDateString()}
                       </Typography>
                     </Grid>
-                    
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <Typography variant="body2" color="text.primary">
                         Theme
@@ -620,7 +621,7 @@ function SettlerPage() {
             >
               {rejectSettler.isPending || isLoading ? 'Banishing...' : 'Banish Settler'}
             </Button>
-            
+
             {/* Placeholder for future actions */}
             <Button
               variant="outlined"
@@ -631,7 +632,7 @@ function SettlerPage() {
             >
               Assign Task
             </Button>
-            
+
             <Button
               variant="outlined"
               color="secondary"
@@ -641,7 +642,7 @@ function SettlerPage() {
             >
               Heal
             </Button>
-            
+
             <Button
               variant="outlined"
               color="info"
