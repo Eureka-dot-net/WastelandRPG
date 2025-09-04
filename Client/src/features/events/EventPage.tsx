@@ -30,11 +30,13 @@ import {
 } from '@mui/icons-material';
 import { useColony } from '../../lib/hooks/useColony';
 import { useServerContext } from '../../lib/contexts/ServerContext';
-import { useAcceptSettler, useRejectSettler } from '../../lib/hooks/useSettlerActions';
+import { useSettler } from '../../lib/hooks/useSettler';
+import { useSettlerById } from '../../lib/hooks/useSettlerById';
 import type { ColonyEvent } from '../../lib/types/event';
+import type { Settler } from '../../lib/types/settler';
 import ErrorDisplay from '../../app/shared/components/ui/ErrorDisplay';
 import LoadingDisplay from '../../app/shared/components/ui/LoadingDisplay';
-import EventSettlerDialog from '../../components/events/EventSettlerDialog';
+import FoundSettlerDialog from '../../app/shared/components/dialogs/FoundSettlerDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 const EventPage: React.FC = () => {
@@ -42,11 +44,17 @@ const EventPage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
   const { colony, colonyLoading, colonyError } = useColony(serverId);
+  const { selectSettler, rejectSettler } = useSettler(serverId, colony?._id);
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedSettlerId, setSelectedSettlerId] = useState<string | null>(null);
+  const [isProcessingSettler, setIsProcessingSettler] = useState(false);
 
-  const acceptSettler = useAcceptSettler();
-  const rejectSettler = useRejectSettler();
+  // Fetch settler details when one is selected
+  const { data: selectedSettler } = useSettlerById(
+    serverId,
+    colony?._id,
+    selectedSettlerId || undefined
+  );
 
   const getEventIcon = (eventType: string) => {
     switch (eventType.toLowerCase()) {
@@ -122,24 +130,43 @@ const EventPage: React.FC = () => {
            event.message.includes('found and is waiting');
   };
 
-  const handleAcceptSettler = async () => {
-    if (!serverId || !colony || !selectedSettlerId) return;
-
-    await acceptSettler.mutateAsync({
-      serverId,
-      colonyId: colony._id,
-      settlerId: selectedSettlerId
-    });
+  const handleAcceptSettler = async (settler: Settler) => {
+    if (!serverId || !colony) return;
+    
+    setIsProcessingSettler(true);
+    try {
+      await selectSettler.mutateAsync({
+        settlerId: settler._id
+      });
+      setSettlerDialogOpen(false);
+      setSelectedSettlerId(null);
+    } catch (error) {
+      console.error('Failed to accept settler:', error);
+    } finally {
+      setIsProcessingSettler(false);
+    }
   };
 
-  const handleRejectSettler = async (settlerId: string) => {
+  const handleRejectSettler = async (settler: Settler) => {
     if (!serverId || !colony) return;
 
-    await rejectSettler.mutateAsync({
-      serverId,
-      colonyId: colony._id,
-      settlerId
-    });
+    setIsProcessingSettler(true);
+    try {
+      await rejectSettler.mutateAsync({
+        settlerId: settler._id
+      });
+      setSettlerDialogOpen(false);
+      setSelectedSettlerId(null);
+    } catch (error) {
+      console.error('Failed to reject settler:', error);
+    } finally {
+      setIsProcessingSettler(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setSettlerDialogOpen(false);
+    setSelectedSettlerId(null);
   };
 
   if (colonyLoading || !serverId) {
@@ -321,18 +348,14 @@ const EventPage: React.FC = () => {
       </Paper>
 
       {/* Settler Dialog for pending acceptances */}
-      {selectedSettlerId && (
-        <EventSettlerDialog
-          open={settlerDialogOpen}
-          onClose={() => {
-            setSettlerDialogOpen(false);
-            setSelectedSettlerId(null);
-          }}
-          settlerId={selectedSettlerId}
-          onAccept={handleAcceptSettler}
-          onReject={handleRejectSettler}
-        />
-      )}
+      <FoundSettlerDialog
+        open={settlerDialogOpen && !!selectedSettler}
+        settler={selectedSettler || null}
+        onClose={handleCloseDialog}
+        onApprove={handleAcceptSettler}
+        onReject={handleRejectSettler}
+        isLoading={isProcessingSettler}
+      />
     </Container>
   );
 };
