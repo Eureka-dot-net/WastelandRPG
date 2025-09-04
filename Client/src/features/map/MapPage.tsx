@@ -64,9 +64,13 @@ function MapPage() {
     explorableTiles.forEach(({ x, y }) => {
       availableSettlers.forEach(settler => {
         queryClient.prefetchQuery({
-          queryKey: ["assignmentPreview", colonyId, x.toString(), y.toString(), settler._id],
+          queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settler._id],
           queryFn: async () => {
-            const response = await fetch(`/api/colonies/${colonyId}/map/preview?settlerId=${settler._id}&x=${x}&y=${y}`);
+            const response = await fetch(`/api/colonies/${colonyId}/map/preview`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ x, y, settlerId: settler._id })
+            });
             return response.json();
           },
           staleTime: 5 * 60 * 1000, // 5 minutes
@@ -415,6 +419,10 @@ function MapPage() {
         colonyId={colonyId}
         showStats={false}
         confirmPending={startExploration.isPending}
+        mapCoordinates={selectedTile ? {
+          x: centerX - 2 + selectedTile.position.col,
+          y: centerY + 2 - selectedTile.position.row
+        } : undefined}
       />
 
       {/* Future Features Placeholder */}
