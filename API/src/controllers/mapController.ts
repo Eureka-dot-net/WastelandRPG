@@ -82,8 +82,24 @@ export const startExploration = async (req: Request, res: Response) => {
   session.startTransaction();
 
   try {
-    // Check if settler exists and is available
-    const settler = await Settler.findById(settlerId).session(session);
+    // Parallelize independent validation queries
+    const [settler, existingExploration, canExplore] = await Promise.all([
+      // Check if settler exists and is available
+      Settler.findById(settlerId).session(session),
+      
+      // Check if exploration is already in progress for this tile by this colony
+      Assignment.findOne({
+        serverId: colony.serverId,
+        colonyId: colony._id,
+        location: { x: tileX, y: tileY },
+        state: 'in-progress'
+      }).session(session),
+      
+      // Check if tile can be explored (optimized function)
+      canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session)
+    ]);
+
+    // Validate settler
     if (!settler) {
       await session.abortTransaction();
       session.endSession();
@@ -96,25 +112,14 @@ export const startExploration = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Settler is not available' });
     }
 
-    // Check if exploration is already in progress for this tile by this colony
-    const existingExploration = await Assignment.findOne({
-      serverId: colony.serverId,
-      colonyId: colony._id,
-      location: {
-        x: tileX,
-        y: tileY
-      },
-      state: 'in-progress'
-    }).session(session);
-
+    // Validate exploration not already in progress
     if (existingExploration) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ error: 'Exploration already in progress for this tile' });
     }
 
-    // Check if tile can be explored (must be adjacent to explored tiles or homestead)
-    const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session);
+    // Validate tile can be explored
     if (!canExplore) {
       await session.abortTransaction();
       session.endSession();
@@ -158,12 +163,8 @@ export const startExploration = async (req: Request, res: Response) => {
 
     const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
 
-    // Update settler status to busy
-    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
-
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
-
     const exploration = new Assignment({
       serverId: colony.serverId,
       colonyId: colony._id,
@@ -176,16 +177,23 @@ export const startExploration = async (req: Request, res: Response) => {
       adjustments
     });
 
-    await exploration.save({ session });
-
-    // Log the exploration
+    // Parallelize final operations
     const colonyManager = new ColonyManager(colony);
-    await colonyManager.addLogEntry(
-      session,
-      'exploration',
-      `${settler.name} started exploring ${tile.terrain} at coordinates (${tileX}, ${tileY}).`,
-      { tileX, tileY, settlerId, terrain: tile.terrain }
-    );
+    await Promise.all([
+      // Update settler status to busy
+      Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session }),
+      
+      // Save exploration record
+      exploration.save({ session }),
+      
+      // Log the exploration
+      colonyManager.addLogEntry(
+        session,
+        'exploration',
+        `${settler.name} started exploring ${tile.terrain} at coordinates (${tileX}, ${tileY}).`,
+        { tileX, tileY, settlerId, terrain: tile.terrain }
+      )
+    ]);
 
     await session.commitTransaction();
     session.endSession();
