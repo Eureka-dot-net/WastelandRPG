@@ -45,53 +45,49 @@ function AssignmentPage() {
     }
   }, [colonyId, queryClient]);
   
-   // ---- PRELOAD PREVIEW DATA - Enhanced version with proper cache management ----
-  useEffect(() => {
-    if (!colonyId || !assignments || !colony?.settlers) return;
-    
-    // Get available settlers (not assigned to in-progress tasks)
-    const assignedSettlerIds = assignments
-      ?.filter(a => a.state === "in-progress")
-      .map(a => a.settlerId)
-      .filter(Boolean) || [];
-    const availableSettlers = colony.settlers.filter(settler => !assignedSettlerIds.includes(settler._id));
 
-    // Prefetch assignment previews for all available assignments
-    const prefetchPromises: Promise<void>[] = [];
-    
-    assignments.forEach((assignment) => {
-      const dependencyMet = !assignment.dependsOn ||
-        (assignments?.find(a => a.taskId === assignment.dependsOn)?.state === "informed" ||
-         assignments?.find(a => a.taskId === assignment.dependsOn)?.state === "completed");
+useEffect(() => {
+  if (!colonyId || !assignments || !colony?.settlers) return;
 
-      const isAvailable =
-        assignment.state === "available" &&
-        dependencyMet &&
-        availableSettlers.length > 0;
+  // 1️⃣ Get settlers who aren't assigned to in-progress tasks
+  const availableSettlers = colony.settlers.filter(
+    settler => !assignments.some(a => a.state === "in-progress" && a.settlerId === settler._id)
+  );
 
-      if (isAvailable) {
-        availableSettlers.forEach((settler) => {
-          const prefetchPromise = queryClient.prefetchQuery({
-            queryKey: ["assignmentPreview", colonyId, assignment._id, settler._id],
-            queryFn: async () => {
-              const url = `/colonies/${colonyId}/assignments/${assignment._id}/preview?settlerId=${settler._id}`;
-              const response = await agent.get(url);
-              return response.data;
-            },
-            staleTime: 5 * 60 * 1000,
-          }).catch(error => {
-            console.warn(`Failed to prefetch preview for assignment ${assignment._id} and settler ${settler._id}:`, error);
-          });
-          prefetchPromises.push(prefetchPromise);
-        });
-      }
+  if (availableSettlers.length === 0) return;
+
+  // 2️⃣ Get assignments that are available and dependency-met
+  const availableAssignments = assignments.filter(a =>
+    a.state === "available" &&
+    (!a.dependsOn || ["informed", "completed"].includes(
+      assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
+    ))
+  );
+
+  if (availableAssignments.length === 0) return;
+
+  // 3️⃣ Prefetch all combinations of available assignments × available settlers
+  availableAssignments.forEach(a => {
+    availableSettlers.forEach(s => {
+      queryClient.prefetchQuery({
+        queryKey: ["assignmentPreview", colonyId, a._id, s._id],
+        queryFn: async () => {
+          const response = await agent.get(
+            `/colonies/${colonyId}/assignments/${a._id}/preview?settlerId=${s._id}`
+          );
+          return response.data;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      }).catch(err => {
+        console.warn(`Failed to prefetch preview for assignment ${a._id} and settler ${s._id}:`, err);
+      });
     });
+  });
 
-    // Optional: Log prefetch activity for debugging
-    if (prefetchPromises.length > 0) {
-      console.log(`Prefetching ${prefetchPromises.length} assignment previews for available assignments`);
-    }
-  }, [colonyId, assignments, colony?.settlers, queryClient]);
+  console.log(
+    `Prefetching ${availableAssignments.length * availableSettlers.length} assignment previews`
+  );
+}, [colonyId, assignments, colony?.settlers, queryClient]);
 
   // Invalidate assignment queries when colony changes to ensure fresh data
   useEffect(() => {

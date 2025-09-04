@@ -5,20 +5,20 @@ import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { 
-  calculateSettlerAdjustments, 
-  generateRewards, 
+import {
+  calculateSettlerAdjustments,
+  generateRewards,
   enrichRewardsWithMetadata,
-  GameAdjustments 
+  GameAdjustments
 } from '../utils/gameUtils';
 
 // Use the shared type from gameUtils
-interface AssignmentAdjustments extends GameAdjustments {}
+interface AssignmentAdjustments extends GameAdjustments { }
 
 function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any): AssignmentAdjustments {
   const baseDuration = assignment.duration || 300000; // 5 minutes default
   const baseRewards = assignment.plannedRewards || {};
-  
+
   return calculateSettlerAdjustments(baseDuration, baseRewards, settler);
 }
 
@@ -243,6 +243,13 @@ export const informAssignment = async (req: Request, res: Response) => {
     const assignment = await Assignment.findById(assignmentId);
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    if (assignment.state === 'informed') {
+      res.json({
+        _id: assignment._id,
+        state: assignment.state
+      });
     }
 
     // Only allow if assignment is 'completed'
