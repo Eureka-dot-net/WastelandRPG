@@ -8,7 +8,6 @@ const spiralCounterSchema = new Schema({
   versionKey: false
 });
 
-// Index for efficient server lookup
-spiralCounterSchema.index({ serverId: 1 }, { unique: true });
+// Note: serverId already has unique index from field definition above
 
 export const SpiralCounter = model('SpiralCounter', spiralCounterSchema);
