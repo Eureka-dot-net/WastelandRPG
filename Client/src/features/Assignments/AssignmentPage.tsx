@@ -44,50 +44,50 @@ function AssignmentPage() {
       queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
     }
   }, [colonyId, queryClient]);
-  
 
-useEffect(() => {
-  if (!colonyId || !assignments || !colony?.settlers) return;
 
-  // 1️⃣ Get settlers who aren't assigned to in-progress tasks
-  const availableSettlers = colony.settlers.filter(
-    settler => !assignments.some(a => a.state === "in-progress" && a.settlerId === settler._id)
-  );
+  useEffect(() => {
+    if (!colonyId || !assignments || !colony?.settlers) return;
 
-  if (availableSettlers.length === 0) return;
+    // 1️⃣ Get settlers who aren't assigned to in-progress tasks
+    const availableSettlers = colony.settlers.filter(
+      settler => !assignments.some(a => a.state === "in-progress" && a.settlerId === settler._id)
+    );
 
-  // 2️⃣ Get assignments that are available and dependency-met
-  const availableAssignments = assignments.filter(a =>
-    a.state === "available" &&
-    (!a.dependsOn || ["informed", "completed"].includes(
-      assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
-    ))
-  );
+    if (availableSettlers.length === 0) return;
 
-  if (availableAssignments.length === 0) return;
+    // 2️⃣ Get assignments that are available and dependency-met
+    const availableAssignments = assignments.filter(a =>
+      a.state === "available" &&
+      (!a.dependsOn || ["informed", "completed"].includes(
+        assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
+      ))
+    );
 
-  // 3️⃣ Prefetch all combinations of available assignments × available settlers
-  availableAssignments.forEach(a => {
-    availableSettlers.forEach(s => {
-      queryClient.prefetchQuery({
-        queryKey: ["assignmentPreview", colonyId, a._id, s._id],
-        queryFn: async () => {
-          const response = await agent.get(
-            `/colonies/${colonyId}/assignments/${a._id}/preview?settlerId=${s._id}`
-          );
-          return response.data;
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      }).catch(err => {
-        console.warn(`Failed to prefetch preview for assignment ${a._id} and settler ${s._id}:`, err);
+    if (availableAssignments.length === 0) return;
+
+    // 3️⃣ Prefetch all combinations of available assignments × available settlers
+    availableAssignments.forEach(a => {
+      availableSettlers.forEach(s => {
+        queryClient.prefetchQuery({
+          queryKey: ["assignmentPreview", colonyId, a._id, s._id],
+          queryFn: async () => {
+            const response = await agent.get(
+              `/colonies/${colonyId}/assignments/${a._id}/preview?settlerId=${s._id}`
+            );
+            return response.data;
+          },
+          staleTime: 5 * 60 * 1000, // 5 minutes
+        }).catch(err => {
+          console.warn(`Failed to prefetch preview for assignment ${a._id} and settler ${s._id}:`, err);
+        });
       });
     });
-  });
 
-  console.log(
-    `Prefetching ${availableAssignments.length * availableSettlers.length} assignment previews`
-  );
-}, [colonyId, assignments, colony?.settlers, queryClient]);
+    console.log(
+      `Prefetching ${availableAssignments.length * availableSettlers.length} assignment previews`
+    );
+  }, [colonyId, assignments, colony?.settlers, queryClient]);
 
   // Invalidate assignment queries when colony changes to ensure fresh data
   useEffect(() => {
@@ -183,7 +183,7 @@ useEffect(() => {
   const availableSettlers = getAvailableSettlers();
 
   // Get the latest event for display
-  const latestEvent = colony.logs && colony.logs.length > 0 
+  const latestEvent = colony.logs && colony.logs.length > 0
     ? [...colony.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
     : null;
 
@@ -217,16 +217,15 @@ useEffect(() => {
           }
 
           // Calculate progress
-          let progress = 0;
-          if (assignment.duration) {
-            if (assignment.state === 'in-progress' && timeRemaining != null && assignment.startedAt) {
-              progress = ((assignment.duration - timeRemaining) / assignment.duration) * 100;
-              progress = Math.max(0, Math.min(100, progress)); // clamp between 0-100
-            } else if (assignment.state === 'completed' || assignment.state === 'informed') {
-              progress = 100;
-            } else {
-              progress = 0;
-            }
+          const progress = assignment.adjustments?.adjustedDuration && timeRemaining != null
+            ? Math.max(0, Math.min(100, ((assignment.adjustments.adjustedDuration - timeRemaining) / assignment.adjustments.adjustedDuration) * 100))
+            : assignment.state === 'completed' || assignment.state === 'informed'
+              ? 100
+              : 0;
+
+          if (assignment.state === 'in-progress') {
+            console.log(`Duration: ${assignment.duration}, TimeRemaining: ${timeRemaining}`);
+            console.log(`Assignment ${assignment.name} is in-progress with ${timeRemaining} seconds remaining. Progress: ${progress.toFixed(2)}%`);
           }
 
           const assignedSettler = assignment.settlerId
@@ -344,7 +343,7 @@ useEffect(() => {
         colonyId={colonyId}
         showStats={false}
         confirmPending={startAssignment.isPending}
-        
+
       />
 
       {/* Task Queue Placeholder */}
