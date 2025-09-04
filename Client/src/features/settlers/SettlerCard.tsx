@@ -132,6 +132,7 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
             const isInterest = selectedInterests.includes(skill);
             const canSelect = !isInterest && selectedInterests.length < maxInterests;
             const canToggle = showInterestSelection && (isInterest || canSelect);
+            const isFavoriteSkill = settler.interests?.includes(skill);
             
             return (
               <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
@@ -165,13 +166,15 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
                       )}
                     </IconButton>
                   )}
-                  {!showInterestSelection && settler.interests?.includes(skill) && (
-                    <Favorite sx={{ fontSize: 16, color: 'gold', ml: 0.5 }} />
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
+                    {value}
+                  </Typography>
+                  {!showInterestSelection && isFavoriteSkill && (
+                    <Favorite sx={{ fontSize: 16, color: 'gold' }} />
                   )}
                 </Box>
-                <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
-                  {value}
-                </Typography>
               </Box>
             );
           })}

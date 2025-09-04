@@ -364,19 +364,27 @@ function SettlerPage() {
               <Typography variant="subtitle1" color="text.primary" gutterBottom>
                 Skills
               </Typography>
-              {Object.entries(settler.skills).map(([skill, value]) => (
-                <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {getSkillIcon(skill)}
-                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                      {skill}
-                    </Typography>
+              {Object.entries(settler.skills).map(([skill, value]) => {
+                const isFavorite = settler.interests?.includes(skill);
+                return (
+                  <Box key={skill} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      {getSkillIcon(skill)}
+                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {skill}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
+                        {value}/20
+                      </Typography>
+                      {isFavorite && (
+                        <Favorite sx={{ fontSize: 16, color: 'gold' }} />
+                      )}
+                    </Box>
                   </Box>
-                  <Typography variant="body2" sx={{ color: getSkillColor(value) }}>
-                    {value}/20
-                  </Typography>
-                </Box>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         </Grid>
