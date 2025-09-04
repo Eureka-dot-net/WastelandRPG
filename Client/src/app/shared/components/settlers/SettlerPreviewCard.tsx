@@ -17,6 +17,7 @@ import type { Settler } from '../../../../lib/types/settler';
 import type { Assignment } from '../../../../lib/types/assignment';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
 import { usePreviewAssignment } from '../../../../lib/hooks/usePreviewAssignment';
+import { usePreviewMapExploration } from '../../../../lib/hooks/usePreviewMapExploration';
 
 const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
 
@@ -140,13 +141,15 @@ const StatChip = ({ stat, value }: { stat: string, value: number }) => {
 
 export interface SettlerPreviewCardProps {
   settler: Settler;
-  assignment: Assignment;
+  assignment?: Assignment | null;
   colonyId: string;
   showSkills?: boolean;
   showStats?: boolean;
   onClick?: () => void;
   avatarIndex?: number;
   confirmPending?: boolean;
+  // Map exploration specific props
+  mapCoordinates?: { x: number; y: number };
 }
 
 const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
@@ -157,16 +160,33 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   showStats = false,
   onClick,
   avatarIndex = 0,
-  confirmPending = false
+  confirmPending = false,
+  mapCoordinates
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { data: preview, isLoading, error } = usePreviewAssignment(
+  
+  // Use assignment preview for regular assignments
+  const { data: assignmentPreview, isLoading: isLoadingAssignment, error: assignmentError } = usePreviewAssignment(
     colonyId,
-    assignment._id,
+    assignment?._id || '',
     settler._id,
-    true
+    !!assignment && !!assignment._id
   );
+  
+  // Use map exploration preview when no assignment but coordinates provided
+  const { data: mapPreview, isLoading: isLoadingMap, error: mapError } = usePreviewMapExploration(
+    colonyId,
+    mapCoordinates?.x || 0,
+    mapCoordinates?.y || 0,
+    settler._id,
+    !!mapCoordinates && !assignment
+  );
+
+  // Determine which preview data to use
+  const preview = assignment ? assignmentPreview : mapPreview;
+  const isLoading = assignment ? isLoadingAssignment : isLoadingMap;
+  const error = assignment ? assignmentError : mapError;
 
   const avatarColor = avatarColors[avatarIndex % avatarColors.length];
 
@@ -248,71 +268,139 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
             >
               Failed to load preview
             </Typography>
-          ) : preview?.adjustments ? (
+          ) : preview ? (
             <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
-              {/* Duration & Speed */}
-              <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
-                  <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
-                  <Typography 
-                    variant="body2" 
-                    fontWeight={600}
-                    sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
-                  >
-                    Task Duration: {formatTaskDuration(assignment.duration || 0)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
-                  </Typography>
-                </Box>
-                <EfficiencyBar
-                  percent={getDurationChange(assignment.duration || 0, preview.adjustments.adjustedDuration)}
-                  type="duration"
-                />
-              </Box>
-              {/* Loot Multiplier */}
-              <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
-                <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
-                  <TrendingUp sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
-                  <Typography 
-                    variant="body2" 
-                    fontWeight={600}
-                    sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
-                  >
-                    Loot Bonus
-                  </Typography>
-                </Box>
-                <EfficiencyBar
-                  percent={getLootChange(preview.adjustments.lootMultiplier)}
-                  type="loot"
-                />
-              </Box>
-              {/* Active Effects */}
-              {(preview.adjustments.effects.speedEffects.length > 0 ||
-                preview.adjustments.effects.lootEffects.length > 0 ||
-                preview.adjustments.effects.traitEffects.length > 0) && (
-                  <Box>
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary" 
-                      sx={{ 
-                        mb: 0.4, 
-                        display: 'block',
-                        fontSize: isMobile ? '0.65rem' : '0.7rem'
-                      }}
-                    >
-                      Active Effects:
-                    </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={0.4}>
-                      {preview.adjustments.effects.speedEffects.map((effect: string, i: number) => (
-                        <EffectChip key={`speed-${i}`} effect={effect} />
-                      ))}
-                      {preview.adjustments.effects.lootEffects.map((effect: string, i: number) => (
-                        <EffectChip key={`loot-${i}`} effect={effect} />
-                      ))}
-                      {preview.adjustments.effects.traitEffects.map((effect: string, i: number) => (
-                        <EffectChip key={`trait-${i}`} effect={effect} />
-                      ))}
+              {assignment && 'adjustments' in preview ? (
+                <>
+                  {/* Assignment Preview - Duration & Speed */}
+                  <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                    <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                      <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                      <Typography 
+                        variant="body2" 
+                        fontWeight={600}
+                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                      >
+                        Task Duration: {formatTaskDuration(assignment.duration || 0)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
+                      </Typography>
+                    </Box>
+                    <EfficiencyBar
+                      percent={getDurationChange(assignment.duration || 0, preview.adjustments.adjustedDuration)}
+                      type="duration"
+                    />
+                  </Box>
+                  {/* Loot Multiplier */}
+                  <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                    <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                      <TrendingUp sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                      <Typography 
+                        variant="body2" 
+                        fontWeight={600}
+                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                      >
+                        Loot Bonus
+                      </Typography>
+                    </Box>
+                    <EfficiencyBar
+                      percent={getLootChange(preview.adjustments.lootMultiplier)}
+                      type="loot"
+                    />
+                  </Box>
+                  {/* Active Effects */}
+                  {(preview.adjustments.effects.speedEffects.length > 0 ||
+                    preview.adjustments.effects.lootEffects.length > 0 ||
+                    preview.adjustments.effects.traitEffects.length > 0) && (
+                      <Box>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary" 
+                          sx={{ 
+                            mb: 0.4, 
+                            display: 'block',
+                            fontSize: isMobile ? '0.65rem' : '0.7rem'
+                          }}
+                        >
+                          Active Effects:
+                        </Typography>
+                        <Box display="flex" flexWrap="wrap" gap={0.4}>
+                          {preview.adjustments.effects.speedEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`speed-${i}`} effect={effect} />
+                          ))}
+                          {preview.adjustments.effects.lootEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`loot-${i}`} effect={effect} />
+                          ))}
+                          {preview.adjustments.effects.traitEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`trait-${i}`} effect={effect} />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                </>
+              ) : 'preview' in preview ? (
+                <>
+                  {/* Map Exploration Preview */}
+                  <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                    <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                      <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                      <Typography 
+                        variant="body2" 
+                        fontWeight={600}
+                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                      >
+                        Exploration Duration: {formatTaskDuration(preview.preview.duration || preview.preview.estimatedDuration || 300000)}
+                      </Typography>
                     </Box>
                   </Box>
-                )}
+                  {/* Terrain Info */}
+                  {preview.preview.terrain && (
+                    <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                      <Typography 
+                        variant="body2" 
+                        fontWeight={600}
+                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                      >
+                        Terrain: {preview.preview.terrain.name}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        color="text.secondary" 
+                        sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
+                      >
+                        {preview.preview.terrain.description}
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Active Effects */}
+                  {(preview.preview.adjustments.speedEffects.length > 0 ||
+                    preview.preview.adjustments.lootEffects.length > 0 ||
+                    preview.preview.adjustments.traitEffects.length > 0) && (
+                      <Box>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary" 
+                          sx={{ 
+                            mb: 0.4, 
+                            display: 'block',
+                            fontSize: isMobile ? '0.65rem' : '0.7rem'
+                          }}
+                        >
+                          Active Effects:
+                        </Typography>
+                        <Box display="flex" flexWrap="wrap" gap={0.4}>
+                          {preview.preview.adjustments.speedEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`speed-${i}`} effect={effect} />
+                          ))}
+                          {preview.preview.adjustments.lootEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`loot-${i}`} effect={effect} />
+                          ))}
+                          {preview.preview.adjustments.traitEffects.map((effect: string, i: number) => (
+                            <EffectChip key={`trait-${i}`} effect={effect} />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                </>
+              ) : null}
             </Box>
           ) : (
             <Typography 

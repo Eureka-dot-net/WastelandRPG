@@ -28,6 +28,8 @@ export interface SettlerSelectorDialogProps {
   showSkills?: boolean;
   showStats?: boolean;
   confirmPending?: boolean;
+  // Map exploration specific props
+  mapCoordinates?: { x: number; y: number };
 }
 
 const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
@@ -42,7 +44,8 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
   emptyStateSubMessage = "All settlers are currently assigned to other tasks.",
   showSkills = true,
   showStats = false,
-  confirmPending = false
+  confirmPending = false,
+  mapCoordinates
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -137,7 +140,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
           },
         },
       }}>
-        {settlers.length > 0 && selectedTask && colonyId ? (
+        {settlers.length > 0 && colonyId ? (
           isSingleSettler ? (
             <Box
               display="flex"
@@ -158,6 +161,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                 avatarIndex={0}
                 onClick={!confirmPending ? () => onSelect(settlers[0]) : undefined}
                 confirmPending={confirmPending}
+                mapCoordinates={mapCoordinates}
               />
             </Box>
           ) : (
@@ -173,6 +177,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                   avatarIndex={index}
                   onClick={!confirmPending ? () => onSelect(settler) : undefined}
                   confirmPending={confirmPending}
+                  mapCoordinates={mapCoordinates}
                 />
               ))}
             </Box>

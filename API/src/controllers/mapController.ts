@@ -193,7 +193,17 @@ export const startExploration = async (req: Request, res: Response) => {
     res.json({
       ...exploration.toObject(),
       plannedRewards: enrichRewardsWithMetadata(exploration.plannedRewards),
-      adjustments
+      adjustments,
+      tileInfo: {
+        x: tileX,
+        y: tileY,
+        terrain: tile.terrain,
+        icon: tile.icon,
+        explored: false, // Will be true when exploration completes
+        loot: tile.loot,
+        threat: tile.threat,
+        event: tile.event
+      }
     });
 
   } catch (err) {
@@ -204,10 +214,9 @@ export const startExploration = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/map/:x/:y/preview
+// POST /api/colonies/:colonyId/map/preview
 export const previewExploration = async (req: Request, res: Response) => {
-  const { x, y } = req.params;
-  const { settlerId } = req.body;
+  const { x, y, settlerId } = req.body;
   const colony = req.colony;
 
   const tileX = parseInt(x);

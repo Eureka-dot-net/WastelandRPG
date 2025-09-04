@@ -38,7 +38,7 @@ export function useMap(
     StartExplorationContext
   >({
     mutationFn: async ({ row, col, settlerId }) => {
-      const url = `/colonies/${colonyId}/map/explore`;
+      const url = `/colonies/${colonyId}/map/start`;
       const response = await agent.post(url, { row, col, settlerId });
       return response.data as Assignment;
     },
