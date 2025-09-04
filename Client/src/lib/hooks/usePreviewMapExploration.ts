@@ -47,11 +47,8 @@ export function usePreviewMapExploration(
   return useQuery<MapExplorationPreviewResult, Error>({
     queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settlerId],
     queryFn: async () => {
-      const response = await agent.post(`/colonies/${colonyId}/map/preview`, {
-        x,
-        y,
-        settlerId
-      });
+      const url = `/colonies/${colonyId}/map/preview?x=${x}&y=${y}&settlerId=${settlerId}`;
+      const response = await agent.get(url);
       return response.data as MapExplorationPreviewResult;
     },
     enabled: enabled && !!colonyId && !!settlerId && !isNaN(x) && !isNaN(y),

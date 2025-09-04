@@ -66,23 +66,29 @@ function AssignmentPage() {
 
     if (availableAssignments.length === 0) return;
 
-    // 3️⃣ Prefetch all combinations of available assignments × available settlers
-    availableAssignments.forEach(a => {
-      availableSettlers.forEach(s => {
-        queryClient.prefetchQuery({
-          queryKey: ["assignmentPreview", colonyId, a._id, s._id],
-          queryFn: async () => {
-            const response = await agent.get(
-              `/colonies/${colonyId}/assignments/${a._id}/preview?settlerId=${s._id}`
-            );
-            return response.data;
-          },
-          staleTime: 5 * 60 * 1000, // 5 minutes
-        }).catch(err => {
-          console.warn(`Failed to prefetch preview for assignment ${a._id} and settler ${s._id}:`, err);
-        });
+    // 3️⃣ Use batch prefetch instead of individual requests
+    const settlerIds = availableSettlers.map(s => s._id);
+    const assignmentIds = availableAssignments.map(a => a._id);
+    
+    if (settlerIds.length > 0 && assignmentIds.length > 0) {
+      console.log(
+        `Batch prefetching ${settlerIds.length} settlers × ${assignmentIds.length} assignments = ${settlerIds.length * assignmentIds.length} previews`
+      );
+      
+      queryClient.prefetchQuery({
+        queryKey: ["assignmentPreviewBatch", colonyId, settlerIds.sort(), assignmentIds.sort()],
+        queryFn: async () => {
+          const settlerIdsParam = settlerIds.join(',');
+          const assignmentIdsParam = assignmentIds.join(',');
+          const url = `/colonies/${colonyId}/assignments/preview-batch?settlerIds=${settlerIdsParam}&assignmentIds=${assignmentIdsParam}`;
+          const response = await agent.get(url);
+          return response.data;
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      }).catch(err => {
+        console.warn('Failed to prefetch batch assignment previews:', err);
       });
-    });
+    }
 
   }, [colonyId, assignments, colony?.settlers, queryClient]);
 

@@ -222,13 +222,155 @@ export const startExploration = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/map/preview
-export const previewExploration = async (req: Request, res: Response) => {
-  const { x, y, settlerId } = req.body;
+// GET /api/colonies/:colonyId/map/preview-batch?settlerIds=id1,id2&coordinates=x1:y1,x2:y2  
+export const previewExplorationBatch = async (req: Request, res: Response) => {
+  const { settlerIds, coordinates } = req.query as { settlerIds?: string; coordinates?: string };
   const colony = req.colony;
 
-  const tileX = parseInt(x);
-  const tileY = parseInt(y);
+  if (!settlerIds || !coordinates) {
+    return res.status(400).json({ error: 'Both settlerIds and coordinates are required' });
+  }
+
+  const settlerIdArray = settlerIds.split(',').filter(id => id.trim());
+  const coordinateArray = coordinates.split(',').map(coord => {
+    const [x, y] = coord.split(':');
+    return { x: parseInt(x), y: parseInt(y) };
+  }).filter(coord => !isNaN(coord.x) && !isNaN(coord.y));
+
+  if (settlerIdArray.length === 0 || coordinateArray.length === 0) {
+    return res.status(400).json({ error: 'At least one settlerId and one coordinate pair required' });
+  }
+
+  // Validate all settler IDs
+  const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
+  if (invalidSettlerIds.length > 0) {
+    return res.status(400).json({ 
+      error: 'Invalid settler IDs provided',
+      invalidSettlerIds
+    });
+  }
+
+  try {
+    // Fetch all settlers in bulk
+    const settlers = await Settler.find({ _id: { $in: settlerIdArray } });
+    const settlerMap = new Map(settlers.map(s => [s._id.toString(), s]));
+
+    const results: Record<string, Record<string, any>> = {};
+
+    // Calculate previews for all combinations  
+    for (const settlerId of settlerIdArray) {
+      const settler = settlerMap.get(settlerId);
+      if (!settler) {
+        console.warn(`Settler ${settlerId} not found`);
+        continue;
+      }
+
+      results[settlerId] = {};
+
+      for (const { x, y } of coordinateArray) {
+        const coordKey = `${x}:${y}`;
+
+        try {
+          // Check if tile can be explored
+          const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), x, y);
+          if (!canExplore) {
+            results[settlerId][coordKey] = { error: 'Cannot explore this tile - must be adjacent to already explored tiles or homestead' };
+            continue;
+          }
+
+          // Check if tile exists
+          const tile = await getTile(colony.serverId, x, y);
+          let previewData;
+
+          if (tile) {
+            // Existing tile - show actual loot and terrain info
+            const baseRewards: Record<string, number> = {};
+            if (tile.loot) {
+              tile.loot.forEach(lootItem => {
+                baseRewards[lootItem.item] = lootItem.amount;
+              });
+            }
+
+            const baseDuration = 300000; // 5 minutes
+            const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+
+            const terrainInfo = getTerrainCatalogue(tile.terrain);
+
+            // Check if this colony has already explored this tile
+            const alreadyExplored = await hasColonyExploredTile(
+              tile._id.toString(),
+              colony._id.toString()
+            );
+
+            previewData = {
+              terrain: {
+                type: tile.terrain,
+                name: terrainInfo?.name || tile.terrain,
+                description: terrainInfo?.description || 'Unknown terrain',
+                icon: terrainInfo?.icon || 'GiQuestionMark'
+              },
+              loot: enrichRewardsWithMetadata(baseRewards),
+              adjustedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+              threat: tile.threat,
+              event: tile.event,
+              duration: adjustments.adjustedDuration,
+              adjustments: adjustments.effects,
+              alreadyExplored
+            };
+          } else {
+            // Unknown tile - show estimated info
+            const baseDuration = 300000;
+            const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
+            const adjustments = calculateSettlerAdjustments(baseDuration, estimatedRewards, settler);
+
+            previewData = {
+              terrain: {
+                type: 'unknown',
+                name: 'Unknown Territory',
+                description: 'This area has not been explored yet. Terrain and contents are unknown.',
+                icon: 'GiQuestionMark'
+              },
+              estimatedLoot: enrichRewardsWithMetadata(estimatedRewards),
+              adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+              estimatedDuration: adjustments.adjustedDuration,
+              adjustments: adjustments.effects,
+              alreadyExplored: false
+            };
+          }
+
+          results[settlerId][coordKey] = {
+            coordinates: { x, y },
+            settler: {
+              id: settler._id,
+              name: settler.name,
+              stats: settler.stats,
+              skills: settler.skills,
+              traits: settler.traits
+            },
+            preview: previewData
+          };
+
+        } catch (error) {
+          console.error(`Error calculating preview for settler ${settlerId} at (${x}, ${y}):`, error);
+          results[settlerId][coordKey] = { error: 'Failed to calculate preview' };
+        }
+      }
+    }
+
+    res.json({ results });
+  } catch (err) {
+    console.error('Error in batch exploration preview:', err);
+    res.status(500).json({ error: 'Failed to preview explorations' });
+  }
+};
+
+// GET /api/colonies/:colonyId/map/preview?x=...&y=...&settlerId=...
+export const previewExploration = async (req: Request, res: Response) => {
+  const { x, y, settlerId } = req.query as { x?: string; y?: string; settlerId?: string };
+  const colony = req.colony;
+
+  const tileX = parseInt(x || '0');
+  const tileY = parseInt(y || '0');
 
   if (isNaN(tileX) || isNaN(tileY)) {
     return res.status(400).json({ error: 'Invalid coordinates' });
