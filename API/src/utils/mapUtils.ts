@@ -9,6 +9,7 @@ import {
   getTerrainCatalogue 
 } from './gameUtils';
 import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
+import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
 
 /**
  * Create or update a map tile with terrain and generated content
@@ -38,13 +39,10 @@ export async function createOrUpdateMapTile(
     : await MapTile.findOne(query);
 
   if (existingTile) {
-    // Update existing tile if not already explored by this entity
-    if (!existingTile.exploredBy.includes(exploredBy)) {
-      existingTile.exploredBy.push(exploredBy);
+    // Update existing tile only if colony info needs to be set
+    if (colony && !existingTile.colony) {
+      existingTile.colony = colony as any;
       existingTile.exploredAt = new Date();
-      if (colony && !existingTile.colony) {
-        existingTile.colony = colony as any;
-      }
       return session ? await existingTile.save({ session }) : await existingTile.save();
     }
     return existingTile;
@@ -63,7 +61,7 @@ export async function createOrUpdateMapTile(
     loot,
     threat,
     event,
-    exploredBy: [exploredBy],
+    exploredBy: [exploredBy], // Keep for backward compatibility but minimize usage
     exploredAt: new Date(),
     ...(colony && { colony })
   };
@@ -195,6 +193,7 @@ export async function getTile(
 
 /**
  * Check if a tile can be explored (must be adjacent to an explored tile or homestead)
+ * Updated to use UserMapTile for efficient colony-specific exploration tracking
  */
 export async function canTileBeExplored(
   serverId: string,
@@ -203,22 +202,27 @@ export async function canTileBeExplored(
   y: number,
   session?: ClientSession
 ): Promise<boolean> {
-  // Check if tile is already explored
+  // Check if tile already exists (can always re-explore existing tiles)
   const existingTile = await getTile(serverId, x, y, session);
   if (existingTile) {
-    return true; // Can always re-explore existing tiles
+    return true;
   }
 
-  // Check if any adjacent tile is explored by this colony
+  // Check if any adjacent tile has been explored by this colony using UserMapTile
   const adjacentCoords = getAdjacentCoordinates(x, y);
   
   for (const coord of adjacentCoords) {
     const adjacentTile = await getTile(serverId, coord.x, coord.y, session);
-    if (adjacentTile && (
-      adjacentTile.colony?.toString() === colonyId ||
-      adjacentTile.exploredBy.some(explorer => explorer !== 'auto_generated')
-    )) {
-      return true; // Adjacent tile is explored by this colony
+    if (adjacentTile) {
+      // Check if this colony has explored this adjacent tile
+      const hasExplored = await hasColonyExploredTile(
+        adjacentTile._id.toString(),
+        colonyId,
+        session
+      );
+      if (hasExplored) {
+        return true; // Adjacent tile is explored by this colony
+      }
     }
   }
 
@@ -252,14 +256,20 @@ export async function getMapGridForColony(
         ? await MapTile.findOne(query).session(session)
         : await MapTile.findOne(query);
       
-      // Only include tiles that this colony has explored or that are homestead tiles
-      if (tile && (
-        tile.colony?.toString() === colonyId ||
-        tile.exploredBy.some(explorer => explorer !== 'auto_generated')
-      )) {
-        gridRow.push(tile);
+      // Only include tiles that this colony has explored using UserMapTile
+      if (tile) {
+        const hasExplored = await hasColonyExploredTile(
+          tile._id.toString(),
+          colonyId,
+          session
+        );
+        if (hasExplored) {
+          gridRow.push(tile);
+        } else {
+          gridRow.push(null); // Fog of war
+        }
       } else {
-        gridRow.push(null); // Fog of war
+        gridRow.push(null); // Tile doesn't exist yet
       }
     }
     
@@ -295,4 +305,85 @@ export function formatGridForAPI(grid: (MapTileDoc | null)[][]): any {
       }))
     )
   };
+}
+
+/**
+ * UserMapTile utility functions for efficient user-specific exploration tracking
+ */
+
+/**
+ * Create a UserMapTile record for a colony exploring a tile
+ */
+export async function createUserMapTile(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc> {
+  const userTileData = {
+    serverTile: serverTileId,
+    colonyId,
+    exploredAt: new Date()
+  };
+
+  return session 
+    ? await UserMapTile.create([userTileData], { session }).then(docs => docs[0])
+    : await UserMapTile.create(userTileData);
+}
+
+/**
+ * Check if a colony has explored a specific tile using UserMapTile
+ */
+export async function hasColonyExploredTile(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<boolean> {
+  const query = { serverTile: serverTileId, colonyId };
+  const userTile = session 
+    ? await UserMapTile.findOne(query).session(session)
+    : await UserMapTile.findOne(query);
+  
+  return userTile !== null;
+}
+
+/**
+ * Get all UserMapTiles for a colony (their exploration history)
+ */
+export async function getColonyExploredTiles(
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc[]> {
+  const query = { colonyId };
+  return session 
+    ? await UserMapTile.find(query).populate('serverTile').session(session)
+    : await UserMapTile.find(query).populate('serverTile');
+}
+
+/**
+ * Create or get existing UserMapTile for exploration
+ */
+export async function createOrGetUserMapTile(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc> {
+  const query = { serverTile: serverTileId, colonyId };
+  
+  let userTile = session 
+    ? await UserMapTile.findOne(query).session(session)
+    : await UserMapTile.findOne(query);
+
+  if (!userTile) {
+    const userTileData = {
+      serverTile: serverTileId,
+      colonyId,
+      exploredAt: new Date()
+    };
+
+    userTile = session 
+      ? await UserMapTile.create([userTileData], { session }).then(docs => docs[0])
+      : await UserMapTile.create(userTileData);
+  }
+
+  return userTile as UserMapTileDoc;
 }
