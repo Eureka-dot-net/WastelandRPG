@@ -10,6 +10,7 @@ import {
 } from './gameUtils';
 import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
 import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
+import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 
 /**
  * Create or update a map tile with terrain and generated content
@@ -277,30 +278,47 @@ export async function getMapGridForColony(
 /**
  * Transform grid to a more API-friendly format
  */
-export function formatGridForAPI(grid: (MapTileDoc | null)[][]): any {
+export function formatGridForAPI(
+  grid: (MapTileDoc | null)[][],
+  assignments: AssignmentDoc[] // all assignments for tiles in this grid
+): any {
   return {
     size: grid.length,
-    tiles: grid.map((row, rowIndex) => 
-      row.map((tile, colIndex) => ({
-        position: { row: rowIndex, col: colIndex },
-        ...(tile ? {
-          x: tile.x,
-          y: tile.y,
-          terrain: {
-            type: tile.terrain,
-            ...(getTerrainCatalogue(tile.terrain) || {})
-          },
-          loot: tile.loot,
-          threat: tile.threat,
-          event: tile.event,
-          exploredAt: tile.exploredAt,
-          colony: tile.colony
-        } : null)
-      }))
+    tiles: grid.map((row, rowIndex) =>
+      row.map((tile, colIndex) => {
+        const explored = !!tile;
+
+        // All assignments associated with this tile
+        const tileAssignments = assignments.filter(a => a.location && a.location.x === colIndex && a.location.y === rowIndex);
+
+        const canExplore = !explored && (
+          (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
+          (rowIndex < grid.length - 1 && !!grid[rowIndex + 1][colIndex]) ||
+          (colIndex > 0 && !!grid[rowIndex][colIndex - 1]) ||
+          (colIndex < row.length - 1 && !!grid[rowIndex][colIndex + 1])
+        );
+
+        return {
+          position: { row: rowIndex, col: colIndex },
+          ...(tile ? {
+            x: tile.x,
+            y: tile.y,
+            terrain: { type: tile.terrain, ...(getTerrainCatalogue(tile.terrain) || {}) },
+            loot: tile.loot,
+            threat: tile.threat,
+           // icon: tile.icon
+            assignments: tileAssignments,
+            event: tile.event,
+            exploredAt: tile.exploredAt,
+            colony: tile.colony
+          } : null),
+          explored,
+          canExplore
+        };
+      })
     )
   };
 }
-
 /**
  * UserMapTile utility functions for efficient user-specific exploration tracking
  */

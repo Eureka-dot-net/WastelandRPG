@@ -21,13 +21,11 @@ import {
 import { MapTile } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
 
-// GET /api/colonies/:colonyId/map/:x/:y
+// GET /api/colonies/:colonyId/map?x=0&y=0
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
-  const { x, y } = req.params;
   const colony = req.colony;
-
-  const centerX = parseInt(x);
-  const centerY = parseInt(y);
+  const centerX = parseInt(req.query.x as string) || 0;
+  const centerY = parseInt(req.query.y as string) || 0;
 
   if (isNaN(centerX) || isNaN(centerY)) {
     return res.status(400).json({ error: 'Invalid coordinates' });
@@ -36,7 +34,18 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
   try {
     // Get 5x5 grid centered on the coordinates, filtered for this colony's fog of war
     const grid = await getMapGridForColony(colony.serverId, colony._id.toString(), centerX, centerY);
-    const formattedGrid = formatGridForAPI(grid);
+
+    // Get all exploration assignments in this 5x5 area
+    const assignments = await Assignment.find({
+      serverId: colony.serverId,
+      colonyId: colony._id,
+      type: 'exploration',
+      location: { $exists: true },
+      'location.x': { $gte: centerX - 2, $lte: centerX + 2 },
+      'location.y': { $gte: centerY - 2, $lte: centerY + 2 }
+    });
+
+    const formattedGrid = formatGridForAPI(grid, assignments);
 
     res.json({
       center: { x: centerX, y: centerY },

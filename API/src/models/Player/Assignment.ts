@@ -74,8 +74,8 @@ const AssignmentSchema = new Schema(
 );
 
 AssignmentSchema.index(
-  { colonyId: 1, taskId: 1 },
-  { unique: true, sparse: true }
+  { colonyId: 1, type: 1, 'location.x': 1, 'location.y': 1 },
+  { name: 'exploration_grid_index' }
 );
 AssignmentSchema.index({ state: 1 });
 

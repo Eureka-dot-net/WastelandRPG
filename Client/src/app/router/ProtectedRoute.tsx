@@ -5,6 +5,7 @@ import { CircularProgress, Container } from '@mui/material';
 import { AssignmentNotificationProvider } from '../../lib/contexts/AssignmentNotificationContext';
 import GlobalSettlerDialog from '../shared/components/GlobalSettlerDialog';
 import { useServerContext } from '../../lib/contexts/ServerContext';
+import { MapProvider } from '../../lib/hooks/useMapContext';
 
 export const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
@@ -49,8 +50,10 @@ export const ProtectedRoute = () => {
 
   return (
     <AssignmentNotificationProvider>
-      <GlobalSettlerDialog />
-      <Outlet />
+      <MapProvider>
+        <GlobalSettlerDialog />
+        <Outlet />
+      </MapProvider>
     </AssignmentNotificationProvider>
   );
 };

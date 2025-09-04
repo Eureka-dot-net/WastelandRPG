@@ -41,7 +41,7 @@ export async function createColonyWithSpiralLocation(
             
             // Create the homestead tile and assign adjacent terrain
             const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, {
-                terrain: 'center', // Homesteads are typically in town center terrain
+                terrain: 'colony', // Homesteads are typically in town center terrain
                 colony: colony._id.toString(),
                 session
             });
