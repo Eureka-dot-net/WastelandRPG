@@ -14,7 +14,7 @@ router.get('/', getMapGrid5x5);
 // POST /api/colonies/:colonyId/map/start - starts exploring or scouting a tile
 router.post('/start', startExploration);
 
-// POST /api/colonies/:colonyId/map/preview - returns speed/loot info based on settlerId and x,y in body
-router.post('/preview', previewExploration);
+// GET /api/colonies/:colonyId/map/preview?x=...&y=...&settlerId=... - returns speed/loot info based on query params
+router.get('/preview', previewExploration);
 
 export default router;

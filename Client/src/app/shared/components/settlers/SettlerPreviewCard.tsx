@@ -18,6 +18,9 @@ import type { Assignment } from '../../../../lib/types/assignment';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
 import { usePreviewAssignment } from '../../../../lib/hooks/usePreviewAssignment';
 import { usePreviewMapExploration } from '../../../../lib/hooks/usePreviewMapExploration';
+import type { UnifiedPreview } from '../../../../lib/types/preview';
+import { isAssignmentPreview, isMapExplorationPreview } from '../../../../lib/types/preview';
+import { transformAssignmentPreview, transformMapExplorationPreview } from '../../../../lib/utils/previewTransformers';
 
 const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
 
@@ -150,6 +153,10 @@ export interface SettlerPreviewCardProps {
   confirmPending?: boolean;
   // Map exploration specific props
   mapCoordinates?: { x: number; y: number };
+  // Preview data - if provided, will skip hook calls
+  preview?: UnifiedPreview;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
 const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
@@ -161,32 +168,50 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   onClick,
   avatarIndex = 0,
   confirmPending = false,
-  mapCoordinates
+  mapCoordinates,
+  preview: providedPreview,
+  isLoading: providedIsLoading,
+  error: providedError
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Use assignment preview for regular assignments
+  // Use hooks only if preview is not provided (backward compatibility)
   const { data: assignmentPreview, isLoading: isLoadingAssignment, error: assignmentError } = usePreviewAssignment(
     colonyId,
     assignment?._id || '',
     settler._id,
-    !!assignment && !!assignment._id
+    !!assignment && !!assignment._id && !providedPreview
   );
   
-  // Use map exploration preview when no assignment but coordinates provided
   const { data: mapPreview, isLoading: isLoadingMap, error: mapError } = usePreviewMapExploration(
     colonyId,
     mapCoordinates?.x || 0,
     mapCoordinates?.y || 0,
     settler._id,
-    !!mapCoordinates && !assignment
+    !!mapCoordinates && !assignment && !providedPreview
   );
 
   // Determine which preview data to use
-  const preview = assignment ? assignmentPreview : mapPreview;
-  const isLoading = assignment ? isLoadingAssignment : isLoadingMap;
-  const error = assignment ? assignmentError : mapError;
+  let preview: UnifiedPreview | null = null;
+  let isLoading = false;
+  let error = null;
+
+  if (providedPreview) {
+    // Use provided preview data (new pattern)
+    preview = providedPreview;
+    isLoading = providedIsLoading || false;
+    error = providedError || null;
+  } else {
+    // Use hook data and transform to unified format (legacy pattern)
+    if (assignment && assignmentPreview) {
+      preview = transformAssignmentPreview(assignmentPreview);
+    } else if (mapCoordinates && mapPreview) {
+      preview = transformMapExplorationPreview(mapPreview);
+    }
+    isLoading = assignment ? isLoadingAssignment : isLoadingMap;
+    error = assignment ? assignmentError : mapError;
+  }
 
   const avatarColor = avatarColors[avatarIndex % avatarColors.length];
 
@@ -270,7 +295,7 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
             </Typography>
           ) : preview ? (
             <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
-              {assignment && 'adjustments' in preview ? (
+              {isAssignmentPreview(preview) ? (
                 <>
                   {/* Assignment Preview - Duration & Speed */}
                   <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
@@ -281,11 +306,11 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                         fontWeight={600}
                         sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
                       >
-                        Task Duration: {formatTaskDuration(assignment.duration || 0)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
+                        Task Duration: {formatTaskDuration(preview.baseDuration)} → {formatTaskDuration(preview.duration)}
                       </Typography>
                     </Box>
                     <EfficiencyBar
-                      percent={getDurationChange(assignment.duration || 0, preview.adjustments.adjustedDuration)}
+                      percent={getDurationChange(preview.baseDuration, preview.duration)}
                       type="duration"
                     />
                   </Box>
@@ -307,9 +332,9 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                     />
                   </Box>
                   {/* Active Effects */}
-                  {(preview.adjustments.effects.speedEffects.length > 0 ||
-                    preview.adjustments.effects.lootEffects.length > 0 ||
-                    preview.adjustments.effects.traitEffects.length > 0) && (
+                  {(preview.adjustments.speedEffects.length > 0 ||
+                    preview.adjustments.lootEffects.length > 0 ||
+                    preview.adjustments.traitEffects.length > 0) && (
                       <Box>
                         <Typography 
                           variant="caption" 
@@ -323,20 +348,20 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                           Active Effects:
                         </Typography>
                         <Box display="flex" flexWrap="wrap" gap={0.4}>
-                          {preview.adjustments.effects.speedEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.speedEffects.map((effect: string, i: number) => (
                             <EffectChip key={`speed-${i}`} effect={effect} />
                           ))}
-                          {preview.adjustments.effects.lootEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.lootEffects.map((effect: string, i: number) => (
                             <EffectChip key={`loot-${i}`} effect={effect} />
                           ))}
-                          {preview.adjustments.effects.traitEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.traitEffects.map((effect: string, i: number) => (
                             <EffectChip key={`trait-${i}`} effect={effect} />
                           ))}
                         </Box>
                       </Box>
                     )}
                 </>
-              ) : 'preview' in preview ? (
+              ) : isMapExplorationPreview(preview) ? (
                 <>
                   {/* Map Exploration Preview */}
                   <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
@@ -347,33 +372,33 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                         fontWeight={600}
                         sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
                       >
-                        Exploration Duration: {formatTaskDuration(preview.preview.duration || preview.preview.estimatedDuration || 300000)}
+                        Exploration Duration: {formatTaskDuration(preview.duration)}
                       </Typography>
                     </Box>
                   </Box>
                   {/* Terrain Info */}
-                  {preview.preview.terrain && (
+                  {preview.terrain && (
                     <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
                       <Typography 
                         variant="body2" 
                         fontWeight={600}
                         sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
                       >
-                        Terrain: {preview.preview.terrain.name}
+                        Terrain: {preview.terrain.name}
                       </Typography>
                       <Typography 
                         variant="caption" 
                         color="text.secondary" 
                         sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
                       >
-                        {preview.preview.terrain.description}
+                        {preview.terrain.description}
                       </Typography>
                     </Box>
                   )}
                   {/* Active Effects */}
-                  {(preview.preview.adjustments.speedEffects.length > 0 ||
-                    preview.preview.adjustments.lootEffects.length > 0 ||
-                    preview.preview.adjustments.traitEffects.length > 0) && (
+                  {(preview.adjustments.speedEffects.length > 0 ||
+                    preview.adjustments.lootEffects.length > 0 ||
+                    preview.adjustments.traitEffects.length > 0) && (
                       <Box>
                         <Typography 
                           variant="caption" 
@@ -387,13 +412,13 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                           Active Effects:
                         </Typography>
                         <Box display="flex" flexWrap="wrap" gap={0.4}>
-                          {preview.preview.adjustments.speedEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.speedEffects.map((effect: string, i: number) => (
                             <EffectChip key={`speed-${i}`} effect={effect} />
                           ))}
-                          {preview.preview.adjustments.lootEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.lootEffects.map((effect: string, i: number) => (
                             <EffectChip key={`loot-${i}`} effect={effect} />
                           ))}
-                          {preview.preview.adjustments.traitEffects.map((effect: string, i: number) => (
+                          {preview.adjustments.traitEffects.map((effect: string, i: number) => (
                             <EffectChip key={`trait-${i}`} effect={effect} />
                           ))}
                         </Box>
