@@ -17,7 +17,7 @@ import {
   canTileBeExplored
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
-import { ExplorationModel } from '../models/Player/Exploration';
+import { Assignment } from '../models/Player/Assignment';
 
 // GET /api/colonies/:colonyId/map/:x/:y
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
@@ -86,11 +86,13 @@ export const startExploration = async (req: Request, res: Response) => {
     }
 
     // Check if exploration is already in progress for this tile by this colony
-    const existingExploration = await ExplorationModel.findOne({
+    const existingExploration = await Assignment.findOne({
       serverId: colony.serverId,
       colonyId: colony._id,
-      x: tileX,
-      y: tileY,
+      location: {
+        x: tileX,
+        y: tileY
+      },
       state: 'in-progress'
     }).session(session);
 
@@ -153,12 +155,14 @@ export const startExploration = async (req: Request, res: Response) => {
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
 
-    const exploration = await ExplorationModel.create([{
+    const exploration = await Assignment.create([{
       serverId: colony.serverId,
       colonyId: colony._id,
       settlerId,
-      x: tileX,
-      y: tileY,
+      location: {
+        x: tileX,
+        y: tileY
+      },
       state: 'in-progress',
       startedAt: new Date(),
       completedAt,
@@ -313,122 +317,5 @@ export const previewExploration = async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error previewing exploration:', err);
     res.status(500).json({ error: 'Failed to preview exploration' });
-  }
-};
-
-// POST /api/colonies/:colonyId/map/:x/:y/inform
-export const informExplorationResult = async (req: Request, res: Response) => {
-  const { x, y } = req.params;
-  const colony = req.colony;
-
-  const tileX = parseInt(x);
-  const tileY = parseInt(y);
-
-  if (isNaN(tileX) || isNaN(tileY)) {
-    return res.status(400).json({ error: 'Invalid coordinates' });
-  }
-
-  const session = await ExplorationModel.startSession();
-  session.startTransaction();
-
-  try {
-    // Find the completed exploration
-    const exploration = await ExplorationModel.findOne({
-      serverId: colony.serverId,
-      colonyId: colony._id,
-      x: tileX,
-      y: tileY,
-      state: 'completed'
-    }).session(session);
-
-    if (!exploration) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ error: 'No completed exploration found for this tile' });
-    }
-
-    // Update exploration state
-    exploration.state = 'informed';
-    await exploration.save({ session });
-
-    // Get the tile
-    const tile = await getTile(colony.serverId, tileX, tileY, session);
-    if (!tile) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ error: 'Tile not found' });
-    }
-
-    // Get settler info
-    let settler = null;
-    if (exploration.settlerId) {
-      settler = await Settler.findById(exploration.settlerId).session(session);
-    }
-
-    // Prepare the response
-    const terrainInfo = getTerrainCatalogue(tile.terrain);
-
-    const response: any = {
-      message: `Exploration of ${terrainInfo?.name || tile.terrain} at (${tileX}, ${tileY}) has been completed!`,
-      tile: {
-        coordinates: { x: tileX, y: tileY },
-        terrain: {
-          type: tile.terrain,
-          name: terrainInfo?.name || tile.terrain,
-          description: terrainInfo?.description || 'Unknown terrain',
-          icon: terrainInfo?.icon || 'GiQuestionMark'
-        },
-        loot: enrichRewardsWithMetadata(exploration.plannedRewards),
-        threat: tile.threat,
-        event: tile.event,
-        exploredAt: exploration.completedAt,
-        exploredBy: tile.exploredBy.filter(e => e !== 'auto_generated')
-      },
-      exploration: {
-        duration: exploration.adjustments.adjustedDuration,
-        effects: exploration.adjustments.effects
-      },
-      notification: {
-        type: 'exploration_complete',
-        timestamp: new Date(),
-        acknowledged: true
-      }
-    };
-
-    // Include settler info if found
-    if (settler) {
-      response.settler = {
-        id: settler._id,
-        name: settler.name,
-        status: settler.status
-      };
-    }
-
-    // Check if a settler was found
-    let foundSettler = null;
-    if (exploration.settlerFoundId) {
-      foundSettler = await Settler.findById(exploration.settlerFoundId).session(session);
-      if (foundSettler) {
-        response.foundSettler = {
-          id: foundSettler._id,
-          name: foundSettler.name,
-          stats: foundSettler.stats,
-          skills: foundSettler.skills,
-          traits: foundSettler.traits,
-          backstory: foundSettler.backstory
-        };
-      }
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    res.json(response);
-
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Error informing exploration result:', err);
-    res.status(500).json({ error: 'Failed to process exploration notification' });
   }
 };

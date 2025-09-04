@@ -24,6 +24,10 @@ export interface IAssignment {
   completionMessage?: string;
   duration?: number;
   unlocks?: string;
+  location?: {
+    x: number;
+    y: number;
+  };
   plannedRewards?: Record<string, number>;
   adjustments?: {
     adjustedDuration: number;
@@ -42,23 +46,31 @@ const AssignmentSchema = new Schema(
   {
     colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true },
     taskId: { type: String, required: false },
-    type: { type: String,  required: true },
+    type: { type: String, required: true },
     state: { type: String, default: 'available' },
     settlerId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
-    dependsOn: {type: String, required: false },
+    dependsOn: { type: String, required: false },
     completionMessage: { type: String, required: false },
-    startedAt: {type: Date, required: false},
-    completedAt: {type: Date, required: false},
-    name: {type: String, required: false},
+    startedAt: { type: Date, required: false },
+    completedAt: { type: Date, required: false },
+    name: { type: String, required: false },
     settlerFoundId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
-    description: {type: String, required: false},
-    duration: {type: Number, required: false},
-    unlocks: {type: String, required: false},
+    description: { type: String, required: false },
+    duration: { type: Number, required: false },
+    unlocks: { type: String, required: false },
     plannedRewards: { type: Schema.Types.Mixed, required: false },
+    location: {
+      type: {
+        x: { type: Number, default: 0 },
+        y: { type: Number, default: 0 }
+      },
+      required: false,
+      default: {}
+    },
     adjustments: { type: Schema.Types.Mixed, required: false },
   },
   { timestamps: true, versionKey: false },
-  
+
 );
 
 AssignmentSchema.index(

@@ -4,7 +4,6 @@ import {
   getMapGrid5x5, 
   startExploration, 
   previewExploration, 
-  informExplorationResult 
 } from '../controllers/mapController';
 
 const router = Router({ mergeParams: true }); // mergeParams needed for :colonyId
@@ -17,8 +16,5 @@ router.post('/:x/:y/start', startExploration);
 
 // POST /api/colonies/:colonyId/map/:x/:y/preview - returns speed/loot info based on settlerId
 router.post('/:x/:y/preview', previewExploration);
-
-// POST /api/colonies/:colonyId/map/:x/:y/inform - returns notification about exploration results
-router.post('/:x/:y/inform', informExplorationResult);
 
 export default router;
