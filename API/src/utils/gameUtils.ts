@@ -60,12 +60,7 @@ export function calculateDistanceModifiers(distance: number): {
 export function calculateSettlerAdjustments(
   baseDuration: number,
   baseRewards: Record<string, number>,
-  settler: any,
-  distanceModifiers?: {
-    durationMultiplier: number;
-    lootMultiplier: number;
-    distanceEffects: string[];
-  }
+  settler: any
 ): GameAdjustments {
   // --- SPEED CALCULATION ---
   let effectiveSpeed = 1.0;
@@ -73,10 +68,6 @@ export function calculateSettlerAdjustments(
 
   // Apply distance duration multiplier first (this affects the base time before settler modifiers)
   let adjustedBaseDuration = baseDuration;
-  if (distanceModifiers) {
-    adjustedBaseDuration = Math.round(baseDuration * distanceModifiers.durationMultiplier);
-    speedEffects.push(...distanceModifiers.distanceEffects.filter(e => e.includes('time')));
-  }
 
   // Speed stat effect (0-20 scale, normalized to 0.5-1.5x multiplier)
   const speedMultiplier = 0.5 + (settler.stats.speed / 20) * 1.0;
@@ -87,12 +78,6 @@ export function calculateSettlerAdjustments(
   let lootMultiplier = 1.0;
   const lootEffects: string[] = [];
   const traitEffects: string[] = [];
-
-  // Apply distance loot multiplier first
-  if (distanceModifiers) {
-    lootMultiplier *= distanceModifiers.lootMultiplier;
-    lootEffects.push(...distanceModifiers.distanceEffects.filter(e => e.includes('loot')));
-  }
 
   // Scavenging skill effect (0-20 scale, normalized to 0.8-1.4x multiplier)
   const scavengingMultiplier = 0.8 + (settler.skills.scavenging / 20) * 0.6;

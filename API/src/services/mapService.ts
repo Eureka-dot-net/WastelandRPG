@@ -1,6 +1,6 @@
 import { Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
-import { createOrUpdateMapTile, assignAdjacentTerrain, createUserMapTile } from "../utils/mapUtils";
+import { createOrUpdateMapTile, createUserMapTile } from "../utils/mapUtils";
 import { SpiralCounter } from "../models/Server/SpiralCounter";
 
 export async function createColonyWithSpiralLocation(
@@ -39,28 +39,23 @@ export async function createColonyWithSpiralLocation(
             await colony.save({ session });
             
             // Create the homestead tile and assign adjacent terrain
-            const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, session, {
-                terrain: 'colony', // Homesteads are typically in town center terrain
-                colony: colony._id.toString()
-            });
+            const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, session, colony);
             
             // Create the initial UserMapTile record for this colony's homestead
             const homesteadUserTile = await createUserMapTile(
                 homesteadTile._id.toString(), 
-                colony._id.toString(), 
-                0, // distance from homestead is 0 for homestead itself
-                300000, // base exploration time (5 minutes)
-                1.0, // no loot multiplier for homestead
-                [], // no loot for homestead tiles
+                colony._id.toString(),
+                homesteadTile.x, 
+                homesteadTile.y, 
+                homesteadTile.terrain,
+                0, // distance is 0 for homestead
+                true, // isExplored is true for homestead
                 session
             );
             
             // Mark homestead as already explored
             homesteadUserTile.isExplored = true;
             await homesteadUserTile.save({ session });
-            
-            // Generate adjacent tiles when homestead is created
-            await assignAdjacentTerrain(serverId, spiralData.x, spiralData.y, session);
         
             return colony;
 

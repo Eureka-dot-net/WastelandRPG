@@ -10,7 +10,7 @@ import { ColonyManager } from "../managers/ColonyManager";
 import { generateSettler } from "./settlerGenerator";
 import { ClientSession } from "mongoose";
 import itemsCatalogue from '../data/itemsCatalogue.json';
-import { getTile, markUserMapTileExplored } from '../utils/mapUtils';
+import { UserMapTile } from "../models/Player/UserMapTile";
 
 function getItemCatalogue(itemId: string) {
   return itemsCatalogue.find(item => item.itemId === itemId);
@@ -153,13 +153,12 @@ export async function completeGameEvent(
   if (eventType === 'exploration' && eventDoc.location) {
     const { x, y } = eventDoc.location;
     
-    // Get or create the MapTile (authoritative source for tile content)
-    const tile = await getTile(colony.serverId, x, y);
-    
-    if (tile) {
-      // Mark UserMapTile as explored (should already exist from when exploration started)
-      await markUserMapTileExplored(tile._id.toString(), colony._id.toString(), session);
-    }
+    // update map tile to mark as colony-explored
+    await UserMapTile.findOneAndUpdate(
+      { colonyId: colony._id.toString(), x, y },
+      { isExplored: true, exploredAt: new Date() },
+      { session }
+    );
   }
 
   // Generate appropriate log entry

@@ -21,12 +21,11 @@ export interface IMapTile {
   serverId: string; // required server ID
   x: number;
   y: number;
-  terrain?: string;
+  terrain: string;
   loot?: ILootInfo[];
   threat?: IThreatInfo | null;
   icon: string;
   event?: IEventInfo | null;
-  exploredAt: Date;
   colony?: Types.ObjectId;
 }
 
@@ -50,12 +49,11 @@ const MapTileSchema = new Schema({
   serverId: { type: String, required: true }, // <-- Added
   x: { type: Number, required: true },
   y: { type: Number, required: true },
-  terrain: { type: String, required: false },
+  terrain: { type: String, required: true },
   loot: { type: [LootInfoSchema], required: false },
   threat: { type: ThreatInfoSchema, default: null },
   event: { type: EventInfoSchema, default: null },
   icon: { type: String, required: true },
-  exploredAt: { type: Date, required: false },
   colony: { type: Schema.Types.ObjectId, ref: 'Colony', required: false }
 });
 

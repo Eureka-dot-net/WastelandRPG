@@ -130,9 +130,9 @@ export function isSessionInTransaction(session: ClientSession): boolean {
  * @param session - Session to use
  * @returns Promise resolving to array of results
  */
-export async function executeInParallel<T>(
-  operations: SessionCallback<T>[],
+export async function executeInParallel<T extends any[]>(
+  operations: { [K in keyof T]: (session: ClientSession) => Promise<T[K]> },
   session: ClientSession
-): Promise<T[]> {
-  return await Promise.all(operations.map(op => op(session)));
+): Promise<T> {
+  return await Promise.all(operations.map((op) => op(session))) as T;
 }

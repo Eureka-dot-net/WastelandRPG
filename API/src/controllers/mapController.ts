@@ -2,27 +2,24 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { logError, logWarn } from '../utils/logger';
-import { withSession, withSessionReadOnly } from '../utils/sessionUtils';
+import { logError } from '../utils/logger';
+import { executeInParallel, withSession, withSessionReadOnly } from '../utils/sessionUtils';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
-  getTerrainCatalogue,
   calculateDistance,
   calculateDistanceModifiers
 } from '../utils/gameUtils';
 import {
-  createOrUpdateMapTile,
-  assignAdjacentTerrain,
-  getMapGridForColony,
-  getTile,
-  formatGridForAPI,
-  canTileBeExplored,
-  createOrUpdateUserMapTile,
-  getUserMapTileData
+  getMapGrid,
+  canExploreLocation,
+  getUserMapTilesInArea,
+  createUserMapTile,
+  createOrUpdateMapTile
 } from '../utils/mapUtils';
-import { ILootInfo } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
+import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
+import { ILootInfo } from '../models/Server/MapTile';
 
 // GET /api/colonies/:colonyId/map?x=0&y=0
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
@@ -35,11 +32,11 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
   }
 
   try {
-    await withSessionReadOnly(async (session) => {
-      // Get 5x5 grid centered on the coordinates, filtered for this colony's fog of war
-      const grid = await getMapGridForColony(colony.serverId, colony._id.toString(), centerX, centerY);
+    const result = await withSessionReadOnly(async (session) => {
+      // Get the 5x5 grid of tiles the colony knows about
+      const grid = await getMapGrid(colony._id.toString(), centerX, centerY, session);
 
-      // Get all exploration assignments in this 5x5 area
+      // Get assignments in this area
       const assignments = await Assignment.find({
         colonyId: colony._id,
         type: 'exploration',
@@ -48,59 +45,40 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
         'location.y': { $gte: centerY - 2, $lte: centerY + 2 }
       }).session(session);
 
-      const formattedGrid = await formatGridForAPI(grid, assignments, colony._id.toString(), centerX, centerY);
+      return { grid, assignments };
+    });
 
-      res.json({
-        center: { x: centerX, y: centerY },
-        grid: formattedGrid
-      });
+    res.json({
+      center: { x: centerX, y: centerY },
+      grid: result.grid,
+      assignments: result.assignments
     });
   } catch (err) {
-    logError('Error fetching map grid', err, { 
-      colonyId: req.colonyId, 
-      centerX, 
-      centerY 
-    });
+    logError('Error fetching map grid', err, { colonyId: req.colonyId, centerX, centerY });
     res.status(500).json({ error: 'Failed to fetch map grid' });
   }
 };
 
-// post /api/colonies/:colonyId/map/start?x=...&y=...&settlerId=...
-export const startExploration = async (req: Request, res: Response) => {
+// GET /api/colonies/:colonyId/map/preview?x=...&y=...&settlerId=...
+export const previewExploration = async (req: Request, res: Response) => {
   const { x, y, settlerId } = req.query as { x?: string; y?: string; settlerId?: string };
   const colony = req.colony;
 
-  if (!x || !y) {
-    return res.status(400).json({ error: 'Both x and y coordinates are required' });
+  if (!x || !y || !settlerId) {
+    return res.status(400).json({ error: 'x, y coordinates and settlerId are required' });
   }
 
   const tileX = parseInt(x);
   const tileY = parseInt(y);
 
-  if (isNaN(tileX) || isNaN(tileY)) {
-    return res.status(400).json({ error: 'Invalid coordinates' });
-  }
-
-  if (!settlerId) {
-    return res.status(400).json({ error: 'settlerId is required' });
-  }
-
-  if (!Types.ObjectId.isValid(settlerId)) {
-    return res.status(400).json({ error: 'Invalid settlerId' });
+  if (isNaN(tileX) || isNaN(tileY) || !Types.ObjectId.isValid(settlerId)) {
+    return res.status(400).json({ error: 'Invalid coordinates or settlerId' });
   }
 
   try {
-    const result = await withSession(async (session) => {
-      // Parallelize independent validation queries
-      const [settler, canExplore] = await Promise.all([
-        // Check if settler exists and is available
-        Settler.findById(settlerId).session(session),
-        
-        // Check if tile can be explored (optimized function)
-        canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY)
-      ]);
-
-      // Validate settler
+    const result = await withSessionReadOnly(async (session) => {
+      // Get settler
+      const settler = await Settler.findById(settlerId).session(session);
       if (!settler) {
         throw new Error('Settler not found');
       }
@@ -109,140 +87,69 @@ export const startExploration = async (req: Request, res: Response) => {
         throw new Error('Settler is not available');
       }
 
-      // Validate tile can be explored
+      // Check if location can be explored (must be adjacent to known tile or homestead)
+      const canExplore = await canExploreLocation(colony._id.toString(), tileX, tileY, session);
       if (!canExplore) {
-        throw new Error('Cannot explore this tile - it must be adjacent to already explored tiles or homestead');
+        throw new Error('Cannot explore this location - must be adjacent to known area');
       }
 
-      // Get or create the tile (MapTile remains authoritative for content)
-      let tile = await getTile(colony.serverId, tileX, tileY);
-      let isNewTile = false;
+      // Calculate exploration details
+      const mapTile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, session);
 
-      if (!tile) {
-        // Create new MapTile (another player hasn't explored this yet)
-        tile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, session);
-        isNewTile = true;
-        isNewTile = true;
+      let userMapTile : UserMapTileDoc | null = await UserMapTile.findOne({
+        colonyId: colony._id.toString(),
+        x: tileX,
+        y: tileY
+      }).session(session);
+
+      let lootMultiplier = userMapTile ? userMapTile.lootMultiplier : 1;
+      let explorationTime = userMapTile ? userMapTile.explorationTime : 0;
+      let distance = userMapTile?.distanceFromHomestead || 0;
+
+      if (!userMapTile) {
+        // Calculate exploration details
+        let distance = calculateDistance(colony.homesteadLocation.x, colony.homesteadLocation.y, tileX, tileY);
+        const distanceModifiers = calculateDistanceModifiers(distance);
+
+        const baseDuration = 300000; // 5 minutes
+        explorationTime = baseDuration * distanceModifiers.durationMultiplier;
+
+        lootMultiplier = distanceModifiers.lootMultiplier;
+        // Create UserMapTile when exploration starts (isExplored = false)
       }
-
-      // Calculate exploration adjustments based on settler and distance from homestead
-      const baseDuration = 300000; // 5 minutes base exploration time
+      // Calculate rewards without settler adjustments
       const baseRewards: Record<string, number> = {};
 
       // Add tile loot as base rewards
-      if (tile.loot) {
-        tile.loot.forEach(lootItem => {
-          baseRewards[lootItem.item] = lootItem.amount;
+      if (mapTile.loot) {
+        mapTile.loot.forEach(lootItem => {
+          baseRewards[lootItem.item] = lootItem.amount * lootMultiplier;
         });
       }
 
-      // Calculate distance from homestead for additional time and loot
-      const distance = calculateDistance(
-        colony.homesteadLocation.x,
-        colony.homesteadLocation.y,
-        tileX,
-        tileY
-      );
-      const distanceModifiers = calculateDistanceModifiers(distance);
-
-      const adjustments = calculateSettlerAdjustments(
-        baseDuration, 
-        baseRewards, 
-        settler, 
-        distanceModifiers
-      );
-
-      // Convert planned rewards to ILootInfo format for storage
-      const discoveredLoot: ILootInfo[] = Object.entries(adjustments.adjustedPlannedRewards).map(([item, amount]) => ({
-        item,
-        amount
-      }));
-
-      // Create or update UserMapTile with isExplored=false when exploration starts
-      // This allows assignments to be associated with locations on the map
-      // and stores the calculated loot amounts permanently
-      await createOrUpdateUserMapTile(
-        tile._id.toString(),
-        colony._id.toString(),
-        distance,
-        adjustments.adjustedDuration,
-        distanceModifiers.lootMultiplier,
-        discoveredLoot,
-        session
-      );
-
-      // Create adjacent tiles when exploring a completely new area
-      if (isNewTile) {
-        await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
-      }
-
-      // Create exploration record
-      const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
-      const exploration = new Assignment({
-        colonyId: colony._id,
-        settlerId,
-        type: 'exploration',
-        location: { x: tileX, y: tileY },
-        state: 'in-progress',
-        startedAt: new Date(),
-        completedAt,
-        plannedRewards: adjustments.adjustedPlannedRewards,
-        adjustments
-      });
-
-      // Parallelize final operations
-      const colonyManager = new ColonyManager(colony);
-      await Promise.all([
-        // Update settler status to busy
-        Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session }),
-        
-        // Save exploration record
-        exploration.save({ session }),
-        
-        // Log the exploration
-        colonyManager.addLogEntry(
-          session,
-          'exploration',
-          `${settler.name} started exploring ${tile.terrain} at coordinates (${tileX}, ${tileY}).`,
-          { tileX, tileY, settlerId, terrain: tile.terrain }
-        )
-      ]);
+      const adjustments = calculateSettlerAdjustments(explorationTime, baseRewards, settler)
 
       return {
-        exploration: exploration.toObject(),
-        adjustments,
-        tileInfo: {
-          x: tileX,
-          y: tileY,
-          terrain: tile.terrain,
-          icon: tile.icon,
-          explored: false, // Will be true when exploration completes
-          loot: tile.loot,
-          threat: tile.threat,
-          event: tile.event
+        coordinates: { x: tileX, y: tileY },
+        distance,
+        duration: adjustments.adjustedDuration,
+        rewards: adjustments.adjustedPlannedRewards,
+        settler: {
+          id: settler._id,
+          name: settler.name,
+          stats: settler.stats
         }
       };
     });
 
-    res.json({
-      ...result.exploration,
-      plannedRewards: enrichRewardsWithMetadata(result.exploration.plannedRewards),
-      adjustments: result.adjustments,
-      tileInfo: result.tileInfo
-    });
-
+    res.json(result);
   } catch (err) {
-    logError('Error starting exploration', err, { 
-      colonyId: req.colonyId, 
-      x: req.body.x, 
-      y: req.body.y,
-      settlerId: req.body.settlerId 
-    });
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to start exploration' });
+    logError('Error previewing exploration', err, { colonyId: req.colonyId, x, y, settlerId });
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to preview exploration' });
   }
 };
 
-// GET /api/colonies/:colonyId/map/preview-batch?settlerIds=id1,id2&coordinates=x1:y1,x2:y2  
+// GET /api/colonies/:colonyId/map/preview-batch?settlerIds=id1,id2&coordinates=x1:y1,x2:y2
 export const previewExplorationBatch = async (req: Request, res: Response) => {
   const { settlerIds, coordinates } = req.query as { settlerIds?: string; coordinates?: string };
   const colony = req.colony;
@@ -261,28 +168,23 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'At least one settlerId and one coordinate pair required' });
   }
 
-  // Validate all settler IDs
   const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
   if (invalidSettlerIds.length > 0) {
-    return res.status(400).json({ 
-      error: 'Invalid settler IDs provided',
-      invalidSettlerIds
-    });
+    return res.status(400).json({ error: 'Invalid settler IDs provided', invalidSettlerIds });
   }
 
   try {
     const results = await withSessionReadOnly(async (session) => {
-      // Fetch all settlers in bulk
+      // Get all settlers in one query
       const settlers = await Settler.find({ _id: { $in: settlerIdArray } }).session(session);
       const settlerMap = new Map(settlers.map(s => [s._id.toString(), s]));
 
       const results: Record<string, Record<string, any>> = {};
 
-      // Calculate previews for all combinations  
+      // Calculate previews for all combinations
       for (const settlerId of settlerIdArray) {
         const settler = settlerMap.get(settlerId);
-        if (!settler) {
-          logWarn('Settler not found in batch exploration preview', { settlerId, colonyId: req.colonyId });
+        if (!settler || settler.status !== 'idle') {
           continue;
         }
 
@@ -292,148 +194,34 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
           const coordKey = `${x}:${y}`;
 
           try {
-            // Check if tile can be explored
-            const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), x, y);
+            // Check if location can be explored
+            const canExplore = await canExploreLocation(colony._id.toString(), x, y, session);
             if (!canExplore) {
-              results[settlerId][coordKey] = { error: 'Cannot explore this tile - must be adjacent to already explored tiles or homestead' };
+              results[settlerId][coordKey] = { error: 'Cannot explore this location - must be adjacent to known area' };
               continue;
             }
 
-            // Check if tile exists
-            const tile = await getTile(colony.serverId, x, y);
-            let previewData;
+            // Calculate exploration details
+            const distance = calculateDistance(colony.homesteadLocation.x, colony.homesteadLocation.y, x, y);
+            const distanceModifiers = calculateDistanceModifiers(distance);
 
-            if (tile) {
-              // Existing tile - show actual loot and terrain info
-              const baseRewards: Record<string, number> = {};
-              if (tile.loot) {
-                tile.loot.forEach(lootItem => {
-                  baseRewards[lootItem.item] = lootItem.amount;
-                });
-              }
+            const baseDuration = 300000; // 5 minutes
+            const baseRewards = { scrap: 2, wood: 1, food: 1 }; // Default exploration rewards
 
-              // Check if we have stored UserMapTile data
-              const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
-              let adjustedRewards: Record<string, number>;
-              let distance: number;
-              let adjustedDuration: number;
-              let adjustmentEffects: string[];
-
-              if (userMapTile && userMapTile.discoveredLoot && userMapTile.discoveredLoot.length > 0) {
-                // Use stored calculated loot and values - no recalculation needed
-                adjustedRewards = {};
-                userMapTile.discoveredLoot.forEach(loot => {
-                  adjustedRewards[loot.item] = loot.amount;
-                });
-                distance = userMapTile.distanceFromHomestead;
-                adjustedDuration = userMapTile.explorationTime;
-                
-                // Generate adjustment effects for display
-                const baseDuration = 300000;
-                const timeMultiplier = adjustedDuration / baseDuration;
-                const distanceEffectsArray = [
-                  `Distance (${distance}): +${Math.round((timeMultiplier - 1) * 100)}% time`,
-                  `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
-                ];
-                
-                // Add settler adjustments on top of stored values
-                const settlerAdjustments = calculateSettlerAdjustments(
-                  adjustedDuration,
-                  adjustedRewards,
-                  settler,
-                  { durationMultiplier: 1, lootMultiplier: 1, distanceEffects: [] } // No additional distance effects
-                );
-                
-                adjustedRewards = settlerAdjustments.adjustedPlannedRewards;
-                adjustedDuration = settlerAdjustments.adjustedDuration;
-                
-                // Combine all effects into a flat array
-                adjustmentEffects = [
-                  ...distanceEffectsArray,
-                  ...settlerAdjustments.effects.speedEffects,
-                  ...settlerAdjustments.effects.lootEffects,
-                  ...settlerAdjustments.effects.traitEffects
-                ];
-                
-              } else {
-                throw new Error('No stored exploration data found for this tile. All tiles must have been explored at least once to have preview data.');
-              }
-
-              const terrainInfo = getTerrainCatalogue(tile.terrain);
-
-              // Check if this colony has already explored this tile
-              const alreadyExplored = userMapTile?.isExplored || false;
-
-              previewData = {
-                terrain: {
-                  type: tile.terrain,
-                  name: terrainInfo?.name || tile.terrain,
-                  description: terrainInfo?.description || 'Unknown terrain',
-                  icon: terrainInfo?.icon || 'GiQuestionMark'
-                },
-                loot: enrichRewardsWithMetadata(baseRewards),
-                adjustedLoot: enrichRewardsWithMetadata(adjustedRewards),
-                threat: tile.threat,
-                event: tile.event,
-                duration: adjustedDuration,
-                adjustments: adjustmentEffects,
-                alreadyExplored
-              };
-            } else {
-              // Unknown tile - show estimated info
-              const baseDuration = 300000;
-              const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
-              
-              // Calculate distance from homestead for additional time and loot
-              const distance = calculateDistance(
-                colony.homesteadLocation.x,
-                colony.homesteadLocation.y,
-                x,
-                y
-              );
-              const distanceModifiers = calculateDistanceModifiers(distance);
-              
-              const adjustments = calculateSettlerAdjustments(
-                baseDuration, 
-                estimatedRewards, 
-                settler, 
-                distanceModifiers
-              );
-
-              previewData = {
-                terrain: {
-                  type: 'unknown',
-                  name: 'Unknown Territory',
-                  description: 'This area has not been explored yet. Terrain and contents are unknown.',
-                  icon: 'GiQuestionMark'
-                },
-                estimatedLoot: enrichRewardsWithMetadata(estimatedRewards),
-                adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
-                estimatedDuration: adjustments.adjustedDuration,
-                adjustments: adjustments.effects,
-                alreadyExplored: false
-              };
-            }
+            const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
 
             results[settlerId][coordKey] = {
               coordinates: { x, y },
+              distance,
+              duration: adjustments.adjustedDuration,
+              rewards: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
               settler: {
                 id: settler._id,
                 name: settler.name,
-                stats: settler.stats,
-                skills: settler.skills,
-                traits: settler.traits
-              },
-              preview: previewData
+                stats: settler.stats
+              }
             };
-
           } catch (error) {
-            logError('Error calculating exploration preview for settler', error, { 
-              settlerId, 
-              x, 
-              y, 
-              colonyId: req.colonyId 
-            });
             results[settlerId][coordKey] = { error: 'Failed to calculate preview' };
           }
         }
@@ -449,183 +237,120 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/colonies/:colonyId/map/preview?x=...&y=...&settlerId=...
-export const previewExploration = async (req: Request, res: Response) => {
+// POST /api/colonies/:colonyId/map/start?x=...&y=...&settlerId=...
+export const startExploration = async (req: Request, res: Response) => {
   const { x, y, settlerId } = req.query as { x?: string; y?: string; settlerId?: string };
   const colony = req.colony;
 
-  if (!x || !y) {
-    return res.status(400).json({ error: 'Both x and y coordinates are required' });
+  if (!x || !y || !settlerId) {
+    return res.status(400).json({ error: 'x, y coordinates and settlerId are required' });
   }
 
   const tileX = parseInt(x);
   const tileY = parseInt(y);
 
-  if (isNaN(tileX) || isNaN(tileY)) {
-    return res.status(400).json({ error: 'Invalid coordinates' });
+  if (isNaN(tileX) || isNaN(tileY) || !Types.ObjectId.isValid(settlerId)) {
+    return res.status(400).json({ error: 'Invalid coordinates or settlerId' });
+  }
+  // Get settler
+  const settler = await Settler.findById(settlerId);
+  if (!settler) {
+    return res.status(404).json({ error: 'Settler not found' });
   }
 
-  if (!settlerId) {
-    return res.status(400).json({ error: 'settlerId is required' });
+  if (settler.status !== 'idle') {
+    return res.status(400).json({ error: 'Settler is not available' });
   }
 
-  if (!Types.ObjectId.isValid(settlerId)) {
-    return res.status(400).json({ error: 'Invalid settlerId' });
+  // Check if location can be explored
+  const canExplore = await canExploreLocation(colony._id.toString(), tileX, tileY);
+  if (!canExplore) {
+    return res.status(400).json({ error: 'Cannot explore this location - must be adjacent to known area' });
   }
-
   try {
-    const result = await withSessionReadOnly(async (session) => {
-      // Find settler
-      const settler = await Settler.findById(settlerId).session(session);
-      if (!settler) {
-        throw new Error('Settler not found');
-      }
+    const result = await withSession(async (session) => {
 
-      // Check if tile can be explored
-      const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY);
-      if (!canExplore) {
-        throw new Error('Cannot explore this tile - it must be adjacent to already explored tiles or homestead');
-      }
+      // Create or ensure MapTile exists
+      const mapTile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, session);
 
-      // Check if tile exists
-      const tile = await getTile(colony.serverId, tileX, tileY);
+      let userMapTile : UserMapTileDoc | null = await UserMapTile.findOne({
+        colonyId: colony._id.toString(),
+        x: tileX,
+        y: tileY
+      }).session(session);
 
-      let previewData;
-
-      if (tile) {
-        // Existing tile - show actual loot and terrain info
-        const baseRewards: Record<string, number> = {};
-        if (tile.loot) {
-          tile.loot.forEach(lootItem => {
-            baseRewards[lootItem.item] = lootItem.amount;
-          });
-        }
-
-        // Check if we have stored UserMapTile data
-        const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
-        let adjustedRewards: Record<string, number>;
-        let distance: number;
-        let adjustedDuration: number;
-        let adjustmentEffects: string[];
-
-        if (userMapTile && userMapTile.discoveredLoot && userMapTile.discoveredLoot.length > 0) {
-          // Use stored calculated loot and values - no recalculation needed
-          adjustedRewards = {};
-          userMapTile.discoveredLoot.forEach(loot => {
-            adjustedRewards[loot.item] = loot.amount;
-          });
-          distance = userMapTile.distanceFromHomestead;
-          adjustedDuration = userMapTile.explorationTime;
-          
-          // Generate adjustment effects for display
-          const baseDuration = 300000;
-          const timeMultiplier = adjustedDuration / baseDuration;
-          const distanceEffectsArray = [
-            `Distance (${distance}): +${Math.round((timeMultiplier - 1) * 100)}% time`,
-            `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
-          ];
-          
-          // Add settler adjustments on top of stored values
-          const settlerAdjustments = calculateSettlerAdjustments(
-            adjustedDuration,
-            adjustedRewards,
-            settler,
-            { durationMultiplier: 1, lootMultiplier: 1, distanceEffects: [] } // No additional distance effects
-          );
-          
-          adjustedRewards = settlerAdjustments.adjustedPlannedRewards;
-          adjustedDuration = settlerAdjustments.adjustedDuration;
-          
-          // Combine all effects into a flat array
-          adjustmentEffects = [
-            ...distanceEffectsArray,
-            ...settlerAdjustments.effects.speedEffects,
-            ...settlerAdjustments.effects.lootEffects,
-            ...settlerAdjustments.effects.traitEffects
-          ];
-          
-        } else {
-          throw new Error('No stored exploration data found for this tile. All tiles must have been explored at least once to have preview data.');
-        }
-
-        const terrainInfo = getTerrainCatalogue(tile.terrain);
-
-        // Check if this colony has already explored this tile using UserMapTile
-        const alreadyExplored = userMapTile?.isExplored || false;
-
-        previewData = {
-          terrain: {
-            type: tile.terrain,
-            name: terrainInfo?.name || tile.terrain,
-            description: terrainInfo?.description || 'Unknown terrain',
-            icon: terrainInfo?.icon || 'GiQuestionMark'
-          },
-          loot: enrichRewardsWithMetadata(baseRewards),
-          adjustedLoot: enrichRewardsWithMetadata(adjustedRewards),
-          threat: tile.threat,
-          event: tile.event,
-          duration: adjustedDuration,
-          adjustments: adjustmentEffects,
-          alreadyExplored
-        };
-      } else {
-        // Unknown tile - show estimated info
-        const baseDuration = 300000;
-        const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
-        
-        // Calculate distance from homestead for additional time and loot
-        const distance = calculateDistance(
-          colony.homesteadLocation.x,
-          colony.homesteadLocation.y,
-          tileX,
-          tileY
-        );
+      if (!userMapTile) {
+        // Calculate exploration details
+        const distance = calculateDistance(colony.homesteadLocation.x, colony.homesteadLocation.y, tileX, tileY);
         const distanceModifiers = calculateDistanceModifiers(distance);
-        
-        const adjustments = calculateSettlerAdjustments(
-          baseDuration, 
-          estimatedRewards, 
-          settler, 
-          distanceModifiers
-        );
 
-        previewData = {
-          terrain: {
-            type: 'unknown',
-            name: 'Unknown Territory',
-            description: 'This area has not been explored yet. Terrain and contents are unknown.',
-            icon: 'GiQuestionMark'
-          },
-          estimatedLoot: enrichRewardsWithMetadata(estimatedRewards),
-          adjustedEstimatedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
-          estimatedDuration: adjustments.adjustedDuration,
-          adjustments: adjustments.effects,
-          alreadyExplored: false
-        };
+        const baseDuration = 300000; // 5 minutes
+        const distanceDuration = baseDuration * distanceModifiers.durationMultiplier;
+
+        // Create UserMapTile when exploration starts (isExplored = false)
+
+        userMapTile = await createUserMapTile(colony._id.toString(), mapTile._id.toString(), mapTile.x, mapTile.y, mapTile.terrain, distance, distanceDuration, distanceModifiers.lootMultiplier, false, session);
+      }
+      // Calculate rewards without settler adjustments
+      const baseRewards: Record<string, number> = {};
+
+      // Add tile loot as base rewards
+      if (mapTile.loot) {
+        mapTile.loot.forEach(lootItem => {
+          baseRewards[lootItem.item] = lootItem.amount * userMapTile.lootMultiplier;
+        });
       }
 
-      return {
-        coordinates: { x: tileX, y: tileY },
-        settler: {
-          id: settler._id,
-          name: settler.name,
-          stats: settler.stats,
-          skills: settler.skills,
-          traits: settler.traits
-        },
-        preview: previewData
-      };
+      const adjustments = calculateSettlerAdjustments(userMapTile.explorationTime, baseRewards, settler)
+
+    // Convert planned rewards to ILootInfo format for storage
+    const discoveredLoot: ILootInfo[] = Object.entries(adjustments.adjustedPlannedRewards).map(([item, amount]) => ({
+      item,
+      amount
+    }));
+
+    // Create assignment
+    const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
+    const assignment = new Assignment({
+      colonyId: colony._id,
+      settlerId,
+      type: 'exploration',
+      location: { x: tileX, y: tileY },
+      state: 'in-progress',
+      startedAt: new Date(),
+      completedAt,
+      plannedRewards: adjustments.adjustedPlannedRewards,
+      adjustments
     });
 
-    res.json(result);
+    // Update settler and save assignment
+    await executeInParallel([
+      (s) => Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session: s }),
+      (s) => assignment.save({ session: s })
+    ], session);
 
-  } catch (err) {
-    logError('Error previewing exploration', err, { 
-      colonyId: req.colonyId, 
-      x, 
-      y, 
-      settlerId 
-    });
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to preview exploration' });
-  }
+    // Log exploration start
+    const colonyManager = new ColonyManager(colony);
+    await colonyManager.addLogEntry(
+      session,
+      'exploration',
+      `${settler.name} started exploring coordinates (${tileX}, ${tileY}).`,
+      { tileX, tileY, settlerId }
+    );
+
+    return {
+      assignment: assignment.toObject(),
+      adjustments
+    };
+  });
+
+  res.json({
+    ...result.assignment,
+    plannedRewards: enrichRewardsWithMetadata(result.assignment.plannedRewards)
+  });
+
+} catch (err) {
+  logError('Error starting exploration', err, { colonyId: req.colonyId, x, y, settlerId });
+  res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to start exploration' });
+}
 };

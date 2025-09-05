@@ -1,66 +1,165 @@
-// utils/mapUtils.ts
 import { ClientSession } from 'mongoose';
-import { 
-  getRandomTerrain, 
-  generateTileLoot, 
-  generateTileThreat, 
+import {
+  getRandomTerrain,
+  generateTileLoot,
+  generateTileThreat,
   generateTileEvent,
   getAdjacentCoordinates,
-  getTerrainCatalogue 
+  getTerrainCatalogue
 } from './gameUtils';
 import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
 import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
-import { AssignmentDoc } from '../models/Player/Assignment';
+import { ColonyDoc } from '../models/Player/Colony';
 
 /**
- * Create or update a map tile with terrain and generated content
+ * Get a 5x5 grid for a colony centered on coordinates
+ * Returns only the tiles the colony knows about (has UserMapTiles for)
+ */
+export async function getMapGrid(
+  colonyId: string,
+  centerX: number,
+  centerY: number,
+  session?: ClientSession
+): Promise<any> {
+  const gridSize = 5;
+  const offset = Math.floor(gridSize / 2); // 2 for 5x5
+
+  // Get all UserMapTiles for this colony in the 5x5 area
+  const userTiles = await getUserMapTilesInArea(
+    colonyId,
+    centerX - offset, centerX + offset,
+    centerY - offset, centerY + offset,
+    session
+  );
+
+  // Create coordinate lookup
+  const tileMap = new Map<string, any>();
+  userTiles.forEach(userTile => {
+    const mapTile = userTile.serverTile as MapTileDoc;
+    const key = `${mapTile.x},${mapTile.y}`;
+    tileMap.set(key, {
+      position: {
+        row: mapTile.y - (centerY - offset),
+        col: mapTile.x - (centerX - offset)
+      },
+      explored: userTile.isExplored,
+      canExplore: true, // Can always re-explore known tiles
+      x: mapTile.x,
+      y: mapTile.y,
+      terrain: userTile.terrain,
+      loot: mapTile.loot || [],
+      threat: mapTile.threat,
+      icon: mapTile.icon,
+      event: mapTile.event
+    });
+  });
+
+  // Build 5x5 grid
+  const grid = {
+    size: gridSize,
+    tiles: [] as any[][]
+  };
+
+  for (let row = 0; row < gridSize; row++) {
+    const gridRow = [];
+    for (let col = 0; col < gridSize; col++) {
+      const x = centerX - offset + col;
+      const y = centerY - offset + row;
+      const key = `${x},${y}`;
+
+      const knownTile = tileMap.get(key);
+      if (knownTile) {
+        gridRow.push(knownTile);
+      } else {
+        // Check if this unknown location can be explored (adjacent to known tiles)
+        const canExplore = await canExploreLocation(colonyId, x, y, session);
+
+        gridRow.push({
+          position: { row, col },
+          explored: false,
+          canExplore,
+          x,
+          y
+        });
+      }
+    }
+    grid.tiles.push(gridRow);
+  }
+
+  return grid;
+}
+
+/**
+ * Check if a location can be explored
+ * Must be adjacent to a known tile (UserMapTile) or be the homestead
+ */
+export async function canExploreLocation(
+  colonyId: string,
+  x: number,
+  y: number,
+  session?: ClientSession
+): Promise<boolean> {
+
+  // Check if adjacent to any known tiles
+  const adjacentCoords = getAdjacentCoordinates(x, y);
+  const adjacentConditions = adjacentCoords.map(c => ({ x: c.x, y: c.y }));
+
+  // Single query to check if any adjacent coordinates have UserMapTiles
+  const matchQuery = {
+    colonyId,
+    isExplored: true,
+    $or: adjacentConditions
+  };
+
+  const foundTile = session
+    ? await UserMapTile.findOne(matchQuery).session(session)
+    : await UserMapTile.findOne(matchQuery);
+
+  return !!foundTile;
+}
+
+/**
+ * Create a MapTile if it doesn't exist
  */
 export async function createOrUpdateMapTile(
   serverId: string,
   x: number,
   y: number,
-  session: ClientSession,
-  options: {
-    terrain?: string;
-    colony?: string;
-  } = {}
+    session: ClientSession,
+  colony?: ColonyDoc,
 ): Promise<MapTileDoc> {
-  const {
-    terrain = getRandomTerrain(),
-    colony
-  } = options;
-
   // Try to find existing tile first
-  const query = { serverId, x, y };
-  let existingTile = await MapTile.findOne(query).session(session);
+  const existingTile = await MapTile.findOne({ serverId, x, y }).session(session);
 
   if (existingTile) {
-    // Update existing tile only if colony info needs to be set
     if (colony && !existingTile.colony) {
-      existingTile.colony = colony as any;
-      existingTile.exploredAt = new Date();
-      return await existingTile.save({ session });
+      // Note: A tile will never change from colony to non-colony.
+      // If other properties of MapTile can change over time (loot, threat, event), 
+      // they should also be copied to UserMapTile at the time of exploration.
+      existingTile.colony = colony._id;
+      existingTile.terrain = 'colony'; // Update terrain to colony if assigned
+      existingTile.icon = 'GiKnightBanner';
+      await existingTile.save({ session });
     }
     return existingTile;
   }
 
-  // Generate tile content
-  const loot: ILootInfo[] = generateTileLoot(terrain);
-  const threat: IThreatInfo | null = generateTileThreat(terrain);
-  const event: IEventInfo | null = generateTileEvent(terrain);
-  const icon = colony ? "GiVillage" : getTerrainCatalogue(terrain)?.icon || '❓';
+  // Create new tile with random terrain and content
+  const terrain = colony ? 'colony' : getRandomTerrain();
+  const loot: ILootInfo[] | null = colony ? null : generateTileLoot(terrain);
+  const threat: IThreatInfo | null = colony ? null : generateTileThreat(terrain);
+  const event: IEventInfo | null = colony ? null : generateTileEvent(terrain);
 
   const tileData = {
     serverId,
     x,
     y,
     terrain,
-    icon,
+    icon: colony ? 'GiKnightBanner' : getTerrainCatalogue(terrain)?.icon || '❓',
     loot,
     threat,
     event,
-    exploredAt: new Date(),
-    ...(colony && { colony })
+    colony: colony?._id || null,
   };
 
   const tile = new MapTile(tileData);
@@ -68,454 +167,57 @@ export async function createOrUpdateMapTile(
 }
 
 /**
- * Assign terrain to adjacent tiles when a tile is explored
- * Optimized to use bulk operations for better performance
+ * Get UserMapTiles in a rectangular area
  */
-export async function assignAdjacentTerrain(
-  serverId: string,
-  centerX: number,
-  centerY: number,
-  session: ClientSession
-): Promise<MapTileDoc[]> {
-  const adjacentCoords = getAdjacentCoordinates(centerX, centerY);
-  
-  // First, check which tiles already exist to avoid duplicates
-  const existingTilesQuery = {
-    serverId,
-    $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
-  };
-  
-  const existingTiles = await MapTile.find(existingTilesQuery).session(session);
-    
-  const existingCoordsSet = new Set(
-    existingTiles.map(tile => `${tile.x},${tile.y}`)
-  );
-  
-  // Filter out coordinates that already have tiles
-  const newCoords = adjacentCoords.filter(
-    coord => !existingCoordsSet.has(`${coord.x},${coord.y}`)
-  );
-  
-  if (newCoords.length === 0) {
-    return existingTiles; // All tiles already exist
-  }
-  
-  // Generate tile data for bulk creation
-  const tilesToCreate = newCoords.map(coord => {
-    const terrain = getRandomTerrain();
-    const loot: ILootInfo[] = generateTileLoot(terrain);
-    const threat: IThreatInfo | null = generateTileThreat(terrain);
-    const event: IEventInfo | null = generateTileEvent(terrain);
-    const icon = getTerrainCatalogue(terrain)?.icon || '❓';
-    
-    return {
-      serverId,
-      x: coord.x,
-      y: coord.y,
-      terrain,
-      icon,
-      loot,
-      threat,
-      event,
-      exploredAt: new Date()
-    };
-  });
-  
-  // Bulk create new tiles
-  const createdTiles = await MapTile.create(tilesToCreate, { session, ordered: true });
-  
-  return [...existingTiles, ...createdTiles];
-}
-
-/**
- * Get a 5x5 grid of tiles centered on x,y coordinates
- */
-export async function getMapGrid(
-  serverId: string,
-  centerX: number,
-  centerY: number
-): Promise<(MapTileDoc | null)[][]> {
-  const gridSize = 5;
-  const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
-  
-  const grid: (MapTileDoc | null)[][] = [];
-  
-  for (let row = 0; row < gridSize; row++) {
-    const gridRow: (MapTileDoc | null)[] = [];
-    
-    for (let col = 0; col < gridSize; col++) {
-      const x = centerX - offset + col;
-      const y = centerY - offset + row;
-      
-      const query = { serverId, x, y };
-      const tile = await MapTile.findOne(query);
-      
-      gridRow.push(tile);
-    }
-    
-    grid.push(gridRow);
-  }
-  
-  return grid;
-}
-
-/**
- * Get all tiles in a specific area (for bulk operations)
- */
-export async function getTilesInArea(
-  serverId: string,
+export async function getUserMapTilesInArea(
+  colonyId: string,
   minX: number,
   maxX: number,
   minY: number,
-  maxY: number
-): Promise<MapTileDoc[]> {
+  maxY: number,
+  session?: ClientSession
+): Promise<UserMapTileDoc[]> {
+  // Get all UserMapTiles for this colony, populated with MapTile data
   const query = {
-    serverId,
-    x: { $gte: minX, $lte: maxX },
-    y: { $gte: minY, $lte: maxY }
-  };
-
-  return await MapTile.find(query);
-}
-
-/**
- * Check if a tile exists and is explored
- */
-export async function isTileExplored(
-  serverId: string,
-  x: number,
-  y: number
-): Promise<boolean> {
-  const query = { serverId, x, y };
-  const tile = await MapTile.findOne(query);
-  
-  return !!tile;
-}
-
-/**
- * Get tile with safe null handling
- */
-export async function getTile(
-  serverId: string,
-  x: number,
-  y: number
-): Promise<MapTileDoc | null> {
-  const query = { serverId, x, y };
-  return await MapTile.findOne(query);
-}
-
-/**
- * Check if a tile can be explored (must be adjacent to an explored tile or homestead, or be re-explorable)
- * Optimized to use bulk queries instead of sequential lookups
- */
-export async function canTileBeExplored(
-  serverId: string,
-  colonyId: string,
-  x: number,
-  y: number
-): Promise<boolean> {
-  // Check if tile exists
-  const existingTile = await getTile(serverId, x, y);
-  
-  if (existingTile) {
-    // If tile exists, check if colony has already explored it
-    const userMapTile = await getUserMapTileData(existingTile._id.toString(), colonyId);
-    
-    if (userMapTile) {
-      if (userMapTile.isExplored) {
-        return true; // Can re-explore completed tiles
-      } else {
-        return false; // Already exploring this tile (in progress)
-      }
-    } else {
-      // Colony hasn't explored this tile yet, check adjacency requirements
-      // (Skip adjacency check since tile exists - it was created by someone else's exploration)
-      return true;
-    }
-  }
-
-  // Tile doesn't exist - check adjacency requirements for new exploration
-  const adjacentCoords = getAdjacentCoordinates(x, y);
-  
-  // Bulk query: Get all adjacent tiles that exist
-  const adjacentTilesQuery = {
-    serverId,
-    $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
-  };
-  
-  const adjacentTiles = await MapTile.find(adjacentTilesQuery);
-
-  if (adjacentTiles.length === 0) {
-    return false; // No adjacent tiles exist
-  }
-
-  // Bulk query: Check if this colony has explored any of the adjacent tiles
-  const adjacentTileIds = adjacentTiles.map(tile => tile._id.toString());
-  const exploredTilesQuery = {
     colonyId,
-    serverTile: { $in: adjacentTileIds },
-    isExplored: true // Only consider actually explored tiles
+    'serverTile.x': { $gte: minX, $lte: maxX },
+    'serverTile.y': { $gte: minY, $lte: maxY }
   };
-  
-  const exploredTile = await UserMapTile.findOne(exploredTilesQuery);
 
-  return exploredTile !== null; // True if any adjacent tile is explored by this colony
+  return session
+    ? await UserMapTile.find(query).populate('serverTile').session(session)
+    : await UserMapTile.find(query).populate('serverTile');
 }
 
 /**
- * Get a 5x5 grid of tiles centered on x,y coordinates
- * Returns all tiles that exist, regardless of exploration status by colony
- * OPTIMIZED VERSION: Uses bulk queries instead of individual tile lookups
+ * Create a UserMapTile when a colony discovers a new location
+ * This should be called when exploration starts (isExplored = false)
  */
-export async function getMapGridForColony(
-  serverId: string,
+export async function createUserMapTile(
   colonyId: string,
-  centerX: number,
-  centerY: number
-): Promise<(MapTileDoc | null)[][]> {
-  const gridSize = 5;
-  const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
-  
-  // Calculate grid boundaries for bulk query
-  const minX = centerX - offset;
-  const maxX = centerX + offset;
-  const minY = centerY - offset;
-  const maxY = centerY + offset;
-  
-  // Bulk query: Get all tiles in the 5x5 area (regardless of exploration status)
-  const allTiles = await getTilesInArea(serverId, minX, maxX, minY, maxY);
-  
-  // Create a lookup map for tiles by coordinates
-  const tileMap = new Map<string, MapTileDoc>();
-  
-  allTiles.forEach(tile => {
-    const key = `${tile.x},${tile.y}`;
-    tileMap.set(key, tile);
-  });
-  
-  // Build the grid using lookup maps
-  const grid: (MapTileDoc | null)[][] = [];
-  
-  for (let row = 0; row < gridSize; row++) {
-    const gridRow: (MapTileDoc | null)[] = [];
-    
-    for (let col = 0; col < gridSize; col++) {
-      const x = centerX - offset + col;
-      const y = centerY - offset + row;
-      const key = `${x},${y}`;
-      
-      const tile = tileMap.get(key);
-      gridRow.push(tile || null); // Return tile if exists, null otherwise
-    }
-    
-    grid.push(gridRow);
-  }
-  
-  return grid;
-}
-
-/**
- * Transform grid to a more API-friendly format
- * Now properly handles exploration status and assignment matching
- */
-export async function formatGridForAPI(
-  grid: (MapTileDoc | null)[][],
-  assignments: AssignmentDoc[], // all assignments for tiles in this grid
-  colonyId: string,
-  centerX: number,
-  centerY: number
-): Promise<any> {
-  const gridSize = grid.length;
-  const offset = Math.floor(gridSize / 2);
-  
-  // Get all tiles that exist in the grid for bulk exploration status query
-  const existingTiles = grid.flat().filter(tile => tile !== null) as MapTileDoc[];
-  const tileIds = existingTiles.map(tile => tile._id.toString());
-  
-  // Bulk query: Get exploration status for all tiles in the grid
-  const exploredTilesQuery = {
-    colonyId,
-    serverTile: { $in: tileIds },
-    isExplored: true
-  };
-  
-  const exploredTiles = await UserMapTile.find(exploredTilesQuery);
-  
-  // Create a lookup set for explored tile IDs
-  const exploredTileIds = new Set(
-    exploredTiles.map(userTile => userTile.serverTile.toString())
-  );
-
-  return {
-    size: gridSize,
-    tiles: grid.map((row, rowIndex) =>
-      row.map((tile, colIndex) => {
-        // Calculate world coordinates for this grid position
-        const worldX = centerX - offset + colIndex;
-        const worldY = centerY - offset + rowIndex;
-        
-        // Check if this tile has been explored by this colony
-        const explored = tile ? exploredTileIds.has(tile._id.toString()) : false;
-
-        // Match assignments using world coordinates
-        const tileAssignments = assignments.filter(a => 
-          a.location && a.location.x === worldX && a.location.y === worldY
-        );
-
-        // Tiles can be re-explored, so check if adjacent tiles are explored by this colony
-        const canExplore = (
-          (rowIndex > 0 && grid[rowIndex - 1][colIndex] && exploredTileIds.has(grid[rowIndex - 1][colIndex]!._id.toString())) ||
-          (rowIndex < gridSize - 1 && grid[rowIndex + 1][colIndex] && exploredTileIds.has(grid[rowIndex + 1][colIndex]!._id.toString())) ||
-          (colIndex > 0 && grid[rowIndex][colIndex - 1] && exploredTileIds.has(grid[rowIndex][colIndex - 1]!._id.toString())) ||
-          (colIndex < row.length - 1 && grid[rowIndex][colIndex + 1] && exploredTileIds.has(grid[rowIndex][colIndex + 1]!._id.toString())) ||
-          explored // If tile is already explored by this colony, it can be re-explored
-        );
-
-        return {
-          position: { row: rowIndex, col: colIndex },
-          x: worldX,
-          y: worldY,
-          assignments: tileAssignments, // Always show assignments, regardless of exploration
-          ...(tile && explored ? {
-            // Only show tile details if explored by this colony (fog of war)
-            terrain: { type: tile.terrain, ...(getTerrainCatalogue(tile.terrain) || {}) },
-            loot: tile.loot,
-            threat: tile.threat,
-            icon: tile.icon,
-            event: tile.event,
-            exploredAt: tile.exploredAt,
-            colony: tile.colony
-          } : {}),
-          explored,
-          canExplore
-        };
-      })
-    )
-  };
-}
-/**
- * UserMapTile utility functions for efficient user-specific exploration tracking
- */
-
-/**
- * Create or update a UserMapTile record for a colony starting to explore a tile
- * Handles re-exploration by updating existing records
- */
-export async function createOrUpdateUserMapTile(
-  serverTileId: string,
-  colonyId: string,
-  distanceFromHomestead: number,
+  mapTileId: string,
+  x: number,
+  y: number,
+  terrain: string,
+  distance: number,
   explorationTime: number,
   lootMultiplier: number,
-  discoveredLoot: ILootInfo[],
+  isExplored: boolean,
   session: ClientSession
 ): Promise<UserMapTileDoc> {
-  // Check if UserMapTile already exists
-  const existingUserTile = await getUserMapTileData(serverTileId, colonyId);
-  
-  if (existingUserTile) {
-    if (!existingUserTile.isExplored) {
-      throw new Error('Cannot start exploration - tile is already being explored');
-    }
-    
-    // Update existing UserMapTile for re-exploration
-    existingUserTile.exploredAt = new Date();
-    existingUserTile.isExplored = false; // Reset to false for new exploration
-    existingUserTile.distanceFromHomestead = distanceFromHomestead;
-    existingUserTile.explorationTime = explorationTime;
-    existingUserTile.lootMultiplier = lootMultiplier;
-    existingUserTile.discoveredLoot = discoveredLoot;
-    
-    return await existingUserTile.save({ session });
-  }
-  
-  // Create new UserMapTile
   const userTileData = {
-    serverTile: serverTileId,
     colonyId,
-    exploredAt: new Date(),
-    isExplored: false, // Will be set to true when exploration completes
-    distanceFromHomestead,
+    serverTile: mapTileId,
+    x,
+    y,
+    terrain,
+    distanceFromHomestead: distance,
     explorationTime,
     lootMultiplier,
-    discoveredLoot // Store the actual calculated loot amounts
+    isExplored,
+    exploredAt: new Date()
   };
 
   const userTile = new UserMapTile(userTileData);
   return await userTile.save({ session });
 }
-
-/**
- * Create a UserMapTile record for a colony starting to explore a tile
- * @deprecated Use createOrUpdateUserMapTile instead to handle re-exploration
- */
-export async function createUserMapTile(
-  serverTileId: string,
-  colonyId: string,
-  distanceFromHomestead: number,
-  explorationTime: number,
-  lootMultiplier: number,
-  discoveredLoot: ILootInfo[],
-  session: ClientSession
-): Promise<UserMapTileDoc> {
-  return createOrUpdateUserMapTile(
-    serverTileId,
-    colonyId,
-    distanceFromHomestead,
-    explorationTime,
-    lootMultiplier,
-    discoveredLoot,
-    session
-  );
-}
-
-/**
- * Check if a colony has explored a specific tile using UserMapTile
- * Now checks both existence AND isExplored flag
- */
-export async function hasColonyExploredTile(
-  serverTileId: string,
-  colonyId: string
-): Promise<boolean> {
-  const query = { serverTile: serverTileId, colonyId, isExplored: true };
-  const userTile = await UserMapTile.findOne(query);
-  
-  return userTile !== null;
-}
-
-/**
- * Get all UserMapTiles for a colony (their exploration history)
- * Only returns actually explored tiles (isExplored: true)
- */
-export async function getColonyExploredTiles(
-  colonyId: string
-): Promise<UserMapTileDoc[]> {
-  const query = { colonyId, isExplored: true };
-  return await UserMapTile.find(query).populate('serverTile');
-}
-
-/**
- * Get UserMapTile data for a colony and tile (for accessing stored distance/time/loot values)
- */
-export async function getUserMapTileData(
-  serverTileId: string,
-  colonyId: string
-): Promise<UserMapTileDoc | null> {
-  const query = { serverTile: serverTileId, colonyId };
-  return await UserMapTile.findOne(query);
-}
-
-/**
- * Mark a UserMapTile as fully explored (used when exploration completes)
- */
-export async function markUserMapTileExplored(
-  serverTileId: string,
-  colonyId: string,
-  session: ClientSession
-): Promise<UserMapTileDoc | null> {
-  const query = { serverTile: serverTileId, colonyId };
-  const update = { isExplored: true, exploredAt: new Date() };
-  
-  return await UserMapTile.findOneAndUpdate(query, update, { new: true }).session(session);
-}
-
