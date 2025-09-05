@@ -19,30 +19,27 @@ export async function createOrUpdateMapTile(
   serverId: string,
   x: number,
   y: number,
+  session: ClientSession,
   options: {
     terrain?: string;
     colony?: string;
-    session?: ClientSession;
   } = {}
 ): Promise<MapTileDoc> {
   const {
     terrain = getRandomTerrain(),
-    colony,
-    session
+    colony
   } = options;
 
   // Try to find existing tile first
   const query = { serverId, x, y };
-  let existingTile = session 
-    ? await MapTile.findOne(query).session(session)
-    : await MapTile.findOne(query);
+  let existingTile = await MapTile.findOne(query).session(session);
 
   if (existingTile) {
     // Update existing tile only if colony info needs to be set
     if (colony && !existingTile.colony) {
       existingTile.colony = colony as any;
       existingTile.exploredAt = new Date();
-      return session ? await existingTile.save({ session }) : await existingTile.save();
+      return await existingTile.save({ session });
     }
     return existingTile;
   }
@@ -66,12 +63,8 @@ export async function createOrUpdateMapTile(
     ...(colony && { colony })
   };
 
-  if (session) {
-    const tile = new MapTile(tileData);
-    return await tile.save({ session });
-  } else {
-    return await MapTile.create(tileData);
-  }
+  const tile = new MapTile(tileData);
+  return await tile.save({ session });
 }
 
 /**
@@ -82,7 +75,7 @@ export async function assignAdjacentTerrain(
   serverId: string,
   centerX: number,
   centerY: number,
-  session?: ClientSession
+  session: ClientSession
 ): Promise<MapTileDoc[]> {
   const adjacentCoords = getAdjacentCoordinates(centerX, centerY);
   
@@ -92,9 +85,7 @@ export async function assignAdjacentTerrain(
     $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
   };
   
-  const existingTiles = session 
-    ? await MapTile.find(existingTilesQuery).session(session)
-    : await MapTile.find(existingTilesQuery);
+  const existingTiles = await MapTile.find(existingTilesQuery).session(session);
     
   const existingCoordsSet = new Set(
     existingTiles.map(tile => `${tile.x},${tile.y}`)
@@ -131,9 +122,7 @@ export async function assignAdjacentTerrain(
   });
   
   // Bulk create new tiles
-  const createdTiles = session 
-    ? await MapTile.create(tilesToCreate, { session, ordered: true })
-    : await MapTile.create(tilesToCreate);
+  const createdTiles = await MapTile.create(tilesToCreate, { session, ordered: true });
   
   return [...existingTiles, ...createdTiles];
 }
@@ -144,8 +133,7 @@ export async function assignAdjacentTerrain(
 export async function getMapGrid(
   serverId: string,
   centerX: number,
-  centerY: number,
-  session?: ClientSession
+  centerY: number
 ): Promise<(MapTileDoc | null)[][]> {
   const gridSize = 5;
   const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
@@ -160,9 +148,7 @@ export async function getMapGrid(
       const y = centerY - offset + row;
       
       const query = { serverId, x, y };
-      const tile = session 
-        ? await MapTile.findOne(query).session(session)
-        : await MapTile.findOne(query);
+      const tile = await MapTile.findOne(query);
       
       gridRow.push(tile);
     }
@@ -181,8 +167,7 @@ export async function getTilesInArea(
   minX: number,
   maxX: number,
   minY: number,
-  maxY: number,
-  session?: ClientSession
+  maxY: number
 ): Promise<MapTileDoc[]> {
   const query = {
     serverId,
@@ -190,9 +175,7 @@ export async function getTilesInArea(
     y: { $gte: minY, $lte: maxY }
   };
 
-  return session 
-    ? await MapTile.find(query).session(session)
-    : await MapTile.find(query);
+  return await MapTile.find(query);
 }
 
 /**
@@ -201,13 +184,10 @@ export async function getTilesInArea(
 export async function isTileExplored(
   serverId: string,
   x: number,
-  y: number,
-  session?: ClientSession
+  y: number
 ): Promise<boolean> {
   const query = { serverId, x, y };
-  const tile = session 
-    ? await MapTile.findOne(query).session(session)
-    : await MapTile.findOne(query);
+  const tile = await MapTile.findOne(query);
   
   return !!tile;
 }
@@ -218,13 +198,10 @@ export async function isTileExplored(
 export async function getTile(
   serverId: string,
   x: number,
-  y: number,
-  session?: ClientSession
+  y: number
 ): Promise<MapTileDoc | null> {
   const query = { serverId, x, y };
-  return session 
-    ? await MapTile.findOne(query).session(session)
-    : await MapTile.findOne(query);
+  return await MapTile.findOne(query);
 }
 
 /**
@@ -235,15 +212,14 @@ export async function canTileBeExplored(
   serverId: string,
   colonyId: string,
   x: number,
-  y: number,
-  session?: ClientSession
+  y: number
 ): Promise<boolean> {
   // Check if tile exists
-  const existingTile = await getTile(serverId, x, y, session);
+  const existingTile = await getTile(serverId, x, y);
   
   if (existingTile) {
     // If tile exists, check if colony has already explored it
-    const userMapTile = await getUserMapTileData(existingTile._id.toString(), colonyId, session);
+    const userMapTile = await getUserMapTileData(existingTile._id.toString(), colonyId);
     
     if (userMapTile) {
       if (userMapTile.isExplored) {
@@ -267,9 +243,7 @@ export async function canTileBeExplored(
     $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
   };
   
-  const adjacentTiles = session 
-    ? await MapTile.find(adjacentTilesQuery).session(session)
-    : await MapTile.find(adjacentTilesQuery);
+  const adjacentTiles = await MapTile.find(adjacentTilesQuery);
 
   if (adjacentTiles.length === 0) {
     return false; // No adjacent tiles exist
@@ -283,9 +257,7 @@ export async function canTileBeExplored(
     isExplored: true // Only consider actually explored tiles
   };
   
-  const exploredTile = session 
-    ? await UserMapTile.findOne(exploredTilesQuery).session(session)
-    : await UserMapTile.findOne(exploredTilesQuery);
+  const exploredTile = await UserMapTile.findOne(exploredTilesQuery);
 
   return exploredTile !== null; // True if any adjacent tile is explored by this colony
 }
@@ -299,8 +271,7 @@ export async function getMapGridForColony(
   serverId: string,
   colonyId: string,
   centerX: number,
-  centerY: number,
-  session?: ClientSession
+  centerY: number
 ): Promise<(MapTileDoc | null)[][]> {
   const gridSize = 5;
   const offset = Math.floor(gridSize / 2); // 2 for 5x5 grid
@@ -312,7 +283,7 @@ export async function getMapGridForColony(
   const maxY = centerY + offset;
   
   // Bulk query: Get all tiles in the 5x5 area (regardless of exploration status)
-  const allTiles = await getTilesInArea(serverId, minX, maxX, minY, maxY, session);
+  const allTiles = await getTilesInArea(serverId, minX, maxX, minY, maxY);
   
   // Create a lookup map for tiles by coordinates
   const tileMap = new Map<string, MapTileDoc>();
@@ -352,8 +323,7 @@ export async function formatGridForAPI(
   assignments: AssignmentDoc[], // all assignments for tiles in this grid
   colonyId: string,
   centerX: number,
-  centerY: number,
-  session?: ClientSession
+  centerY: number
 ): Promise<any> {
   const gridSize = grid.length;
   const offset = Math.floor(gridSize / 2);
@@ -369,9 +339,7 @@ export async function formatGridForAPI(
     isExplored: true
   };
   
-  const exploredTiles = session 
-    ? await UserMapTile.find(exploredTilesQuery).session(session)
-    : await UserMapTile.find(exploredTilesQuery);
+  const exploredTiles = await UserMapTile.find(exploredTilesQuery);
   
   // Create a lookup set for explored tile IDs
   const exploredTileIds = new Set(
@@ -440,10 +408,10 @@ export async function createOrUpdateUserMapTile(
   explorationTime: number,
   lootMultiplier: number,
   discoveredLoot: ILootInfo[],
-  session?: ClientSession
+  session: ClientSession
 ): Promise<UserMapTileDoc> {
   // Check if UserMapTile already exists
-  const existingUserTile = await getUserMapTileData(serverTileId, colonyId, session);
+  const existingUserTile = await getUserMapTileData(serverTileId, colonyId);
   
   if (existingUserTile) {
     if (!existingUserTile.isExplored) {
@@ -458,7 +426,7 @@ export async function createOrUpdateUserMapTile(
     existingUserTile.lootMultiplier = lootMultiplier;
     existingUserTile.discoveredLoot = discoveredLoot;
     
-    return session ? await existingUserTile.save({ session }) : await existingUserTile.save();
+    return await existingUserTile.save({ session });
   }
   
   // Create new UserMapTile
@@ -473,12 +441,8 @@ export async function createOrUpdateUserMapTile(
     discoveredLoot // Store the actual calculated loot amounts
   };
 
-  if (session) {
-    const userTile = new UserMapTile(userTileData);
-    return await userTile.save({ session });
-  } else {
-    return await UserMapTile.create(userTileData);
-  }
+  const userTile = new UserMapTile(userTileData);
+  return await userTile.save({ session });
 }
 
 /**
@@ -492,7 +456,7 @@ export async function createUserMapTile(
   explorationTime: number,
   lootMultiplier: number,
   discoveredLoot: ILootInfo[],
-  session?: ClientSession
+  session: ClientSession
 ): Promise<UserMapTileDoc> {
   return createOrUpdateUserMapTile(
     serverTileId,
@@ -511,13 +475,10 @@ export async function createUserMapTile(
  */
 export async function hasColonyExploredTile(
   serverTileId: string,
-  colonyId: string,
-  session?: ClientSession
+  colonyId: string
 ): Promise<boolean> {
   const query = { serverTile: serverTileId, colonyId, isExplored: true };
-  const userTile = session 
-    ? await UserMapTile.findOne(query).session(session)
-    : await UserMapTile.findOne(query);
+  const userTile = await UserMapTile.findOne(query);
   
   return userTile !== null;
 }
@@ -527,13 +488,10 @@ export async function hasColonyExploredTile(
  * Only returns actually explored tiles (isExplored: true)
  */
 export async function getColonyExploredTiles(
-  colonyId: string,
-  session?: ClientSession
+  colonyId: string
 ): Promise<UserMapTileDoc[]> {
   const query = { colonyId, isExplored: true };
-  return session 
-    ? await UserMapTile.find(query).populate('serverTile').session(session)
-    : await UserMapTile.find(query).populate('serverTile');
+  return await UserMapTile.find(query).populate('serverTile');
 }
 
 /**
@@ -541,13 +499,10 @@ export async function getColonyExploredTiles(
  */
 export async function getUserMapTileData(
   serverTileId: string,
-  colonyId: string,
-  session?: ClientSession
+  colonyId: string
 ): Promise<UserMapTileDoc | null> {
   const query = { serverTile: serverTileId, colonyId };
-  return session
-    ? await UserMapTile.findOne(query).session(session)
-    : await UserMapTile.findOne(query);
+  return await UserMapTile.findOne(query);
 }
 
 /**
@@ -556,13 +511,11 @@ export async function getUserMapTileData(
 export async function markUserMapTileExplored(
   serverTileId: string,
   colonyId: string,
-  session?: ClientSession
+  session: ClientSession
 ): Promise<UserMapTileDoc | null> {
   const query = { serverTile: serverTileId, colonyId };
   const update = { isExplored: true, exploredAt: new Date() };
   
-  return session
-    ? await UserMapTile.findOneAndUpdate(query, update, { new: true }).session(session)
-    : await UserMapTile.findOneAndUpdate(query, update, { new: true });
+  return await UserMapTile.findOneAndUpdate(query, update, { new: true }).session(session);
 }
 

@@ -3,13 +3,6 @@ import mongoose from 'mongoose';
 import { logError } from './logger';
 
 /**
- * Interface for session-aware operations
- */
-export interface SessionOptions {
-  session?: ClientSession;
-}
-
-/**
  * Type for functions that work with sessions
  */
 export type SessionCallback<T> = (session: ClientSession) => Promise<T>;
@@ -120,25 +113,6 @@ export async function withSessionReadOnly<T>(
   } finally {
     session.endSession();
   }
-}
-
-/**
- * Wrapper for operations that need to support both session and non-session usage.
- * Maintains backward compatibility while providing session support.
- * 
- * @param operation - Function to execute
- * @param options - Optional session options
- * @returns Promise resolving to the operation result
- */
-export async function withOptionalSession<T>(
-  operation: SessionCallback<T>,
-  options?: SessionOptions
-): Promise<T> {
-  if (options?.session) {
-    return await operation(options.session);
-  }
-  
-  return await withSession(operation);
 }
 
 /**

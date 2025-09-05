@@ -333,37 +333,41 @@ export const informAssignment = async (req: Request, res: Response) => {
   const { assignmentId } = req.params;
 
   try {
-    // Find and update the assignment
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ error: 'Assignment not found' });
-    }
+    const result = await withSession(async (session) => {
+      // Find and update the assignment
+      const assignment = await Assignment.findById(assignmentId).session(session);
+      if (!assignment) {
+        throw new Error('Assignment not found');
+      }
 
-    if (assignment.state === 'informed') {
-      res.json({
+      if (assignment.state === 'informed') {
+        return {
+          _id: assignment._id,
+          state: assignment.state
+        };
+      }
+
+      // Only allow if assignment is 'completed'
+      if (assignment.state !== 'completed') {
+        throw new Error('Assignment is not completed');
+      }
+
+      assignment.state = 'informed';
+      await assignment.save({ session });
+
+      let foundSettler = null;
+      if (assignment.settlerFoundId) {
+        foundSettler = await Settler.findById(assignment.settlerFoundId).session(session).lean();
+      }
+
+      return {
         _id: assignment._id,
-        state: assignment.state
-      });
-    }
-
-    // Only allow if assignment is 'completed'
-    if (assignment.state !== 'completed') {
-      return res.status(400).json({ error: 'Assignment is not completed' });
-    }
-
-    assignment.state = 'informed';
-    await assignment.save();
-
-    let foundSettler = null;
-    if (assignment.settlerFoundId) {
-      foundSettler = await Settler.findById(assignment.settlerFoundId).lean();
-    }
-
-    res.json({
-      _id: assignment._id,
-      state: assignment.state,
-      foundSettler,
+        state: assignment.state,
+        foundSettler,
+      };
     });
+
+    res.json(result);
   } catch (err) {
     logError('Failed to inform assignment', err, { 
       colonyId: req.colonyId, 

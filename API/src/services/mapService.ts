@@ -11,7 +11,7 @@ export async function createColonyWithSpiralLocation(
     serverName: string,
     steps: number = 10,
     maxRetries: number = 5,
-    session?: ClientSession
+    session: ClientSession
 ): Promise<ColonyDoc> {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -39,10 +39,9 @@ export async function createColonyWithSpiralLocation(
             await colony.save({ session });
             
             // Create the homestead tile and assign adjacent terrain
-            const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, {
+            const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, session, {
                 terrain: 'colony', // Homesteads are typically in town center terrain
-                colony: colony._id.toString(),
-                session
+                colony: colony._id.toString()
             });
             
             // Create the initial UserMapTile record for this colony's homestead
