@@ -40,13 +40,11 @@ function MapPage() {
   // Use the assignment notifications for exploration timers
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
-  // Get available settlers (those not assigned to in-progress tasks)
-  const getAvailableSettlers = () => {
+
+  const availableSettlers = useMemo(() => {
     if (!colony?.settlers) return [];
     return colony.settlers.filter(settler => settler.status === "idle");
-  };
-
-  const availableSettlers = getAvailableSettlers();
+  }, [colony?.settlers]);
 
   // Get current explorable coordinates for batch preview
   const getExplorableCoordinates = useMemo(() => {
