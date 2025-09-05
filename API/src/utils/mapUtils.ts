@@ -394,12 +394,12 @@ export async function formatGridForAPI(
           a.location && a.location.x === worldX && a.location.y === worldY
         );
 
-        // Tiles can be re-explored, so check if adjacent tiles exist (not if current tile is unexplored)
+        // Tiles can be re-explored, so check if adjacent tiles are explored by this colony
         const canExplore = (
-          (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
-          (rowIndex < gridSize - 1 && !!grid[rowIndex + 1][colIndex]) ||
-          (colIndex > 0 && !!grid[rowIndex][colIndex - 1]) ||
-          (colIndex < row.length - 1 && !!grid[rowIndex][colIndex + 1]) ||
+          (rowIndex > 0 && grid[rowIndex - 1][colIndex] && exploredTileIds.has(grid[rowIndex - 1][colIndex]!._id.toString())) ||
+          (rowIndex < gridSize - 1 && grid[rowIndex + 1][colIndex] && exploredTileIds.has(grid[rowIndex + 1][colIndex]!._id.toString())) ||
+          (colIndex > 0 && grid[rowIndex][colIndex - 1] && exploredTileIds.has(grid[rowIndex][colIndex - 1]!._id.toString())) ||
+          (colIndex < row.length - 1 && grid[rowIndex][colIndex + 1] && exploredTileIds.has(grid[rowIndex][colIndex + 1]!._id.toString())) ||
           explored // If tile is already explored by this colony, it can be re-explored
         );
 
