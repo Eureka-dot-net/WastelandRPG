@@ -10,7 +10,7 @@ import { ColonyManager } from "../managers/ColonyManager";
 import { generateSettler } from "./settlerGenerator";
 import { ClientSession } from "mongoose";
 import itemsCatalogue from '../data/itemsCatalogue.json';
-import { getTile, createOrGetUserMapTile } from '../utils/mapUtils';
+import { getTile, markUserMapTileExplored } from '../utils/mapUtils';
 
 function getItemCatalogue(itemId: string) {
   return itemsCatalogue.find(item => item.itemId === itemId);
@@ -157,8 +157,8 @@ export async function completeGameEvent(
     const tile = await getTile(colony.serverId, x, y, session);
     
     if (tile) {
-      // Create UserMapTile record to track this colony's exploration
-      await createOrGetUserMapTile(tile._id.toString(), colony._id.toString(), session);
+      // Mark UserMapTile as explored (should already exist from when exploration started)
+      await markUserMapTileExplored(tile._id.toString(), colony._id.toString(), session);
     }
   }
 
