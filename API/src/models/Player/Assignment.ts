@@ -10,6 +10,7 @@ export type AssignmentType =
   | 'building';
 
 export interface IAssignment {
+  serverId?: string;
   colonyId: Types.ObjectId;
   taskId: string; // from TaskDefinition
   type: AssignmentType;
@@ -44,6 +45,7 @@ export interface IAssignment {
 
 const AssignmentSchema = new Schema(
   {
+    serverId: { type: String, required: false },
     colonyId: { type: Schema.Types.ObjectId, ref: 'Colony', required: true },
     taskId: { type: String, required: false },
     type: { type: String, required: true },
