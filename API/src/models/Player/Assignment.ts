@@ -10,7 +10,6 @@ export type AssignmentType =
   | 'building';
 
 export interface IAssignment {
-  serverId?: string;
   colonyId: Types.ObjectId;
   taskId: string; // from TaskDefinition
   type: AssignmentType;

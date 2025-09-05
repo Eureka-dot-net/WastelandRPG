@@ -39,7 +39,6 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
 
     // Get all exploration assignments in this 5x5 area
     const assignments = await Assignment.find({
-      serverId: colony.serverId,
       colonyId: colony._id,
       type: 'exploration',
       location: { $exists: true },
@@ -95,7 +94,6 @@ export const startExploration = async (req: Request, res: Response) => {
       
       // Check if exploration is already in progress for this tile by this colony
       Assignment.findOne({
-        serverId: colony.serverId,
         colonyId: colony._id,
         location: { x: tileX, y: tileY },
         state: 'in-progress'
@@ -182,7 +180,6 @@ export const startExploration = async (req: Request, res: Response) => {
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
     const exploration = new Assignment({
-      serverId: colony.serverId,
       colonyId: colony._id,
       settlerId,
       type: 'exploration',
