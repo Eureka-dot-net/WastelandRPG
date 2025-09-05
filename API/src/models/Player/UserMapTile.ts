@@ -1,5 +1,5 @@
 import { Schema, model, Types, HydratedDocument } from 'mongoose';
-import { ILootInfo, IThreatInfo, IEventInfo, MapTileDoc } from '../Server/MapTile';
+import { ILootInfo, IThreatInfo, MapTileDoc } from '../Server/MapTile';
 
 // --- User-specific tile interface ---
 export interface IUserMapTile {

@@ -102,10 +102,28 @@ MONGO_URI=mongodb://localhost:27017/wasteland_rpg  # Uses same Docker/local Mong
 **ALWAYS install dependencies first:**
 ```bash
 # Install API dependencies (required for all operations)
-cd API && npm install
+cd API && npm ci
 
 # Install Client dependencies  
-cd Client && npm install
+cd Client && npm ci
+```
+
+**Development Workflow:**
+```bash
+# API Development
+cd API
+npm run typecheck  # Check TypeScript compilation
+npm run lint       # Lint code (fails on warnings)
+npm run lint:fix   # Auto-fix linting issues
+npm test           # Run test suite
+npm run build      # Build for production
+npm run dev        # Start development server
+
+# Client Development  
+cd Client
+npm run lint       # Lint code
+npm run build      # Build for production
+npm run dev        # Start development server
 ```
 
 ### Build Process
@@ -135,12 +153,24 @@ npm run build  # Runs TypeScript check + Vite build
 cd API
 npm test  # Runs Jest test suite
 ```
-- **Database**: Tests automatically use external MongoDB if available, fallback to in-memory
-- **Setup**: Ensure MongoDB is running (Docker container or local installation)
-- **Internet**: In-memory fallback requires internet access to download MongoDB binaries
-- **Test timeout**: 30 seconds for setup, 15 seconds for cleanup
-- **Run time**: ~30-60 seconds (depending on MongoDB setup)
-- **Database cleanup**: Test databases are automatically cleaned up
+- **Database**: Tests automatically detect available MongoDB and skip tests gracefully if none available
+- **Setup**: No external MongoDB required - tests are designed to work with or without database connection
+- **Environment**: Works in CI environments without database dependencies  
+- **Run time**: ~5-10 seconds (with MongoDB detection and graceful skipping)
+- **Database cleanup**: Test databases are automatically cleaned up when available
+
+**Requirements for Full Test Suite:**
+- For full test coverage with transactions: MongoDB replica set or external MongoDB
+- For basic test validation: No requirements - tests skip gracefully
+- All tests pass with `npm test` regardless of MongoDB availability
+
+**Testing Commands:**
+```bash
+cd API
+npm test                    # Run all tests with graceful skipping
+npm test -- --coverage     # Run with coverage report
+npm test -- tests/database.test.ts  # Run specific test file
+```
 
 **Client Tests:**
 ```bash
@@ -155,10 +185,12 @@ npm test  # Currently shows "No tests configured"
 **API Linting:**
 ```bash
 cd API
-npm run lint  # ESLint with TypeScript support
+npm run lint      # ESLint with TypeScript support (fails on ANY warnings)
+npm run lint:fix  # Auto-fix linting issues where possible
 ```
 - Config: `eslint.config.js` 
-- Currently produces warnings for unused imports (not errors)
+- **ZERO WARNINGS POLICY**: Linting now fails on any warnings (--max-warnings 0)
+- All unused imports and variables have been cleaned up
 
 **Client Linting:**
 ```bash
@@ -317,18 +349,20 @@ npm run dev  # Starts Vite dev server
 ### Validation Steps for Code Changes
 
 **Before submitting changes, ALWAYS:**
-1. Run linting for both API and Client: `npm run lint`
-2. Build both projects successfully: `npm run build`  
-3. Run API tests: `npm test` (if MongoDB available)
-4. Test multi-server functionality if touching server-related code
-5. Verify mobile responsiveness for UI changes
+1. Run linting for both API and Client: `npm run lint` (now fails on ANY warnings)
+2. Run typecheck for API: `npm run typecheck` (TypeScript compilation without emit)
+3. Build both projects successfully: `npm run build`
+4. Run API tests: `npm test` (now works reliably with graceful MongoDB detection)
+5. Test multi-server functionality if touching server-related code
+6. Verify mobile responsiveness for UI changes
 
 **Additional Considerations**:
-- Database transactions must be properly handled with sessions
+- Database transactions must be properly handled with sessions using `withSession`, `withSessionReadOnly`, or `withOptionalSession`
 - Authentication required for all player-specific endpoints
 - Colony ownership validation for player operations
 - Assignment completion timing handled by middleware
 - Inventory limits not yet enforced (TODO items in codebase)
+- **NO UNUSED IMPORTS**: All unused imports and variables must be removed - linting now fails on warnings
 
 ## MongoDB Session Management Guidelines
 

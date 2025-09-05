@@ -1,4 +1,4 @@
-import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
+import { Schema, model, Types, HydratedDocument } from 'mongoose';
 
 // Carrying items
 export interface ISettlerItem {
