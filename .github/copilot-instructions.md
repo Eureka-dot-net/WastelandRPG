@@ -330,6 +330,87 @@ npm run dev  # Starts Vite dev server
 - Assignment completion timing handled by middleware
 - Inventory limits not yet enforced (TODO items in codebase)
 
+## MongoDB Session Management Guidelines
+
+**IMPORTANT: All write operations that modify multiple collections or depend on each other must use MongoDB sessions for data consistency.**
+
+### Session Utilities (`/src/utils/sessionUtils.ts`)
+
+The codebase provides standardized utilities for session management:
+
+- **`withSession(operation, existingSession?)`**: For write operations requiring transactions
+  - Automatically creates/commits/aborts transactions when supported
+  - Reuses existing sessions to avoid nested transactions
+  - Gracefully handles both standalone MongoDB (tests) and replica sets (production)
+
+- **`withSessionReadOnly(operation, existingSession?)`**: For read operations needing session consistency
+
+- **`withOptionalSession(operation, options?)`**: For backward-compatible functions that may or may not receive a session
+
+### Usage Patterns
+
+**New Functions**: Always accept an optional `session?: ClientSession` parameter:
+```typescript
+export async function myFunction(param1: string, param2: number, session?: ClientSession) {
+  return await withSession(async (session) => {
+    // Your database operations here
+    await SomeModel.save({ session });
+  }, session);
+}
+```
+
+**Multi-collection Operations**: Always use sessions:
+```typescript
+// ✅ Good - atomic operation
+await withSession(async (session) => {
+  await Model1.save({ session });
+  await Model2.findByIdAndUpdate(id, update, { session });
+  await colonyManager.addLogEntry(session, 'type', 'message');
+});
+
+// ❌ Bad - no consistency guarantee
+await Model1.save();
+await Model2.findByIdAndUpdate(id, update);
+```
+
+**Route Handlers**: Use session utilities for complex operations:
+```typescript
+export const myRoute = async (req: Request, res: Response) => {
+  try {
+    const result = await withSession(async (session) => {
+      // All database operations here
+      return someResult;
+    });
+    res.json(result);
+  } catch (error) {
+    // Error handling
+    res.status(500).json({ error: 'Operation failed' });
+  }
+};
+```
+
+### Key Requirements
+
+1. **Session Reuse**: If a session is passed as parameter, reuse it - never create nested transactions
+2. **Atomic Operations**: Related database changes must be in single transaction
+3. **Proper Error Handling**: Use the utilities' built-in error handling
+4. **Backward Compatibility**: Existing single-operation code should continue to work
+5. **Environment Adaptability**: Code must work in both test (standalone) and production (replica set) environments
+
+### Examples in Codebase
+
+- `ColonyManager.addLogEntry()` - accepts and uses session parameter
+- `routes/dev.ts` - uses `withSession()` for multi-collection deletes
+- `controllers/assignmentController.ts` - refactored to use session utilities
+- `middleware/updateCompletedTasks.ts` - uses `withSession()` for completion processing
+
+### Testing
+
+Session behavior is validated through:
+- Unit tests in `tests/sessionUtils.test.ts`
+- Integration tests in `tests/sessionIntegration.test.ts`
+- Automatic rollback testing for transaction scenarios
+
 ## Rules for All Coding Tasks
 
 1. **Keep Files Updated**: Any file you create or modify must be kept current with the codebase
@@ -337,6 +418,7 @@ npm run dev  # Starts Vite dev server
 3. **CI/CD Must Pass**: Ensure build, lint, and test processes pass for successful deployment
 4. **Mobile-First Design**: All design decisions must consider mobile user experience
 5. **API Authority**: The API is the version of truth - client is only for display and user interaction
+6. **Session Consistency**: Always use MongoDB sessions for multi-collection write operations
 
 ## Trust These Instructions
 

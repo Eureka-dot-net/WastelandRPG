@@ -7,23 +7,20 @@ import { Inventory } from "../models/Player/Inventory";
 import { completeAssignmentsForColony } from "../services/assignmentService";
 import { completeExplorationsForColony } from "../services/explorationService";
 import { processFoodConsumption } from "../services/processDailyFood";
-import { ClientSession } from "mongoose";
+import { withSession } from "../utils/sessionUtils";
 
 export const updateCompletedTasks =  async (req: Request, res: Response, next: NextFunction) => {
   const colony = req.colony;
-  const session: ClientSession = await Assignment.startSession();
-  session.startTransaction();
-
+  
   try {
-    await completeAssignmentsForColony(colony, session);
-    await completeExplorationsForColony(colony, session); // Handle exploration completion
-    await processFoodConsumption(colony, session); // re process daily tasks as settler might have brought needed food or might have to eat.
-    await session.commitTransaction();
-    session.endSession();
+    await withSession(async (session) => {
+      await completeAssignmentsForColony(colony, session);
+      await completeExplorationsForColony(colony, session); // Handle exploration completion
+      await processFoodConsumption(colony, session); // re process daily tasks as settler might have brought needed food or might have to eat.
+    });
+    
     next();
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
     next(err);
   }
 }

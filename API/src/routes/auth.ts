@@ -7,6 +7,7 @@ import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
 import { authenticate } from '../middleware/auth';
 import { logError, logInfo, logWarn } from '../utils/logger';
+import { withSession } from '../utils/sessionUtils';
 
 const router = Router();
 
@@ -26,40 +27,36 @@ router.post('/register', async (req: Request, res: Response) => {
         return res.status(400).json({ message: 'Invalid server selected' });
     }
 
-    const session = await User.startSession();
-    session.startTransaction();
-
     try {
-        const existingUser = await User.findOne({ email }).session(session);
-        if (existingUser) {
-            await session.abortTransaction();
-            logWarn('Registration attempt with existing email', { email });
-            return res.status(400).json({ message: 'User already exists' });
-        }
+        const result = await withSession(async (session) => {
+            const existingUser = await User.findOne({ email }).session(session);
+            if (existingUser) {
+                logWarn('Registration attempt with existing email', { email });
+                throw new Error('User already exists');
+            }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword });
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const user = new User({ email, password: hashedPassword });
 
-        await user.save({ session });
+            await user.save({ session });
 
-        const colony = await createColonyWithSpiralLocation(user._id, server.id, colonyName || 'First Colony', server.type, server.name, 5, 5, session);
+            const colony = await createColonyWithSpiralLocation(user._id, server.id, colonyName || 'First Colony', server.type, server.name, 5, 5, session);
 
-        await session.commitTransaction();
-        
-        logInfo('User registered successfully', { 
-          userId: user._id, 
-          email, 
-          serverId: server.id,
-          serverName: server.name,
-          colonyName: colony.colonyName 
+            logInfo('User registered successfully', { 
+                userId: user._id, 
+                email, 
+                serverId: server.id,
+                serverName: server.name,
+                colonyName: colony.colonyName 
+            });
+
+            return { user, colony };
         });
         
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error: unknown) {
-        try {
-            await session.abortTransaction();
-        } catch (abortError) {
-            logError('Transaction abort failed during registration', abortError);
+        if ((error as Error).message === 'User already exists') {
+            return res.status(400).json({ message: 'User already exists' });
         }
         
         logError('Failed to register user', error, { email, serverId });
@@ -71,9 +68,6 @@ router.post('/register', async (req: Request, res: Response) => {
                 stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
             }
         });
-    } finally {
-        // Always end session, but only after commit/abort
-        session.endSession();
     }
 });
 

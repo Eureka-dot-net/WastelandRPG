@@ -54,12 +54,12 @@ export class ColonyManager {
     };
   }
 
-  async addLogEntry(session: ClientSession,type: string, message: string, meta?: Record<string, any>) {
+  async addLogEntry(session: ClientSession, type: string, message: string, meta?: Record<string, any>) {
     this.colony.logs.push({ type, message, meta, timestamp: new Date() });
     if (this.colony.logs.length > 50) {
       this.colony.logs = this.colony.logs.slice(-50);
     }
-    await this.colony.save();
+    await this.colony.save({ session });
   }
 
   getSettlerDetails() {
