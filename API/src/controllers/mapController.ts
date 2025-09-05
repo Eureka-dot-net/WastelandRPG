@@ -1,10 +1,8 @@
-// controllers/mapController.ts
 import { Request, Response } from 'express';
 import mongoose, { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { logError, logWarn } from '../utils/logger';
-import { withSession } from '../utils/sessionUtils';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
@@ -19,9 +17,9 @@ import {
   getTile,
   formatGridForAPI,
   canTileBeExplored,
-  hasColonyExploredTile
+  createUserMapTile,
+  getUserMapTileData
 } from '../utils/mapUtils';
-import { MapTile } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
 
 // GET /api/colonies/:colonyId/map?x=0&y=0
@@ -134,14 +132,6 @@ export const startExploration = async (req: Request, res: Response) => {
       isNewTile = true;
     }
 
-    // NOTE: UserMapTile creation moved to assignment completion
-    // This prevents adjacent tile exploration until exploration is actually complete
-
-    // Create adjacent tiles when exploring a completely new area
-    if (isNewTile) {
-      await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
-    }
-
     // Calculate exploration adjustments based on settler and distance from homestead
     const baseDuration = 300000; // 5 minutes base exploration time
     const baseRewards: Record<string, number> = {};
@@ -168,6 +158,22 @@ export const startExploration = async (req: Request, res: Response) => {
       settler, 
       distanceModifiers
     );
+
+    // Create UserMapTile with isExplored=false when exploration starts
+    // This allows assignments to be associated with locations on the map
+    await createUserMapTile(
+      tile._id.toString(),
+      colony._id.toString(),
+      distance,
+      adjustments.adjustedDuration,
+      distanceModifiers.lootMultiplier,
+      session
+    );
+
+    // Create adjacent tiles when exploring a completely new area
+    if (isNewTile) {
+      await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
+    }
 
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
@@ -302,16 +308,34 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
               });
             }
 
-            const baseDuration = 300000; // 5 minutes
-            
-            // Calculate distance from homestead for additional time and loot
-            const distance = calculateDistance(
-              colony.homesteadLocation.x,
-              colony.homesteadLocation.y,
-              x,
-              y
-            );
-            const distanceModifiers = calculateDistanceModifiers(distance);
+            // Check if we have stored UserMapTile data for efficiency
+            const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
+            let distance: number;
+            let distanceModifiers: any;
+            let baseDuration = 300000; // 5 minutes default
+
+            if (userMapTile) {
+              // Use stored values for efficiency
+              distance = userMapTile.distanceFromHomestead;
+              distanceModifiers = {
+                durationMultiplier: userMapTile.explorationTime / baseDuration,
+                lootMultiplier: userMapTile.lootMultiplier,
+                distanceEffects: [
+                  `Distance (${distance}): +${Math.round((userMapTile.explorationTime / baseDuration - 1) * 100)}% time`,
+                  `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
+                ]
+              };
+              baseDuration = userMapTile.explorationTime;
+            } else {
+              // Calculate fresh values (fallback for new tiles)
+              distance = calculateDistance(
+                colony.homesteadLocation.x,
+                colony.homesteadLocation.y,
+                x,
+                y
+              );
+              distanceModifiers = calculateDistanceModifiers(distance);
+            }
             
             const adjustments = calculateSettlerAdjustments(
               baseDuration, 
@@ -323,10 +347,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
             const terrainInfo = getTerrainCatalogue(tile.terrain);
 
             // Check if this colony has already explored this tile
-            const alreadyExplored = await hasColonyExploredTile(
-              tile._id.toString(),
-              colony._id.toString()
-            );
+            const alreadyExplored = userMapTile?.isExplored || false;
 
             previewData = {
               terrain: {
@@ -461,16 +482,34 @@ export const previewExploration = async (req: Request, res: Response) => {
         });
       }
 
-      const baseDuration = 300000; // 5 minutes
-      
-      // Calculate distance from homestead for additional time and loot
-      const distance = calculateDistance(
-        colony.homesteadLocation.x,
-        colony.homesteadLocation.y,
-        tileX,
-        tileY
-      );
-      const distanceModifiers = calculateDistanceModifiers(distance);
+      // Check if we have stored UserMapTile data for efficiency
+      const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
+      let distance: number;
+      let distanceModifiers: any;
+      let baseDuration = 300000; // 5 minutes default
+
+      if (userMapTile) {
+        // Use stored values for efficiency
+        distance = userMapTile.distanceFromHomestead;
+        distanceModifiers = {
+          durationMultiplier: userMapTile.explorationTime / baseDuration,
+          lootMultiplier: userMapTile.lootMultiplier,
+          distanceEffects: [
+            `Distance (${distance}): +${Math.round((userMapTile.explorationTime / baseDuration - 1) * 100)}% time`,
+            `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
+          ]
+        };
+        baseDuration = userMapTile.explorationTime;
+      } else {
+        // Calculate fresh values (fallback for new tiles)
+        distance = calculateDistance(
+          colony.homesteadLocation.x,
+          colony.homesteadLocation.y,
+          tileX,
+          tileY
+        );
+        distanceModifiers = calculateDistanceModifiers(distance);
+      }
       
       const adjustments = calculateSettlerAdjustments(
         baseDuration, 
@@ -482,10 +521,7 @@ export const previewExploration = async (req: Request, res: Response) => {
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
       // Check if this colony has already explored this tile using UserMapTile
-      const alreadyExplored = await hasColonyExploredTile(
-        tile._id.toString(),
-        colony._id.toString()
-      );
+      const alreadyExplored = userMapTile?.isExplored || false;
 
       previewData = {
         terrain: {

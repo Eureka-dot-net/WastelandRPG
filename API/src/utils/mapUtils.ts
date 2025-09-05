@@ -265,7 +265,8 @@ export async function canTileBeExplored(
   const adjacentTileIds = adjacentTiles.map(tile => tile._id.toString());
   const exploredTilesQuery = {
     colonyId,
-    serverTile: { $in: adjacentTileIds }
+    serverTile: { $in: adjacentTileIds },
+    isExplored: true // Only consider actually explored tiles
   };
   
   const exploredTile = session 
@@ -311,7 +312,8 @@ export async function getMapGridForColony(
   // Bulk query 2: Get all UserMapTiles for this colony in the area
   const exploredTilesQuery = {
     colonyId,
-    serverTile: { $in: tileIds }
+    serverTile: { $in: tileIds },
+    isExplored: true // Only consider actually explored tiles
   };
   
   const exploredTiles = session 
@@ -403,17 +405,24 @@ export function formatGridForAPI(
  */
 
 /**
- * Create a UserMapTile record for a colony exploring a tile
+ * Create a UserMapTile record for a colony starting to explore a tile
  */
 export async function createUserMapTile(
   serverTileId: string,
   colonyId: string,
+  distanceFromHomestead: number,
+  explorationTime: number,
+  lootMultiplier: number,
   session?: ClientSession
 ): Promise<UserMapTileDoc> {
   const userTileData = {
     serverTile: serverTileId,
     colonyId,
-    exploredAt: new Date()
+    exploredAt: new Date(),
+    isExplored: false, // Will be set to true when exploration completes
+    distanceFromHomestead,
+    explorationTime,
+    lootMultiplier
   };
 
   if (session) {
@@ -426,13 +435,14 @@ export async function createUserMapTile(
 
 /**
  * Check if a colony has explored a specific tile using UserMapTile
+ * Now checks both existence AND isExplored flag
  */
 export async function hasColonyExploredTile(
   serverTileId: string,
   colonyId: string,
   session?: ClientSession
 ): Promise<boolean> {
-  const query = { serverTile: serverTileId, colonyId };
+  const query = { serverTile: serverTileId, colonyId, isExplored: true };
   const userTile = session 
     ? await UserMapTile.findOne(query).session(session)
     : await UserMapTile.findOne(query);
@@ -442,19 +452,51 @@ export async function hasColonyExploredTile(
 
 /**
  * Get all UserMapTiles for a colony (their exploration history)
+ * Only returns actually explored tiles (isExplored: true)
  */
 export async function getColonyExploredTiles(
   colonyId: string,
   session?: ClientSession
 ): Promise<UserMapTileDoc[]> {
-  const query = { colonyId };
+  const query = { colonyId, isExplored: true };
   return session 
     ? await UserMapTile.find(query).populate('serverTile').session(session)
     : await UserMapTile.find(query).populate('serverTile');
 }
 
 /**
+ * Get UserMapTile data for a colony and tile (for accessing stored distance/time/loot values)
+ */
+export async function getUserMapTileData(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc | null> {
+  const query = { serverTile: serverTileId, colonyId };
+  return session
+    ? await UserMapTile.findOne(query).session(session)
+    : await UserMapTile.findOne(query);
+}
+
+/**
+ * Mark a UserMapTile as fully explored (used when exploration completes)
+ */
+export async function markUserMapTileExplored(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc | null> {
+  const query = { serverTile: serverTileId, colonyId };
+  const update = { isExplored: true, exploredAt: new Date() };
+  
+  return session
+    ? await UserMapTile.findOneAndUpdate(query, update, { new: true }).session(session)
+    : await UserMapTile.findOneAndUpdate(query, update, { new: true });
+}
+
+/**
  * Create or get existing UserMapTile for exploration
+ * @deprecated Use createUserMapTile for new explorations and markUserMapTileExplored for completion
  */
 export async function createOrGetUserMapTile(
   serverTileId: string,
@@ -468,10 +510,15 @@ export async function createOrGetUserMapTile(
     : await UserMapTile.findOne(query);
 
   if (!userTile) {
+    // For backward compatibility, create with default values
     const userTileData = {
       serverTile: serverTileId,
       colonyId,
-      exploredAt: new Date()
+      exploredAt: new Date(),
+      isExplored: true, // Legacy behavior - assume explored
+      distanceFromHomestead: 0,
+      explorationTime: 300000, // Default 5 minutes
+      lootMultiplier: 1.0
     };
 
     if (session) {

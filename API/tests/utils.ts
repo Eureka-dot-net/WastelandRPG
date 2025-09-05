@@ -4,7 +4,18 @@ import { Colony } from '../src/models/Player/Colony';
 
 export async function createTestUserAndColony({
   userProps = { email: 'player@test.com', password: 'password123' },
-  colonyProps  = { serverId: 'harbor', serverType: 'PvE', colonyName: 'First Colony', level: 1 }
+  colonyProps  = { 
+    serverId: 'harbor', 
+    serverName: 'Harbor Server',
+    serverType: 'PvE', 
+    colonyName: 'First Colony', 
+    level: 1,
+    spiralIndex: 0,
+    spiralLayer: 0,
+    spiralPosition: 0,
+    spiralDirection: 0,
+    homesteadLocation: { x: 0, y: 0 }
+  }
 } = {}) {
   // create user
   const User = mongoose.model('User');

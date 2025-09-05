@@ -47,7 +47,18 @@ export async function createColonyWithSpiralLocation(
             });
             
             // Create the initial UserMapTile record for this colony's homestead
-            await createUserMapTile(homesteadTile._id.toString(), colony._id.toString(), session);
+            const homesteadUserTile = await createUserMapTile(
+                homesteadTile._id.toString(), 
+                colony._id.toString(), 
+                0, // distance from homestead is 0 for homestead itself
+                300000, // base exploration time (5 minutes)
+                1.0, // no loot multiplier for homestead
+                session
+            );
+            
+            // Mark homestead as already explored
+            homesteadUserTile.isExplored = true;
+            await homesteadUserTile.save({ session });
             
             // Generate adjacent tiles when homestead is created
             await assignAdjacentTerrain(serverId, spiralData.x, spiralData.y, session);
