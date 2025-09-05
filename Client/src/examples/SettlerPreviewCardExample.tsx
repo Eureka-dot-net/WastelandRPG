@@ -60,35 +60,64 @@ const ExampleUsage: React.FC = () => {
     createdAt: new Date().toISOString()
   };
 
-  // Example 1: Traditional assignment preview (handled by the component's hooks)
+  // Example 1: Custom assignment preview using the new preview prop
+  const assignmentPreview: UnifiedPreview = {
+    type: 'assignment',
+    settlerId: exampleSettler._id,
+    settlerName: exampleSettler.name,
+    duration: 240000, // 4 minutes (adjusted for settler's speed)
+    baseDuration: 300000, // 5 minutes base
+    basePlannedRewards: { scrap: 10, electronics: 2 },
+    adjustments: {
+      speedEffects: ['Lucky: Speed stat: 1.25x', 'High speed stat: +20%'],
+      lootEffects: ['Lucky: +25% more loot', 'Scavenging skill: +50% electronics'],
+      traitEffects: ['Lucky: Better quality finds'],
+      adjustedDuration: 240000,
+      lootMultiplier: 1.75,
+      effects: {
+        speedEffects: ['Lucky: Speed stat: 1.25x', 'High speed stat: +20%'],
+        lootEffects: ['Lucky: +25% more loot', 'Scavenging skill: +50% electronics'],
+        traitEffects: ['Lucky: Better quality finds']
+      }
+    }
+  };
+  
   const assignmentCard = (
     <SettlerPreviewCard
       settler={exampleSettler}
-      assignment={{
-        _id: 'assign1',
-        colonyId: 'colony1',
-        taskId: 'scavenge_task_1',
-        type: 'scavenging',
-        state: 'available',
-        name: 'Scavenge',
-        settlerId: '',
-        description: 'Search for useful materials in the wasteland.',
-        duration: 300000,
-        unlocks: '',
-        plannedRewards: {},
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }}
-      colonyId="colony1"
+      preview={assignmentPreview}
+      isLoading={false}
+      error={null}
     />
   );
 
-  // Example 2: Map exploration preview (handled by the component's hooks)
+  // Example 2: Map exploration preview using the new preview prop
+  const mapExplorationPreview: UnifiedPreview = {
+    type: 'exploration',
+    settlerId: exampleSettler._id,
+    settlerName: exampleSettler.name,
+    duration: 480000, // 8 minutes
+    coordinates: { x: 5, y: 3 },
+    terrain: {
+      type: 'ruins',
+      name: 'Industrial Ruins',
+      description: 'Collapsed factories and warehouses, likely to contain scrap metal and electronics',
+      icon: 'GiFactory'
+    },
+    adjustments: {
+      speedEffects: ['Terrain difficulty: -10% speed'],
+      lootEffects: ['Industrial terrain: +30% electronics', 'Lucky trait: +25% all loot'],
+      traitEffects: ['Lucky: Better quality finds']
+    },
+    alreadyExplored: false
+  };
+  
   const mapCard = (
     <SettlerPreviewCard
       settler={exampleSettler}
-      colonyId="colony1" 
-      mapCoordinates={{ x: 5, y: 3 }}
+      preview={mapExplorationPreview}
+      isLoading={false}
+      error={null}
     />
   );
 
@@ -97,7 +126,6 @@ const ExampleUsage: React.FC = () => {
   const customEventCard = (
     <SettlerPreviewCard
       settler={exampleSettler}
-      colonyId="colony1"
       preview={customEventPreview}
       isLoading={false}
       error={null}
