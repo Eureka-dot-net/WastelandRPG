@@ -379,21 +379,52 @@ The codebase provides standardized utilities for session management:
 
 - **`withSessionReadOnly(operation, existingSession?)`**: For read operations needing session consistency
 
-- **`withOptionalSession(operation, options?)`**: For backward-compatible functions that may or may not receive a session
+### Session Requirements (MANDATORY)
 
-### Usage Patterns
-
-**New Functions**: Always accept an optional `session?: ClientSession` parameter:
+**All write functions MUST require mandatory `session: ClientSession` parameter:**
 ```typescript
-export async function myFunction(param1: string, param2: number, session?: ClientSession) {
-  return await withSession(async (session) => {
-    // Your database operations here
-    await SomeModel.save({ session });
-  }, session);
+// ✅ Correct - write operation with mandatory session
+export async function myWriteFunction(param1: string, param2: number, session: ClientSession) {
+  // Database write operations here
+  await SomeModel.save({ session });
+  return result;
+}
+
+// ❌ Incorrect - optional session for writes is NOT allowed
+export async function myWriteFunction(param1: string, param2: number, session?: ClientSession) {
+  // This pattern is forbidden for write operations
 }
 ```
 
-**Multi-collection Operations**: Always use sessions:
+**Read-only functions should NOT have session parameters:**
+```typescript
+// ✅ Correct - read operation without session
+export async function myReadFunction(param1: string): Promise<SomeType> {
+  return await SomeModel.findOne({ param1 });
+}
+```
+
+### Usage Patterns
+
+**Write Operations**: Always use `withSession()` in routes/controllers:
+```typescript
+export const myRoute = async (req: Request, res: Response) => {
+  try {
+    const result = await withSession(async (session) => {
+      // Call write functions with mandatory session
+      await myWriteFunction(param1, param2, session);
+      await anotherWriteFunction(param3, session);
+      return someResult;
+    });
+    res.json(result);
+  } catch (error) {
+    // Error handling
+    res.status(500).json({ error: 'Operation failed' });
+  }
+};
+```
+
+**Multi-collection Operations**: Always atomic with sessions:
 ```typescript
 // ✅ Good - atomic operation
 await withSession(async (session) => {
@@ -406,18 +437,6 @@ await withSession(async (session) => {
 await Model1.save();
 await Model2.findByIdAndUpdate(id, update);
 ```
-
-**Route Handlers**: Use session utilities for complex operations:
-```typescript
-export const myRoute = async (req: Request, res: Response) => {
-  try {
-    const result = await withSession(async (session) => {
-      // All database operations here
-      return someResult;
-    });
-    res.json(result);
-  } catch (error) {
-    // Error handling
     res.status(500).json({ error: 'Operation failed' });
   }
 };
@@ -425,11 +444,13 @@ export const myRoute = async (req: Request, res: Response) => {
 
 ### Key Requirements
 
-1. **Session Reuse**: If a session is passed as parameter, reuse it - never create nested transactions
-2. **Atomic Operations**: Related database changes must be in single transaction
-3. **Proper Error Handling**: Use the utilities' built-in error handling
-4. **Backward Compatibility**: Existing single-operation code should continue to work
-5. **Environment Adaptability**: Code must work in both test (standalone) and production (replica set) environments
+1. **Mandatory Sessions for Writes**: All functions that perform write operations (create, update, delete) MUST require `session: ClientSession` parameter
+2. **No Optional Sessions for Writes**: Optional session parameters (`session?: ClientSession`) are forbidden for write operations
+3. **Session-Free Reads**: Read-only functions should not have session parameters unless consistency within a transaction is required
+4. **Atomic Operations**: Related database changes must be in single transaction using `withSession()`
+5. **Proper Error Handling**: Use the utilities' built-in error handling
+6. **Environment Adaptability**: Code must work in both test (standalone) and production (replica set) environments
+7. **No Nested Transactions**: Always reuse existing sessions when passed as parameter
 
 ### Examples in Codebase
 
