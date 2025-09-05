@@ -73,13 +73,13 @@ function MapPage() {
     }] : [];
   }, [selectedTile, centerX, centerY]);
 
-  // Use smart batch preview hook for selected tile only
+  // Use smart batch preview hook for all explorable coordinates (prefetch all)
   const settlerIds = availableSettlers.map(s => s._id);
   const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewMapExploration(
     colonyId || '',
     settlerIds,
-    selectedCoordinates,
-    !!(colonyId && settlerIds.length > 0 && selectedCoordinates.length > 0)
+    explorableCoordinates,
+    !!(colonyId && settlerIds.length > 0 && explorableCoordinates.length > 0)
   );
 
   // Build unified preview data when batch data is available
@@ -101,27 +101,7 @@ function MapPage() {
     setSettlerPreviews(previews);
   }, [batchPreviewData, selectedCoordinates, availableSettlers]);
 
-  // Prefetch exploration previews for explorable tiles (background prefetch)
-  useEffect(() => {
-    if (!colonyId || explorableCoordinates.length === 0 || !availableSettlers.length) return;
-
-    // Use batch prefetch for background loading of all explorable tiles
-    queryClient.prefetchQuery({
-      queryKey: ["mapExplorationPreviewBatch", colonyId, settlerIds.sort(), explorableCoordinates],
-      queryFn: async () => {
-        const settlerIdsParam = settlerIds.join(',');
-        const coordinatesParam = explorableCoordinates.map(coord => `${coord.x}:${coord.y}`).join(',');
-        const url = `/colonies/${colonyId}/map/preview-batch?settlerIds=${settlerIdsParam}&coordinates=${coordinatesParam}`;
-        const response = await agent.get(url);
-        return response.data;
-      },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }).catch(err => {
-      console.warn('Failed to prefetch batch exploration previews:', err);
-    });
-
-  }, [colonyId, explorableCoordinates, availableSettlers, settlerIds, queryClient]);
-
+  // Map grid prefetching - prefetch adjacent map grids for navigation
   useEffect(() => {
   if (!colonyId || !serverId) return;
 

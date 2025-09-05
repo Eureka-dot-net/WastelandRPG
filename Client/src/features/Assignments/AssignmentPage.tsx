@@ -58,15 +58,15 @@ function AssignmentPage() {
     ) || [];
   }, [assignments]);
 
-  // Use smart batch preview hook
+  // Use smart batch preview hook - always prefetch all available assignments
   const settlerIds = availableSettlers.map(s => s._id);
-  const assignmentIds = selectedTask ? [selectedTask._id] : availableAssignments.map(a => a._id);
+  const assignmentIds = availableAssignments.map(a => a._id);
   
   const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewAssignment(
     colonyId || '',
     settlerIds,
     assignmentIds,
-    !!(colonyId && settlerIds.length > 0 && assignmentIds.length > 0 && selectedTask)
+    !!(colonyId && settlerIds.length > 0 && assignmentIds.length > 0)
   );
 
   // Build unified preview data when batch data is available
