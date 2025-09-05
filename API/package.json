@@ -9,7 +9,9 @@
     "start": "node dist/src/index.js",
     "test": "jest --runInBand",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "lint:fix": "eslint --fix src --ext .ts --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "kill": "taskkill /IM node.exe /F"
   },
   "keywords": [],

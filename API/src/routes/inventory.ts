@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { Inventory, InventoryDoc } from "../models/Player/Inventory";
+import { Inventory } from "../models/Player/Inventory";
 import { ColonyManager } from "../managers/ColonyManager";
 
 const router = Router();

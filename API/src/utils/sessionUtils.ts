@@ -19,11 +19,29 @@ export type SessionCallback<T> = (session: ClientSession) => Promise<T>;
  */
 export function supportsTransactions(): boolean {
   // Transactions require MongoDB 4.0+ and replica set or sharded cluster
-  // For simplicity, we'll try to detect if we're in a replica set environment
-  // In tests or single instance MongoDB, transactions are not supported
-  return process.env.NODE_ENV !== 'test' && 
-         process.env.MONGO_URI?.includes('replicaSet') || 
-         process.env.NODE_ENV === 'production';
+  // Check if we're in production (definitely supports)
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  
+  // Check if MONGO_URI indicates replica set
+  if (process.env.MONGO_URI?.includes('replicaSet')) {
+    return true;
+  }
+  
+  // For tests, check if we have a connected replica set
+  if (process.env.NODE_ENV === 'test') {
+    try {
+      // Simple heuristic: if we can access topology and it's not single, assume replica set
+      return mongoose.connection?.readyState === 1 && 
+             mongoose.connection?.db?.admin !== undefined;
+    } catch {
+      return false;
+    }
+  }
+  
+  // Default to false for development unless explicitly configured
+  return false;
 }
 
 /**

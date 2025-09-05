@@ -45,56 +45,53 @@ export const getAssignments = async (req: Request, res: Response) => {
   if (typeFilter) filter.type = { $in: typeFilter };
   if (statusFilter) filter.state = { $in: statusFilter };
 
-  const session = await Assignment.startSession();
   const MAX_RETRIES = 3;
-
   let attempts = 0;
+
   while (attempts < MAX_RETRIES) {
     try {
-      session.startTransaction();
+      const result = await withSession(async (session) => {
+        // Ensure general assignments exist if requested
+        if (!typeFilter || typeFilter.includes('general')) {
+          const existingGeneral = await Assignment.find({ colonyId, type: 'general' }).session(session);
 
-      // Ensure general assignments exist if requested
-      if (!typeFilter || typeFilter.includes('general')) {
-        const existingGeneral = await Assignment.find({ colonyId, type: 'general' }).session(session);
+          const tasksToCreate = cleaningTasksCatalogue.filter(
+            task => !existingGeneral.some(a => a.taskId === task.taskId)
+          );
 
-        const tasksToCreate = cleaningTasksCatalogue.filter(
-          task => !existingGeneral.some(a => a.taskId === task.taskId)
-        );
+          if (tasksToCreate.length > 0) {
+            const newAssignments = tasksToCreate.map(taskTemplate => ({
+              colonyId,
+              taskId: taskTemplate.taskId,
+              type: 'general',
+              state: 'available',
+              name: taskTemplate.name,
+              description: taskTemplate.description,
+              dependsOn: taskTemplate.dependsOn,
+              duration: taskTemplate.duration,
+              completionMessage: taskTemplate.completionMessage,
+              unlocks: taskTemplate.unlocks,
+              plannedRewards: generateRewards(taskTemplate.rewards),
+            }));
 
-        if (tasksToCreate.length > 0) {
-          const newAssignments = tasksToCreate.map(taskTemplate => ({
-            colonyId,
-            taskId: taskTemplate.taskId,
-            type: 'general',
-            state: 'available',
-            name: taskTemplate.name,
-            description: taskTemplate.description,
-            dependsOn: taskTemplate.dependsOn,
-            duration: taskTemplate.duration,
-            completionMessage: taskTemplate.completionMessage,
-            unlocks: taskTemplate.unlocks,
-            plannedRewards: generateRewards(taskTemplate.rewards),
-          }));
-
-          // insertMany inside transaction
-          await Assignment.insertMany(newAssignments, { session });
+            // insertMany inside transaction
+            await Assignment.insertMany(newAssignments, { session });
+          }
         }
-      }
 
-      // Fetch all matching assignments after any auto-creation
-      const assignments = await Assignment.find(filter).session(session);
+        // Fetch all matching assignments after any auto-creation
+        const assignments = await Assignment.find(filter).session(session);
 
-      const enrichedAssignments = assignments.map(a => ({
-        ...a.toObject(),
-        plannedRewards: enrichRewardsWithMetadata(a.plannedRewards),
-      }));
+        const enrichedAssignments = assignments.map(a => ({
+          ...a.toObject(),
+          plannedRewards: enrichRewardsWithMetadata(a.plannedRewards),
+        }));
 
-      await session.commitTransaction();
-      session.endSession();
+        return { assignments: enrichedAssignments };
+      });
 
-      return res.json({ assignments: enrichedAssignments });
+      return res.json(result);
     } catch (err: any) {
-      await session.abortTransaction();
       attempts++;
 
       // Handle different types of errors with appropriate retry logic
@@ -112,7 +109,6 @@ export const getAssignments = async (req: Request, res: Response) => {
         continue;
       }
 
-      session.endSession();
       logError('Failed to fetch assignments', err, { colonyId: req.colonyId });
       return res.status(500).json({ error: 'Failed to fetch assignments' });
     }

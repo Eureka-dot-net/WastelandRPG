@@ -1,9 +1,7 @@
 import { ColonyManager } from '../managers/ColonyManager';
 import { SettlerManager } from '../managers/SettlerManager';
-import { updateCompletedTasks } from '../middleware/updateCompletedTasks';
 import type { ColonyDoc } from '../models/Player/Colony';
 import { Inventory } from '../models/Player/Inventory';
-import { completeAssignmentsForColony } from './assignmentService';
 import { ClientSession } from 'mongoose';
 
 export async function processFoodConsumption(
@@ -35,7 +33,6 @@ export async function processFoodConsumption(
   }
 
   // 3. Round-robin feeding
-  let anyFoodLeft = true;
   while (
     foodItems.some(f => f.quantity > 0) &&
     hungrySettlers.some(s => s.hunger >= HUNGER_THRESHOLD)

@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
-import { Colony } from '../models/Player/Colony';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
 import { authenticate } from '../middleware/auth';
@@ -28,7 +27,7 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 
     try {
-        const result = await withSession(async (session) => {
+        await withSession(async (session) => {
             const existingUser = await User.findOne({ email }).session(session);
             if (existingUser) {
                 logWarn('Registration attempt with existing email', { email });
@@ -49,8 +48,6 @@ router.post('/register', async (req: Request, res: Response) => {
                 serverName: server.name,
                 colonyName: colony.colonyName 
             });
-
-            return { user, colony };
         });
         
         return res.status(201).json({ message: 'User created successfully' });

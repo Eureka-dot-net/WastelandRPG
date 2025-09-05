@@ -1,6 +1,4 @@
-import { Schema, model, Types, Document, HydratedDocument } from 'mongoose';
-import { Assignment } from './Assignment';
-import { Inventory } from './Inventory';
+import { Schema, model, Types, HydratedDocument } from 'mongoose';
 import { SettlerDoc } from './Settler';
 
 export interface IColony {

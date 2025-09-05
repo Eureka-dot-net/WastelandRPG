@@ -3,7 +3,6 @@ import { ISettler, Settler, SettlerDoc } from '../models/Player/Settler';
 import namesCatalogue from '../data/namesCatalogue.json';
 import surnamesCatalogue from '../data/surnamesCatalogue.json';
 import backstoryCatalogue from '../data/backstoryCatalogue.json';
-import statsCatalogue from '../data/statsCatalogue.json';
 import skillsCatalogue from '../data/skillsCatalogue.json';
 import traitsCatalogue from '../data/traitsCatalogue.json'; 
 
@@ -35,7 +34,6 @@ function assignTraits(): ISettler['traits'] {
     ].filter(Boolean) as ISettler['traits'];
 }
 
-const statKeys = statsCatalogue.map(stat => stat.statId as keyof ISettler['stats']);
 const skillKeys = skillsCatalogue.map(skill => skill.skillId as keyof ISettler['skills']);
 
 function rollStats(totalPoints: number = 25): ISettler['stats'] {

@@ -1,7 +1,6 @@
 import { Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
 import { createOrUpdateMapTile, assignAdjacentTerrain, createUserMapTile } from "../utils/mapUtils";
-import { MapTile } from "../models/Server/MapTile";
 import { SpiralCounter } from "../models/Server/SpiralCounter";
 
 export async function createColonyWithSpiralLocation(
@@ -158,7 +157,6 @@ function calculateCoordsInLayer(layer: number, positionInLayer: number): {
     let x = layer;
     let y = -(layer - 1);
     let currentPos = 0;
-    let direction = 0;
 
     // Direction segments for layer n:
     // Right: n positions (but we start here, so n-1 moves)
