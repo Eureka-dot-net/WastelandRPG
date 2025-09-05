@@ -62,11 +62,14 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/map/:x/:y/start
+// post /api/colonies/:colonyId/map/start?x=...&y=...&settlerId=...
 export const startExploration = async (req: Request, res: Response) => {
-  const { x, y } = req.params;
-  const { settlerId } = req.body;
+  const { x, y, settlerId } = req.query as { x?: string; y?: string; settlerId?: string };
   const colony = req.colony;
+
+  if (!x || !y) {
+    return res.status(400).json({ error: 'Both x and y coordinates are required' });
+  }
 
   const tileX = parseInt(x);
   const tileY = parseInt(y);
@@ -423,8 +426,12 @@ export const previewExploration = async (req: Request, res: Response) => {
   const { x, y, settlerId } = req.query as { x?: string; y?: string; settlerId?: string };
   const colony = req.colony;
 
-  const tileX = parseInt(x || '0');
-  const tileY = parseInt(y || '0');
+  if (!x || !y) {
+    return res.status(400).json({ error: 'Both x and y coordinates are required' });
+  }
+
+  const tileX = parseInt(x);
+  const tileY = parseInt(y);
 
   if (isNaN(tileX) || isNaN(tileY)) {
     return res.status(400).json({ error: 'Invalid coordinates' });

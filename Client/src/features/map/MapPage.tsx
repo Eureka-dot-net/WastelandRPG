@@ -51,7 +51,7 @@ function MapPage() {
   // Get current explorable coordinates for batch preview
   const getExplorableCoordinates = useMemo(() => {
     if (!map?.grid?.tiles) return [];
-    
+
     const explorableCoords: { x: number; y: number }[] = [];
     map.grid.tiles.forEach((row, rowIndex) => {
       row.forEach((tile, colIndex) => {
@@ -85,11 +85,11 @@ function MapPage() {
   // Build unified preview data when batch data is available
   useEffect(() => {
     if (!batchPreviewData || selectedCoordinates.length === 0) return;
-    
+
     const previews: Record<string, UnifiedPreview> = {};
     const coordinate = selectedCoordinates[0];
     const coordKey = `${coordinate.x}:${coordinate.y}`;
-    
+
     // Build preview for each available settler with the selected coordinates
     availableSettlers.forEach(settler => {
       const settlerPreview = batchPreviewData.results[settler._id]?.[coordKey];
@@ -97,7 +97,7 @@ function MapPage() {
         previews[settler._id] = transformMapExplorationPreview(settlerPreview);
       }
     });
-    
+
     setSettlerPreviews(previews);
   }, [batchPreviewData, selectedCoordinates, availableSettlers]);
 
@@ -123,31 +123,31 @@ function MapPage() {
   }, [colonyId, explorableCoordinates, availableSettlers, settlerIds, queryClient]);
 
   useEffect(() => {
-  if (!colonyId || !serverId) return;
+    if (!colonyId || !serverId) return;
 
-  const adjacentPositions = [
-    { x: centerX, y: centerY + 1 }, // Up
-    { x: centerX, y: centerY - 1 }, // Down
-    { x: centerX - 1, y: centerY }, // Left
-    { x: centerX + 1, y: centerY }  // Right
-  ];
+    const adjacentPositions = [
+      { x: centerX, y: centerY + 1 }, // Up
+      { x: centerX, y: centerY - 1 }, // Down
+      { x: centerX - 1, y: centerY }, // Left
+      { x: centerX + 1, y: centerY }  // Right
+    ];
 
-  adjacentPositions.forEach(({ x, y }) => {
-    queryClient.prefetchQuery({
-      queryKey: ["map", colonyId, x, y],
-      queryFn: async () => {
-        const url = `/colonies/${colonyId}/map?x=${x}&y=${y}`;
-        const response = await agent.get(url);
-        return response.data as MapResponse;
-      },
-      staleTime: 10 * 60 * 1000, // 10 minutes - longer since maps change less frequently
-    }).catch(err => {
-      console.warn(`Failed to prefetch map at (${x}, ${y}):`, err);
+    adjacentPositions.forEach(({ x, y }) => {
+      queryClient.prefetchQuery({
+        queryKey: ["map", colonyId, x, y],
+        queryFn: async () => {
+          const url = `/colonies/${colonyId}/map?x=${x}&y=${y}`;
+          const response = await agent.get(url);
+          return response.data as MapResponse;
+        },
+        staleTime: 10 * 60 * 1000, // 10 minutes - longer since maps change less frequently
+      }).catch(err => {
+        console.warn(`Failed to prefetch map at (${x}, ${y}):`, err);
+      });
     });
-  });
 
-  console.log(`Preloading 4 adjacent map grids around position (${centerX}, ${centerY})`);
-}, [colonyId, serverId, centerX, centerY, queryClient]);
+    console.log(`Preloading 4 adjacent map grids around position (${centerX}, ${centerY})`);
+  }, [colonyId, serverId, centerX, centerY, queryClient]);
 
   const handleTileClick = (tile: MapTileAPI) => {
     if (!tile.canExplore || !availableSettlers.length) return;
@@ -161,15 +161,15 @@ function MapPage() {
 
     // Calculate world coordinates from grid position
     const worldX = centerX - 2 + selectedTile.position.col;
-    const worldY = centerY + 2 - selectedTile.position.row;
+    const worldY = centerY - 2 + selectedTile.position.row;
 
     const explorationKey = `${worldX},${worldY}`;
     setStartingExplorationKey(explorationKey);
 
     startExploration.mutate(
       {
-        row: selectedTile.position.row,
-        col: selectedTile.position.col,
+        row: worldX,
+        col: worldY,
         settlerId: settler._id
       },
       {
