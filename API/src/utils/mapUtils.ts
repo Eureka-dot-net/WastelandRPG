@@ -291,7 +291,8 @@ export async function canTileBeExplored(
 }
 
 /**
- * Get a 5x5 grid of tiles centered on x,y coordinates, filtered for colony's fog of war
+ * Get a 5x5 grid of tiles centered on x,y coordinates
+ * Returns all tiles that exist, regardless of exploration status by colony
  * OPTIMIZED VERSION: Uses bulk queries instead of individual tile lookups
  */
 export async function getMapGridForColony(
@@ -310,34 +311,16 @@ export async function getMapGridForColony(
   const minY = centerY - offset;
   const maxY = centerY + offset;
   
-  // Bulk query 1: Get all tiles in the 5x5 area
+  // Bulk query: Get all tiles in the 5x5 area (regardless of exploration status)
   const allTiles = await getTilesInArea(serverId, minX, maxX, minY, maxY, session);
   
   // Create a lookup map for tiles by coordinates
   const tileMap = new Map<string, MapTileDoc>();
-  const tileIds: string[] = [];
   
   allTiles.forEach(tile => {
     const key = `${tile.x},${tile.y}`;
     tileMap.set(key, tile);
-    tileIds.push(tile._id.toString());
   });
-  
-  // Bulk query 2: Get all UserMapTiles for this colony in the area
-  const exploredTilesQuery = {
-    colonyId,
-    serverTile: { $in: tileIds },
-    isExplored: true // Only consider actually explored tiles
-  };
-  
-  const exploredTiles = session 
-    ? await UserMapTile.find(exploredTilesQuery).session(session)
-    : await UserMapTile.find(exploredTilesQuery);
-  
-  // Create a lookup set for explored tile IDs
-  const exploredTileIds = new Set(
-    exploredTiles.map(userTile => userTile.serverTile.toString())
-  );
   
   // Build the grid using lookup maps
   const grid: (MapTileDoc | null)[][] = [];
@@ -351,12 +334,7 @@ export async function getMapGridForColony(
       const key = `${x},${y}`;
       
       const tile = tileMap.get(key);
-      
-      if (tile && exploredTileIds.has(tile._id.toString())) {
-        gridRow.push(tile);
-      } else {
-        gridRow.push(null); // Fog of war or tile doesn't exist
-      }
+      gridRow.push(tile || null); // Return tile if exists, null otherwise
     }
     
     grid.push(gridRow);
@@ -367,29 +345,59 @@ export async function getMapGridForColony(
 
 /**
  * Transform grid to a more API-friendly format
+ * Now properly handles exploration status and assignment matching
  */
-export function formatGridForAPI(
+export async function formatGridForAPI(
   grid: (MapTileDoc | null)[][],
-  assignments: AssignmentDoc[] // all assignments for tiles in this grid
-): any {
+  assignments: AssignmentDoc[], // all assignments for tiles in this grid
+  colonyId: string,
+  centerX: number,
+  centerY: number,
+  session?: ClientSession
+): Promise<any> {
+  const gridSize = grid.length;
+  const offset = Math.floor(gridSize / 2);
+  
+  // Get all tiles that exist in the grid for bulk exploration status query
+  const existingTiles = grid.flat().filter(tile => tile !== null) as MapTileDoc[];
+  const tileIds = existingTiles.map(tile => tile._id.toString());
+  
+  // Bulk query: Get exploration status for all tiles in the grid
+  const exploredTilesQuery = {
+    colonyId,
+    serverTile: { $in: tileIds },
+    isExplored: true
+  };
+  
+  const exploredTiles = session 
+    ? await UserMapTile.find(exploredTilesQuery).session(session)
+    : await UserMapTile.find(exploredTilesQuery);
+  
+  // Create a lookup set for explored tile IDs
+  const exploredTileIds = new Set(
+    exploredTiles.map(userTile => userTile.serverTile.toString())
+  );
+
   return {
-    size: grid.length,
+    size: gridSize,
     tiles: grid.map((row, rowIndex) =>
       row.map((tile, colIndex) => {
-        const explored = !!tile;
+        // Calculate world coordinates for this grid position
+        const worldX = centerX - offset + colIndex;
+        const worldY = centerY - offset + rowIndex;
+        
+        // Check if this tile has been explored by this colony
+        const explored = tile ? exploredTileIds.has(tile._id.toString()) : false;
 
-        // When an exploration is started an assignment is created but the tile isn't explored yet.
-        // that is why we need to check this assignment using grid coordinates
-        const tileAssignments = assignments.filter(a => a.location && a.location.x === colIndex && a.location.y === rowIndex);
-        // All assignments associated with this tile (use world coordinates, not grid coordinates)
-        // const tileAssignments = tile 
-        //   ? assignments.filter(a => a.location && a.location.x === tile.x && a.location.y === tile.y)
-        //   : [];
+        // Match assignments using world coordinates
+        const tileAssignments = assignments.filter(a => 
+          a.location && a.location.x === worldX && a.location.y === worldY
+        );
 
         // Tiles can be re-explored, so check if adjacent tiles exist (not if current tile is unexplored)
         const canExplore = (
           (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
-          (rowIndex < grid.length - 1 && !!grid[rowIndex + 1][colIndex]) ||
+          (rowIndex < gridSize - 1 && !!grid[rowIndex + 1][colIndex]) ||
           (colIndex > 0 && !!grid[rowIndex][colIndex - 1]) ||
           (colIndex < row.length - 1 && !!grid[rowIndex][colIndex + 1]) ||
           explored // If tile is already explored by this colony, it can be re-explored
@@ -397,18 +405,19 @@ export function formatGridForAPI(
 
         return {
           position: { row: rowIndex, col: colIndex },
-          ...(tile ? {
-            x: tile.x,
-            y: tile.y,
+          x: worldX,
+          y: worldY,
+          assignments: tileAssignments, // Always show assignments, regardless of exploration
+          ...(tile && explored ? {
+            // Only show tile details if explored by this colony (fog of war)
             terrain: { type: tile.terrain, ...(getTerrainCatalogue(tile.terrain) || {}) },
             loot: tile.loot,
             threat: tile.threat,
             icon: tile.icon,
-            assignments: tileAssignments,
             event: tile.event,
             exploredAt: tile.exploredAt,
             colony: tile.colony
-          } : null),
+          } : {}),
           explored,
           canExplore
         };

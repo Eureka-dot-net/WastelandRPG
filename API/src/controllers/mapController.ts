@@ -46,7 +46,7 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
       'location.y': { $gte: centerY - 2, $lte: centerY + 2 }
     });
 
-    const formattedGrid = formatGridForAPI(grid, assignments);
+    const formattedGrid = await formatGridForAPI(grid, assignments, colony._id.toString(), centerX, centerY);
 
     res.json({
       center: { x: centerX, y: centerY },
