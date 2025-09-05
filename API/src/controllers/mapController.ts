@@ -37,7 +37,7 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
   try {
     await withSessionReadOnly(async (session) => {
       // Get 5x5 grid centered on the coordinates, filtered for this colony's fog of war
-      const grid = await getMapGridForColony(colony.serverId, colony._id.toString(), centerX, centerY, session);
+      const grid = await getMapGridForColony(colony.serverId, colony._id.toString(), centerX, centerY);
 
       // Get all exploration assignments in this 5x5 area
       const assignments = await Assignment.find({
@@ -48,7 +48,7 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
         'location.y': { $gte: centerY - 2, $lte: centerY + 2 }
       }).session(session);
 
-      const formattedGrid = await formatGridForAPI(grid, assignments, colony._id.toString(), centerX, centerY, session);
+      const formattedGrid = await formatGridForAPI(grid, assignments, colony._id.toString(), centerX, centerY);
 
       res.json({
         center: { x: centerX, y: centerY },
@@ -97,7 +97,7 @@ export const startExploration = async (req: Request, res: Response) => {
         Settler.findById(settlerId).session(session),
         
         // Check if tile can be explored (optimized function)
-        canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session)
+        canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY)
       ]);
 
       // Validate settler
@@ -115,14 +115,13 @@ export const startExploration = async (req: Request, res: Response) => {
       }
 
       // Get or create the tile (MapTile remains authoritative for content)
-      let tile = await getTile(colony.serverId, tileX, tileY, session);
+      let tile = await getTile(colony.serverId, tileX, tileY);
       let isNewTile = false;
 
       if (!tile) {
         // Create new MapTile (another player hasn't explored this yet)
-        tile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, {
-          session
-        });
+        tile = await createOrUpdateMapTile(colony.serverId, tileX, tileY, session);
+        isNewTile = true;
         isNewTile = true;
       }
 
@@ -294,14 +293,14 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
 
           try {
             // Check if tile can be explored
-            const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), x, y, session);
+            const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), x, y);
             if (!canExplore) {
               results[settlerId][coordKey] = { error: 'Cannot explore this tile - must be adjacent to already explored tiles or homestead' };
               continue;
             }
 
             // Check if tile exists
-            const tile = await getTile(colony.serverId, x, y, session);
+            const tile = await getTile(colony.serverId, x, y);
             let previewData;
 
             if (tile) {
@@ -314,7 +313,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
               }
 
               // Check if we have stored UserMapTile data
-              const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString(), session);
+              const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
               let adjustedRewards: Record<string, number>;
               let distance: number;
               let adjustedDuration: number;
@@ -483,13 +482,13 @@ export const previewExploration = async (req: Request, res: Response) => {
       }
 
       // Check if tile can be explored
-      const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session);
+      const canExplore = await canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY);
       if (!canExplore) {
         throw new Error('Cannot explore this tile - it must be adjacent to already explored tiles or homestead');
       }
 
       // Check if tile exists
-      const tile = await getTile(colony.serverId, tileX, tileY, session);
+      const tile = await getTile(colony.serverId, tileX, tileY);
 
       let previewData;
 
@@ -503,7 +502,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         }
 
         // Check if we have stored UserMapTile data
-        const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString(), session);
+        const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
         let adjustedRewards: Record<string, number>;
         let distance: number;
         let adjustedDuration: number;

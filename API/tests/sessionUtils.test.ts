@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { withSession, withSessionReadOnly, withOptionalSession, isSessionInTransaction, supportsTransactions } from '../src/utils/sessionUtils';
+import { withSession, withSessionReadOnly, isSessionInTransaction, supportsTransactions } from '../src/utils/sessionUtils';
 import { Colony } from '../src/models/Player/Colony';
 
 describe('Session Utils', () => {
@@ -189,63 +189,4 @@ describe('Session Utils', () => {
     });
   });
 
-  describe('withOptionalSession', () => {
-    it('should create new session when no session provided', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
-      const result = await withOptionalSession(async (session) => {
-        expect(session).toBeDefined();
-        
-        // Only check transaction state if transactions are supported
-        if (supportsTransactions()) {
-          expect(isSessionInTransaction(session)).toBe(true);
-        }
-        
-        const colony = new Colony({
-          userId: new mongoose.Types.ObjectId(),
-          serverId: 'test',
-          serverName: 'Test Server',
-          colonyName: 'test-optional-new',
-          serverType: 'PvE',
-          homesteadLocation: { x: 0, y: 0 },
-          spiralLayer: 0,
-          spiralPosition: 0,
-          spiralDirection: 0,
-          spiralIndex: Math.floor(Math.random() * 10000)
-        });
-        
-        await colony.save({ session });
-        return colony._id;
-      });
-
-      // Verify the colony was saved
-      const colony = await Colony.findById(result);
-      expect(colony).toBeTruthy();
-    });
-
-    it('should reuse existing session when provided', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
-      
-      const externalSession = await mongoose.connection.startSession();
-      
-      if (supportsTransactions()) {
-        externalSession.startTransaction();
-      }
-
-      try {
-        await withOptionalSession(async (session) => {
-          expect(session).toBe(externalSession);
-        }, { session: externalSession });
-
-        if (supportsTransactions()) {
-          await externalSession.commitTransaction();
-        }
-      } finally {
-        externalSession.endSession();
-      }
-    });
-  });
-});
+})

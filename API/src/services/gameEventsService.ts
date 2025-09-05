@@ -154,7 +154,7 @@ export async function completeGameEvent(
     const { x, y } = eventDoc.location;
     
     // Get or create the MapTile (authoritative source for tile content)
-    const tile = await getTile(colony.serverId, x, y, session);
+    const tile = await getTile(colony.serverId, x, y);
     
     if (tile) {
       // Mark UserMapTile as explored (should already exist from when exploration started)

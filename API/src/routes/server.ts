@@ -6,6 +6,7 @@ import { ColonyManager } from '../managers/ColonyManager';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
 import { logError } from '../utils/logger';
+import { withSession } from '../utils/sessionUtils';
 
 const router = Router();
 
@@ -70,24 +71,19 @@ router.post('/:serverId/join', authenticate, async (req: Request, res: Response)
   }
 
   try {
-    const colony = await createColonyWithSpiralLocation(userId, server.id, colonyName || 'New Colony', server.type, server.name);
-    // const colony = new Colony({
-    //   userId,
-    //   serverId: server.id,
-    //   serverType: server.type,
-    //   colonyName: colonyName || 'New Colony',
-    //   level: 1,
-    // });
-    
-    // await colony.save();
-    
-    const colonyManager = new ColonyManager(colony);
-    const viewModel = await colonyManager.toViewModel();
-    
-    return res.status(201).json({
-      message: `Successfully joined ${server.name} server`,
-      colony: viewModel
+    const result = await withSession(async (session) => {
+      const colony = await createColonyWithSpiralLocation(userId, server.id, colonyName || 'New Colony', server.type, server.name, 10, 5, session);
+      
+      const colonyManager = new ColonyManager(colony);
+      const viewModel = await colonyManager.toViewModel();
+      
+      return {
+        message: `Successfully joined ${server.name} server`,
+        colony: viewModel
+      };
     });
+    
+    return res.status(201).json(result);
   } catch (error) {
     logError('Failed to join server', error, { userId, serverId, colonyName, serverName: server.name });
     return res.status(500).json({ message: 'Failed to join server', error });
