@@ -413,6 +413,7 @@ export async function createUserMapTile(
   distanceFromHomestead: number,
   explorationTime: number,
   lootMultiplier: number,
+  discoveredLoot: ILootInfo[],
   session?: ClientSession
 ): Promise<UserMapTileDoc> {
   const userTileData = {
@@ -422,7 +423,8 @@ export async function createUserMapTile(
     isExplored: false, // Will be set to true when exploration completes
     distanceFromHomestead,
     explorationTime,
-    lootMultiplier
+    lootMultiplier,
+    discoveredLoot // Store the actual calculated loot amounts
   };
 
   if (session) {
@@ -494,40 +496,3 @@ export async function markUserMapTileExplored(
     : await UserMapTile.findOneAndUpdate(query, update, { new: true });
 }
 
-/**
- * Create or get existing UserMapTile for exploration
- * @deprecated Use createUserMapTile for new explorations and markUserMapTileExplored for completion
- */
-export async function createOrGetUserMapTile(
-  serverTileId: string,
-  colonyId: string,
-  session?: ClientSession
-): Promise<UserMapTileDoc> {
-  const query = { serverTile: serverTileId, colonyId };
-  
-  let userTile = session 
-    ? await UserMapTile.findOne(query).session(session)
-    : await UserMapTile.findOne(query);
-
-  if (!userTile) {
-    // For backward compatibility, create with default values
-    const userTileData = {
-      serverTile: serverTileId,
-      colonyId,
-      exploredAt: new Date(),
-      isExplored: true, // Legacy behavior - assume explored
-      distanceFromHomestead: 0,
-      explorationTime: 300000, // Default 5 minutes
-      lootMultiplier: 1.0
-    };
-
-    if (session) {
-      const newUserTile = new UserMapTile(userTileData);
-      userTile = await newUserTile.save({ session });
-    } else {
-      userTile = await UserMapTile.create(userTileData);
-    }
-  }
-
-  return userTile as UserMapTileDoc;
-}

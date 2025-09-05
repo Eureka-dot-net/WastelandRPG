@@ -20,6 +20,7 @@ import {
   createUserMapTile,
   getUserMapTileData
 } from '../utils/mapUtils';
+import { ILootInfo } from '../models/Server/MapTile';
 import { Assignment } from '../models/Player/Assignment';
 
 // GET /api/colonies/:colonyId/map?x=0&y=0
@@ -159,14 +160,22 @@ export const startExploration = async (req: Request, res: Response) => {
       distanceModifiers
     );
 
+    // Convert planned rewards to ILootInfo format for storage
+    const discoveredLoot: ILootInfo[] = Object.entries(adjustments.adjustedPlannedRewards).map(([item, amount]) => ({
+      item,
+      amount
+    }));
+
     // Create UserMapTile with isExplored=false when exploration starts
     // This allows assignments to be associated with locations on the map
+    // and stores the calculated loot amounts permanently
     await createUserMapTile(
       tile._id.toString(),
       colony._id.toString(),
       distance,
       adjustments.adjustedDuration,
       distanceModifiers.lootMultiplier,
+      discoveredLoot,
       session
     );
 
@@ -310,39 +319,75 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
 
             // Check if we have stored UserMapTile data for efficiency
             const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
+            let adjustedRewards: Record<string, number>;
             let distance: number;
-            let distanceModifiers: any;
-            let baseDuration = 300000; // 5 minutes default
+            let adjustedDuration: number;
+            let adjustmentEffects: string[];
 
-            if (userMapTile) {
-              // Use stored values for efficiency
+            if (userMapTile && userMapTile.discoveredLoot && userMapTile.discoveredLoot.length > 0) {
+              // Use stored calculated loot and values - no recalculation needed
+              adjustedRewards = {};
+              userMapTile.discoveredLoot.forEach(loot => {
+                adjustedRewards[loot.item] = loot.amount;
+              });
               distance = userMapTile.distanceFromHomestead;
-              distanceModifiers = {
-                durationMultiplier: userMapTile.explorationTime / baseDuration,
-                lootMultiplier: userMapTile.lootMultiplier,
-                distanceEffects: [
-                  `Distance (${distance}): +${Math.round((userMapTile.explorationTime / baseDuration - 1) * 100)}% time`,
-                  `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
-                ]
-              };
-              baseDuration = userMapTile.explorationTime;
+              adjustedDuration = userMapTile.explorationTime;
+              
+              // Generate adjustment effects for display
+              const baseDuration = 300000;
+              const timeMultiplier = adjustedDuration / baseDuration;
+              const distanceEffectsArray = [
+                `Distance (${distance}): +${Math.round((timeMultiplier - 1) * 100)}% time`,
+                `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
+              ];
+              
+              // Add settler adjustments on top of stored values
+              const settlerAdjustments = calculateSettlerAdjustments(
+                adjustedDuration,
+                adjustedRewards,
+                settler,
+                { durationMultiplier: 1, lootMultiplier: 1, distanceEffects: [] } // No additional distance effects
+              );
+              
+              adjustedRewards = settlerAdjustments.adjustedPlannedRewards;
+              adjustedDuration = settlerAdjustments.adjustedDuration;
+              
+              // Combine all effects into a flat array
+              adjustmentEffects = [
+                ...distanceEffectsArray,
+                ...settlerAdjustments.effects.speedEffects,
+                ...settlerAdjustments.effects.lootEffects,
+                ...settlerAdjustments.effects.traitEffects
+              ];
+              
             } else {
-              // Calculate fresh values (fallback for new tiles)
+              // Calculate fresh values (fallback for tiles without stored data)
               distance = calculateDistance(
                 colony.homesteadLocation.x,
                 colony.homesteadLocation.y,
                 x,
                 y
               );
-              distanceModifiers = calculateDistanceModifiers(distance);
+              const distanceModifiers = calculateDistanceModifiers(distance);
+              
+              const adjustments = calculateSettlerAdjustments(
+                300000, // base duration
+                baseRewards, 
+                settler, 
+                distanceModifiers
+              );
+              
+              adjustedRewards = adjustments.adjustedPlannedRewards;
+              adjustedDuration = adjustments.adjustedDuration;
+              
+              // Flatten adjustment effects
+              adjustmentEffects = [
+                ...distanceModifiers.distanceEffects,
+                ...adjustments.effects.speedEffects,
+                ...adjustments.effects.lootEffects,
+                ...adjustments.effects.traitEffects
+              ];
             }
-            
-            const adjustments = calculateSettlerAdjustments(
-              baseDuration, 
-              baseRewards, 
-              settler, 
-              distanceModifiers
-            );
 
             const terrainInfo = getTerrainCatalogue(tile.terrain);
 
@@ -357,11 +402,11 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
                 icon: terrainInfo?.icon || 'GiQuestionMark'
               },
               loot: enrichRewardsWithMetadata(baseRewards),
-              adjustedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+              adjustedLoot: enrichRewardsWithMetadata(adjustedRewards),
               threat: tile.threat,
               event: tile.event,
-              duration: adjustments.adjustedDuration,
-              adjustments: adjustments.effects,
+              duration: adjustedDuration,
+              adjustments: adjustmentEffects,
               alreadyExplored
             };
           } else {
@@ -484,39 +529,75 @@ export const previewExploration = async (req: Request, res: Response) => {
 
       // Check if we have stored UserMapTile data for efficiency
       const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
+      let adjustedRewards: Record<string, number>;
       let distance: number;
-      let distanceModifiers: any;
-      let baseDuration = 300000; // 5 minutes default
+      let adjustedDuration: number;
+      let adjustmentEffects: string[];
 
-      if (userMapTile) {
-        // Use stored values for efficiency
+      if (userMapTile && userMapTile.discoveredLoot && userMapTile.discoveredLoot.length > 0) {
+        // Use stored calculated loot and values - no recalculation needed
+        adjustedRewards = {};
+        userMapTile.discoveredLoot.forEach(loot => {
+          adjustedRewards[loot.item] = loot.amount;
+        });
         distance = userMapTile.distanceFromHomestead;
-        distanceModifiers = {
-          durationMultiplier: userMapTile.explorationTime / baseDuration,
-          lootMultiplier: userMapTile.lootMultiplier,
-          distanceEffects: [
-            `Distance (${distance}): +${Math.round((userMapTile.explorationTime / baseDuration - 1) * 100)}% time`,
-            `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
-          ]
-        };
-        baseDuration = userMapTile.explorationTime;
+        adjustedDuration = userMapTile.explorationTime;
+        
+        // Generate adjustment effects for display
+        const baseDuration = 300000;
+        const timeMultiplier = adjustedDuration / baseDuration;
+        const distanceEffectsArray = [
+          `Distance (${distance}): +${Math.round((timeMultiplier - 1) * 100)}% time`,
+          `Distance (${distance}): +${Math.round((userMapTile.lootMultiplier - 1) * 100)}% loot`
+        ];
+        
+        // Add settler adjustments on top of stored values
+        const settlerAdjustments = calculateSettlerAdjustments(
+          adjustedDuration,
+          adjustedRewards,
+          settler,
+          { durationMultiplier: 1, lootMultiplier: 1, distanceEffects: [] } // No additional distance effects
+        );
+        
+        adjustedRewards = settlerAdjustments.adjustedPlannedRewards;
+        adjustedDuration = settlerAdjustments.adjustedDuration;
+        
+        // Combine all effects into a flat array
+        adjustmentEffects = [
+          ...distanceEffectsArray,
+          ...settlerAdjustments.effects.speedEffects,
+          ...settlerAdjustments.effects.lootEffects,
+          ...settlerAdjustments.effects.traitEffects
+        ];
+        
       } else {
-        // Calculate fresh values (fallback for new tiles)
+        // Calculate fresh values (fallback for tiles without stored data)
         distance = calculateDistance(
           colony.homesteadLocation.x,
           colony.homesteadLocation.y,
           tileX,
           tileY
         );
-        distanceModifiers = calculateDistanceModifiers(distance);
+        const distanceModifiers = calculateDistanceModifiers(distance);
+        
+        const adjustments = calculateSettlerAdjustments(
+          300000, // base duration
+          baseRewards, 
+          settler, 
+          distanceModifiers
+        );
+        
+        adjustedRewards = adjustments.adjustedPlannedRewards;
+        adjustedDuration = adjustments.adjustedDuration;
+        
+        // Flatten adjustment effects
+        adjustmentEffects = [
+          ...distanceModifiers.distanceEffects,
+          ...adjustments.effects.speedEffects,
+          ...adjustments.effects.lootEffects,
+          ...adjustments.effects.traitEffects
+        ];
       }
-      
-      const adjustments = calculateSettlerAdjustments(
-        baseDuration, 
-        baseRewards, 
-        settler, 
-        distanceModifiers
-      );
 
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
@@ -531,11 +612,11 @@ export const previewExploration = async (req: Request, res: Response) => {
           icon: terrainInfo?.icon || 'GiQuestionMark'
         },
         loot: enrichRewardsWithMetadata(baseRewards),
-        adjustedLoot: enrichRewardsWithMetadata(adjustments.adjustedPlannedRewards),
+        adjustedLoot: enrichRewardsWithMetadata(adjustedRewards),
         threat: tile.threat,
         event: tile.event,
-        duration: adjustments.adjustedDuration,
-        adjustments: adjustments.effects,
+        duration: adjustedDuration,
+        adjustments: adjustmentEffects,
         alreadyExplored
       };
     } else {

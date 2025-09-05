@@ -13,7 +13,6 @@ import {
   enrichRewardsWithMetadata,
   GameAdjustments
 } from '../utils/gameUtils';
-import { getTile, createOrGetUserMapTile } from '../utils/mapUtils';
 
 // Use the shared type from gameUtils
 interface AssignmentAdjustments extends GameAdjustments { }
@@ -358,21 +357,6 @@ export const informAssignment = async (req: Request, res: Response) => {
 
     assignment.state = 'informed';
     await assignment.save();
-
-    // If this is an exploration assignment with coordinates, create UserMapTile
-    if (assignment.type === 'exploration' && assignment.location) {
-      const { x, y } = assignment.location;
-      const colony = req.colony;
-      
-      // Get the MapTile to create UserMapTile reference
-      const tile = await getTile(colony.serverId, x, y);
-      if (tile) {
-        await createOrGetUserMapTile(
-          tile._id.toString(),
-          colony._id.toString()
-        );
-      }
-    }
 
     let foundSettler = null;
     if (assignment.settlerFoundId) {

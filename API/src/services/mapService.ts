@@ -53,6 +53,7 @@ export async function createColonyWithSpiralLocation(
                 0, // distance from homestead is 0 for homestead itself
                 300000, // base exploration time (5 minutes)
                 1.0, // no loot multiplier for homestead
+                [], // no loot for homestead tiles
                 session
             );
             
