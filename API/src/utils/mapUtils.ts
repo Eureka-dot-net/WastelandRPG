@@ -10,7 +10,7 @@ import {
 } from './gameUtils';
 import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
 import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
-import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
+import { AssignmentDoc } from '../models/Player/Assignment';
 
 /**
  * Create or update a map tile with terrain and generated content
@@ -228,7 +228,7 @@ export async function getTile(
 }
 
 /**
- * Check if a tile can be explored (must be adjacent to an explored tile or homestead)
+ * Check if a tile can be explored (must be adjacent to an explored tile or homestead, or be re-explorable)
  * Optimized to use bulk queries instead of sequential lookups
  */
 export async function canTileBeExplored(
@@ -238,16 +238,30 @@ export async function canTileBeExplored(
   y: number,
   session?: ClientSession
 ): Promise<boolean> {
-  // Check if tile already exists (can always re-explore existing tiles)
+  // Check if tile exists
   const existingTile = await getTile(serverId, x, y, session);
+  
   if (existingTile) {
-    return true;
+    // If tile exists, check if colony has already explored it
+    const userMapTile = await getUserMapTileData(existingTile._id.toString(), colonyId, session);
+    
+    if (userMapTile) {
+      if (userMapTile.isExplored) {
+        return true; // Can re-explore completed tiles
+      } else {
+        return false; // Already exploring this tile (in progress)
+      }
+    } else {
+      // Colony hasn't explored this tile yet, check adjacency requirements
+      // (Skip adjacency check since tile exists - it was created by someone else's exploration)
+      return true;
+    }
   }
 
-  // Get all adjacent coordinates
+  // Tile doesn't exist - check adjacency requirements for new exploration
   const adjacentCoords = getAdjacentCoordinates(x, y);
   
-  // Bulk query: Get all adjacent tiles that exist in a single query
+  // Bulk query: Get all adjacent tiles that exist
   const adjacentTilesQuery = {
     serverId,
     $or: adjacentCoords.map(coord => ({ x: coord.x, y: coord.y }))
@@ -372,11 +386,13 @@ export function formatGridForAPI(
         //   ? assignments.filter(a => a.location && a.location.x === tile.x && a.location.y === tile.y)
         //   : [];
 
-        const canExplore = !explored && (
+        // Tiles can be re-explored, so check if adjacent tiles exist (not if current tile is unexplored)
+        const canExplore = (
           (rowIndex > 0 && !!grid[rowIndex - 1][colIndex]) ||
           (rowIndex < grid.length - 1 && !!grid[rowIndex + 1][colIndex]) ||
           (colIndex > 0 && !!grid[rowIndex][colIndex - 1]) ||
-          (colIndex < row.length - 1 && !!grid[rowIndex][colIndex + 1])
+          (colIndex < row.length - 1 && !!grid[rowIndex][colIndex + 1]) ||
+          explored // If tile is already explored by this colony, it can be re-explored
         );
 
         return {
@@ -405,9 +421,10 @@ export function formatGridForAPI(
  */
 
 /**
- * Create a UserMapTile record for a colony starting to explore a tile
+ * Create or update a UserMapTile record for a colony starting to explore a tile
+ * Handles re-exploration by updating existing records
  */
-export async function createUserMapTile(
+export async function createOrUpdateUserMapTile(
   serverTileId: string,
   colonyId: string,
   distanceFromHomestead: number,
@@ -416,6 +433,26 @@ export async function createUserMapTile(
   discoveredLoot: ILootInfo[],
   session?: ClientSession
 ): Promise<UserMapTileDoc> {
+  // Check if UserMapTile already exists
+  const existingUserTile = await getUserMapTileData(serverTileId, colonyId, session);
+  
+  if (existingUserTile) {
+    if (!existingUserTile.isExplored) {
+      throw new Error('Cannot start exploration - tile is already being explored');
+    }
+    
+    // Update existing UserMapTile for re-exploration
+    existingUserTile.exploredAt = new Date();
+    existingUserTile.isExplored = false; // Reset to false for new exploration
+    existingUserTile.distanceFromHomestead = distanceFromHomestead;
+    existingUserTile.explorationTime = explorationTime;
+    existingUserTile.lootMultiplier = lootMultiplier;
+    existingUserTile.discoveredLoot = discoveredLoot;
+    
+    return session ? await existingUserTile.save({ session }) : await existingUserTile.save();
+  }
+  
+  // Create new UserMapTile
   const userTileData = {
     serverTile: serverTileId,
     colonyId,
@@ -433,6 +470,30 @@ export async function createUserMapTile(
   } else {
     return await UserMapTile.create(userTileData);
   }
+}
+
+/**
+ * Create a UserMapTile record for a colony starting to explore a tile
+ * @deprecated Use createOrUpdateUserMapTile instead to handle re-exploration
+ */
+export async function createUserMapTile(
+  serverTileId: string,
+  colonyId: string,
+  distanceFromHomestead: number,
+  explorationTime: number,
+  lootMultiplier: number,
+  discoveredLoot: ILootInfo[],
+  session?: ClientSession
+): Promise<UserMapTileDoc> {
+  return createOrUpdateUserMapTile(
+    serverTileId,
+    colonyId,
+    distanceFromHomestead,
+    explorationTime,
+    lootMultiplier,
+    discoveredLoot,
+    session
+  );
 }
 
 /**

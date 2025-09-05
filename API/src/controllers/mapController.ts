@@ -17,7 +17,7 @@ import {
   getTile,
   formatGridForAPI,
   canTileBeExplored,
-  createUserMapTile,
+  createOrUpdateUserMapTile,
   getUserMapTileData
 } from '../utils/mapUtils';
 import { ILootInfo } from '../models/Server/MapTile';
@@ -166,10 +166,10 @@ export const startExploration = async (req: Request, res: Response) => {
       amount
     }));
 
-    // Create UserMapTile with isExplored=false when exploration starts
+    // Create or update UserMapTile with isExplored=false when exploration starts
     // This allows assignments to be associated with locations on the map
     // and stores the calculated loot amounts permanently
-    await createUserMapTile(
+    await createOrUpdateUserMapTile(
       tile._id.toString(),
       colony._id.toString(),
       distance,
@@ -317,7 +317,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
               });
             }
 
-            // Check if we have stored UserMapTile data for efficiency
+            // Check if we have stored UserMapTile data
             const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
             let adjustedRewards: Record<string, number>;
             let distance: number;
@@ -361,32 +361,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
               ];
               
             } else {
-              // Calculate fresh values (fallback for tiles without stored data)
-              distance = calculateDistance(
-                colony.homesteadLocation.x,
-                colony.homesteadLocation.y,
-                x,
-                y
-              );
-              const distanceModifiers = calculateDistanceModifiers(distance);
-              
-              const adjustments = calculateSettlerAdjustments(
-                300000, // base duration
-                baseRewards, 
-                settler, 
-                distanceModifiers
-              );
-              
-              adjustedRewards = adjustments.adjustedPlannedRewards;
-              adjustedDuration = adjustments.adjustedDuration;
-              
-              // Flatten adjustment effects
-              adjustmentEffects = [
-                ...distanceModifiers.distanceEffects,
-                ...adjustments.effects.speedEffects,
-                ...adjustments.effects.lootEffects,
-                ...adjustments.effects.traitEffects
-              ];
+              throw new Error('No stored exploration data found for this tile. All tiles must have been explored at least once to have preview data.');
             }
 
             const terrainInfo = getTerrainCatalogue(tile.terrain);
@@ -527,7 +502,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         });
       }
 
-      // Check if we have stored UserMapTile data for efficiency
+      // Check if we have stored UserMapTile data
       const userMapTile = await getUserMapTileData(tile._id.toString(), colony._id.toString());
       let adjustedRewards: Record<string, number>;
       let distance: number;
@@ -571,32 +546,7 @@ export const previewExploration = async (req: Request, res: Response) => {
         ];
         
       } else {
-        // Calculate fresh values (fallback for tiles without stored data)
-        distance = calculateDistance(
-          colony.homesteadLocation.x,
-          colony.homesteadLocation.y,
-          tileX,
-          tileY
-        );
-        const distanceModifiers = calculateDistanceModifiers(distance);
-        
-        const adjustments = calculateSettlerAdjustments(
-          300000, // base duration
-          baseRewards, 
-          settler, 
-          distanceModifiers
-        );
-        
-        adjustedRewards = adjustments.adjustedPlannedRewards;
-        adjustedDuration = adjustments.adjustedDuration;
-        
-        // Flatten adjustment effects
-        adjustmentEffects = [
-          ...distanceModifiers.distanceEffects,
-          ...adjustments.effects.speedEffects,
-          ...adjustments.effects.lootEffects,
-          ...adjustments.effects.traitEffects
-        ];
+        throw new Error('No stored exploration data found for this tile. All tiles must have been explored at least once to have preview data.');
       }
 
       const terrainInfo = getTerrainCatalogue(tile.terrain);

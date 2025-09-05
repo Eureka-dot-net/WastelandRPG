@@ -1,4 +1,4 @@
-import { createUserMapTile, hasColonyExploredTile, markUserMapTileExplored } from '../src/utils/mapUtils';
+import { createOrUpdateUserMapTile, hasColonyExploredTile, markUserMapTileExplored } from '../src/utils/mapUtils';
 import { UserMapTile } from '../src/models/Player/UserMapTile';
 import { MapTile } from '../src/models/Server/MapTile';
 
@@ -9,7 +9,7 @@ describe('MapUtils UserMapTile functions', () => {
     await MapTile.deleteMany({});
   });
 
-  test('createUserMapTile should create a new UserMapTile', async () => {
+  test('createOrUpdateUserMapTile should create a new UserMapTile', async () => {
     // Create a test MapTile first
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -21,7 +21,7 @@ describe('MapUtils UserMapTile functions', () => {
     });
 
     // Create UserMapTile using utility function
-    const userMapTile = await createUserMapTile(
+    const userMapTile = await createOrUpdateUserMapTile(
       mapTile._id.toString(), 
       'test-colony-456',
       10, // distance from homestead
@@ -61,7 +61,7 @@ describe('MapUtils UserMapTile functions', () => {
     expect(hasExplored).toBe(false);
 
     // Create UserMapTile (exploration started but not completed)
-    await createUserMapTile(
+    await createOrUpdateUserMapTile(
       mapTile._id.toString(), 
       'test-colony-789',
       5, // distance
@@ -91,6 +91,100 @@ describe('MapUtils UserMapTile functions', () => {
     expect(hasExplored).toBe(true);
   });
 
+  test('createOrUpdateUserMapTile should properly handle re-exploration', async () => {
+    // Create a test MapTile
+    const mapTile = await MapTile.create({
+      serverId: 'test-server',
+      x: 8,
+      y: 12,
+      terrain: 'mountains',
+      icon: 'mountain-icon',
+      exploredAt: new Date()
+    });
+
+    // First exploration
+    const userMapTile1 = await createOrUpdateUserMapTile(
+      mapTile._id.toString(),
+      'test-colony-reexp',
+      4, // distance
+      300000, // time
+      1.3, // multiplier
+      [{ item: 'stone', amount: 4 }] // loot
+    );
+
+    expect(userMapTile1.isExplored).toBe(false);
+    expect(userMapTile1.distanceFromHomestead).toBe(4);
+
+    // Complete first exploration
+    await markUserMapTileExplored(
+      mapTile._id.toString(),
+      'test-colony-reexp'
+    );
+
+    // Verify it's marked as explored
+    const hasExplored = await hasColonyExploredTile(
+      mapTile._id.toString(),
+      'test-colony-reexp'
+    );
+    expect(hasExplored).toBe(true);
+
+    // Start re-exploration with different parameters
+    const userMapTile2 = await createOrUpdateUserMapTile(
+      mapTile._id.toString(),
+      'test-colony-reexp',
+      6, // different distance
+      350000, // different time
+      1.5, // different multiplier
+      [{ item: 'iron', amount: 2 }, { item: 'stone', amount: 3 }] // different loot
+    );
+
+    expect(userMapTile2.isExplored).toBe(false); // Reset for new exploration
+    expect(userMapTile2.distanceFromHomestead).toBe(6); // Updated
+    expect(userMapTile2.explorationTime).toBe(350000); // Updated
+    expect(userMapTile2.lootMultiplier).toBe(1.5); // Updated
+    expect(userMapTile2.discoveredLoot).toHaveLength(2); // Updated
+    expect(userMapTile2._id.toString()).toBe(userMapTile1._id.toString()); // Same record
+
+    // Should still only be one record in the database
+    const count = await UserMapTile.countDocuments({
+      serverTile: mapTile._id,
+      colonyId: 'test-colony-reexp'
+    });
+    expect(count).toBe(1);
+  });
+
+  test('createOrUpdateUserMapTile should prevent starting exploration when already in progress', async () => {
+    // Create a test MapTile
+    const mapTile = await MapTile.create({
+      serverId: 'test-server',
+      x: 15,
+      y: 20,
+      terrain: 'swamp',
+      icon: 'swamp-icon',
+      exploredAt: new Date()
+    });
+
+    // Start first exploration
+    await createOrUpdateUserMapTile(
+      mapTile._id.toString(),
+      'test-colony-inprogress',
+      5, // distance
+      300000, // time
+      1.2, // multiplier
+      [{ item: 'mud', amount: 1 }] // loot
+    );
+
+    // Try to start another exploration while first is in progress
+    await expect(createOrUpdateUserMapTile(
+      mapTile._id.toString(),
+      'test-colony-inprogress',
+      7, // different distance
+      400000, // different time
+      1.4, // different multiplier
+      [{ item: 'plants', amount: 2 }] // different loot
+    )).rejects.toThrow('Cannot start exploration - tile is already being explored');
+  });
+
   test('markUserMapTileExplored should properly mark tile as explored', async () => {
     // Create a test MapTile
     const mapTile = await MapTile.create({
@@ -103,7 +197,7 @@ describe('MapUtils UserMapTile functions', () => {
     });
 
     // Create UserMapTile (exploration starts)
-    const userMapTile1 = await createUserMapTile(
+    const userMapTile1 = await createOrUpdateUserMapTile(
       mapTile._id.toString(),
       'test-colony-abc',
       3, // distance
