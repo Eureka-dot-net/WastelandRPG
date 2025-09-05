@@ -7,7 +7,9 @@ import { logError, logWarn } from '../utils/logger';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,
-  getTerrainCatalogue
+  getTerrainCatalogue,
+  calculateDistance,
+  calculateDistanceModifiers
 } from '../utils/gameUtils';
 import {
   createOrUpdateMapTile,
@@ -150,7 +152,7 @@ export const startExploration = async (req: Request, res: Response) => {
       await assignAdjacentTerrain(colony.serverId, tileX, tileY, session);
     }
 
-    // Calculate exploration adjustments based on settler
+    // Calculate exploration adjustments based on settler and distance from homestead
     const baseDuration = 300000; // 5 minutes base exploration time
     const baseRewards: Record<string, number> = {};
 
@@ -161,7 +163,21 @@ export const startExploration = async (req: Request, res: Response) => {
       });
     }
 
-    const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+    // Calculate distance from homestead for additional time and loot
+    const distance = calculateDistance(
+      colony.homesteadLocation.x,
+      colony.homesteadLocation.y,
+      tileX,
+      tileY
+    );
+    const distanceModifiers = calculateDistanceModifiers(distance);
+
+    const adjustments = calculateSettlerAdjustments(
+      baseDuration, 
+      baseRewards, 
+      settler, 
+      distanceModifiers
+    );
 
     // Create exploration record
     const completedAt = new Date(Date.now() + adjustments.adjustedDuration);
@@ -298,7 +314,22 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
             }
 
             const baseDuration = 300000; // 5 minutes
-            const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+            
+            // Calculate distance from homestead for additional time and loot
+            const distance = calculateDistance(
+              colony.homesteadLocation.x,
+              colony.homesteadLocation.y,
+              x,
+              y
+            );
+            const distanceModifiers = calculateDistanceModifiers(distance);
+            
+            const adjustments = calculateSettlerAdjustments(
+              baseDuration, 
+              baseRewards, 
+              settler, 
+              distanceModifiers
+            );
 
             const terrainInfo = getTerrainCatalogue(tile.terrain);
 
@@ -327,7 +358,22 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
             // Unknown tile - show estimated info
             const baseDuration = 300000;
             const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
-            const adjustments = calculateSettlerAdjustments(baseDuration, estimatedRewards, settler);
+            
+            // Calculate distance from homestead for additional time and loot
+            const distance = calculateDistance(
+              colony.homesteadLocation.x,
+              colony.homesteadLocation.y,
+              x,
+              y
+            );
+            const distanceModifiers = calculateDistanceModifiers(distance);
+            
+            const adjustments = calculateSettlerAdjustments(
+              baseDuration, 
+              estimatedRewards, 
+              settler, 
+              distanceModifiers
+            );
 
             previewData = {
               terrain: {
@@ -423,7 +469,22 @@ export const previewExploration = async (req: Request, res: Response) => {
       }
 
       const baseDuration = 300000; // 5 minutes
-      const adjustments = calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+      
+      // Calculate distance from homestead for additional time and loot
+      const distance = calculateDistance(
+        colony.homesteadLocation.x,
+        colony.homesteadLocation.y,
+        tileX,
+        tileY
+      );
+      const distanceModifiers = calculateDistanceModifiers(distance);
+      
+      const adjustments = calculateSettlerAdjustments(
+        baseDuration, 
+        baseRewards, 
+        settler, 
+        distanceModifiers
+      );
 
       const terrainInfo = getTerrainCatalogue(tile.terrain);
 
@@ -452,7 +513,22 @@ export const previewExploration = async (req: Request, res: Response) => {
       // Unknown tile - show estimated info
       const baseDuration = 300000;
       const estimatedRewards = { scrap: 2, wood: 1 }; // Basic estimated rewards
-      const adjustments = calculateSettlerAdjustments(baseDuration, estimatedRewards, settler);
+      
+      // Calculate distance from homestead for additional time and loot
+      const distance = calculateDistance(
+        colony.homesteadLocation.x,
+        colony.homesteadLocation.y,
+        tileX,
+        tileY
+      );
+      const distanceModifiers = calculateDistanceModifiers(distance);
+      
+      const adjustments = calculateSettlerAdjustments(
+        baseDuration, 
+        estimatedRewards, 
+        settler, 
+        distanceModifiers
+      );
 
       previewData = {
         terrain: {
