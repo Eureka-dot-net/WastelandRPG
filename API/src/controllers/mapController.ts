@@ -1,6 +1,6 @@
 // controllers/mapController.ts
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { logError, logWarn } from '../utils/logger';
@@ -86,21 +86,14 @@ export const startExploration = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid settlerId' });
   }
 
-  const session = await MapTile.startSession();
+  const session = await mongoose.connection.startSession();
   session.startTransaction();
 
   try {
     // Parallelize independent validation queries
-    const [settler, existingExploration, canExplore] = await Promise.all([
+    const [settler, canExplore] = await Promise.all([
       // Check if settler exists and is available
       Settler.findById(settlerId).session(session),
-      
-      // Check if exploration is already in progress for this tile by this colony
-      Assignment.findOne({
-        colonyId: colony._id,
-        location: { x: tileX, y: tileY },
-        state: 'in-progress'
-      }).session(session),
       
       // Check if tile can be explored (optimized function)
       canTileBeExplored(colony.serverId, colony._id.toString(), tileX, tileY, session)
@@ -119,12 +112,7 @@ export const startExploration = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Settler is not available' });
     }
 
-    // Validate exploration not already in progress
-    if (existingExploration) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ error: 'Exploration already in progress for this tile' });
-    }
+
 
     // Validate tile can be explored
     if (!canExplore) {
