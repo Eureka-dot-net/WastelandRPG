@@ -14,13 +14,9 @@ import {
 } from '@mui/material';
 import { Speed, TrendingUp, CheckCircle } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
-import type { Assignment } from '../../../../lib/types/assignment';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
-import { usePreviewAssignment } from '../../../../lib/hooks/usePreviewAssignment';
-import { usePreviewMapExploration } from '../../../../lib/hooks/usePreviewMapExploration';
 import type { UnifiedPreview } from '../../../../lib/types/preview';
 import { isAssignmentPreview, isMapExplorationPreview } from '../../../../lib/types/preview';
-import { transformAssignmentPreview, transformMapExplorationPreview } from '../../../../lib/utils/previewTransformers';
 
 const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
 
@@ -144,15 +140,11 @@ const StatChip = ({ stat, value }: { stat: string, value: number }) => {
 
 export interface SettlerPreviewCardProps {
   settler: Settler;
-  assignment?: Assignment | null;
-  colonyId: string;
   showSkills?: boolean;
   showStats?: boolean;
   onClick?: () => void;
   avatarIndex?: number;
   confirmPending?: boolean;
-  // Map exploration specific props
-  mapCoordinates?: { x: number; y: number };
   // Preview data - if provided, will skip hook calls
   preview?: UnifiedPreview;
   isLoading?: boolean;
@@ -161,14 +153,11 @@ export interface SettlerPreviewCardProps {
 
 const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   settler,
-  assignment,
-  colonyId,
   showSkills = true,
   showStats = false,
   onClick,
   avatarIndex = 0,
   confirmPending = false,
-  mapCoordinates,
   preview: providedPreview,
   isLoading: providedIsLoading,
   error: providedError
@@ -176,42 +165,10 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Use hooks only if preview is not provided (backward compatibility)
-  const { data: assignmentPreview, isLoading: isLoadingAssignment, error: assignmentError } = usePreviewAssignment(
-    colonyId,
-    assignment?._id || '',
-    settler._id,
-    !!assignment && !!assignment._id && !providedPreview
-  );
-  
-  const { data: mapPreview, isLoading: isLoadingMap, error: mapError } = usePreviewMapExploration(
-    colonyId,
-    mapCoordinates?.x || 0,
-    mapCoordinates?.y || 0,
-    settler._id,
-    !!mapCoordinates && !assignment && !providedPreview
-  );
-
-  // Determine which preview data to use
-  let preview: UnifiedPreview | null = null;
-  let isLoading = false;
-  let error = null;
-
-  if (providedPreview) {
-    // Use provided preview data (new pattern)
-    preview = providedPreview;
-    isLoading = providedIsLoading || false;
-    error = providedError || null;
-  } else {
-    // Use hook data and transform to unified format (legacy pattern)
-    if (assignment && assignmentPreview) {
-      preview = transformAssignmentPreview(assignmentPreview);
-    } else if (mapCoordinates && mapPreview) {
-      preview = transformMapExplorationPreview(mapPreview);
-    }
-    isLoading = assignment ? isLoadingAssignment : isLoadingMap;
-    error = assignment ? assignmentError : mapError;
-  }
+  // Use provided preview data
+  const preview = providedPreview;
+  const isLoading = providedIsLoading || false;
+  const error = providedError || null;
 
   const avatarColor = avatarColors[avatarIndex % avatarColors.length];
 

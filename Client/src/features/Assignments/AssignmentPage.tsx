@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
 } from "@mui/icons-material";
@@ -10,8 +10,10 @@ import "react-toastify/dist/ReactToastify.css";
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
+import { useSmartBatchPreviewAssignment } from "../../lib/hooks/useSmartBatchPreview";
 import type { Settler } from "../../lib/types/settler";
 import type { Assignment } from "../../lib/types/assignment";
+import type { UnifiedPreview } from "../../lib/types/preview";
 import { useQueryClient } from "@tanstack/react-query";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import TaskCard from "../../app/shared/components/tasks/TaskCard";
@@ -20,7 +22,7 @@ import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
-import { agent } from "../../lib/api/agent";
+import { transformAssignmentPreview } from "../../lib/utils/previewTransformers";
 import LatestEventCard from "../../components/events/LatestEventCard";
 
 function AssignmentPage() {
@@ -30,6 +32,7 @@ function AssignmentPage() {
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Assignment | null>(null);
   const [startingAssignmentId, setStartingAssignmentId] = useState<string | null>(null);
+  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, UnifiedPreview>>({});
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
@@ -39,61 +42,52 @@ function AssignmentPage() {
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
 
-  useEffect(() => { //This can stay. If a colony changes then we do want to invalidate the queries
-    if (colonyId) {
-      queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
-    }
-  }, [colonyId, queryClient]);
+  // Get available settlers and assignments for batch preview
+  const availableSettlers = useMemo(() => {
+    return colony?.settlers?.filter(
+      settler => !assignments?.some(a => a.state === "in-progress" && a.settlerId === settler._id)
+    ) || [];
+  }, [colony?.settlers, assignments]);
 
-
-  useEffect(() => {
-    if (!colonyId || !assignments || !colony?.settlers) return;
-
-    // 1️⃣ Get settlers who aren't assigned to in-progress tasks
-    const availableSettlers = colony.settlers.filter(
-      settler => !assignments.some(a => a.state === "in-progress" && a.settlerId === settler._id)
-    );
-
-    if (availableSettlers.length === 0) return;
-
-    // 2️⃣ Get assignments that are available and dependency-met
-    const availableAssignments = assignments.filter(a =>
+  const availableAssignments = useMemo(() => {
+    return assignments?.filter(a =>
       a.state === "available" &&
       (!a.dependsOn || ["informed", "completed"].includes(
         assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
       ))
-    );
+    ) || [];
+  }, [assignments]);
 
-    if (availableAssignments.length === 0) return;
+  // Use smart batch preview hook
+  const settlerIds = availableSettlers.map(s => s._id);
+  const assignmentIds = selectedTask ? [selectedTask._id] : availableAssignments.map(a => a._id);
+  
+  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewAssignment(
+    colonyId || '',
+    settlerIds,
+    assignmentIds,
+    !!(colonyId && settlerIds.length > 0 && assignmentIds.length > 0 && selectedTask)
+  );
 
-    // 3️⃣ Use batch prefetch instead of individual requests
-    const settlerIds = availableSettlers.map(s => s._id);
-    const assignmentIds = availableAssignments.map(a => a._id);
-    
-    if (settlerIds.length > 0 && assignmentIds.length > 0) {
-      console.log(
-        `Batch prefetching ${settlerIds.length} settlers × ${assignmentIds.length} assignments = ${settlerIds.length * assignmentIds.length} previews`
-      );
-      
-      queryClient.prefetchQuery({
-        queryKey: ["assignmentPreviewBatch", colonyId, settlerIds.sort(), assignmentIds.sort()],
-        queryFn: async () => {
-          const settlerIdsParam = settlerIds.join(',');
-          const assignmentIdsParam = assignmentIds.join(',');
-          const url = `/colonies/${colonyId}/assignments/preview-batch?settlerIds=${settlerIdsParam}&assignmentIds=${assignmentIdsParam}`;
-          const response = await agent.get(url);
-          return response.data;
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      }).catch(err => {
-        console.warn('Failed to prefetch batch assignment previews:', err);
-      });
-    }
-
-  }, [colonyId, assignments, colony?.settlers, queryClient]);
-
-  // Invalidate assignment queries when colony changes to ensure fresh data
+  // Build unified preview data when batch data is available
   useEffect(() => {
+    if (!batchPreviewData || !selectedTask) return;
+    
+    const previews: Record<string, UnifiedPreview> = {};
+    const assignmentId = selectedTask._id;
+    
+    // Build preview for each available settler with the selected task
+    availableSettlers.forEach(settler => {
+      const settlerPreview = batchPreviewData.results[settler._id]?.[assignmentId];
+      if (settlerPreview) {
+        previews[settler._id] = transformAssignmentPreview(settlerPreview);
+      }
+    });
+    
+    setSettlerPreviews(previews);
+  }, [batchPreviewData, selectedTask, availableSettlers]);
+
+  useEffect(() => { //This can stay. If a colony changes then we do want to invalidate the queries
     if (colonyId) {
       queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
     }
@@ -140,9 +134,7 @@ function AssignmentPage() {
   };
 
   const getAvailableSettlers = () => {
-    if (!colony?.settlers) return [];
-
-    return colony.settlers.filter(settler => settler.status === "idle");
+    return availableSettlers;
   };
 
   const isDependencyMet = (assignment: Assignment) => {
@@ -183,7 +175,7 @@ function AssignmentPage() {
   }
 
   const completedTasks = assignments.filter(a => a.state === "informed" || a.state === "completed").length;
-  const availableSettlers = getAvailableSettlers();
+  const availableSettlersForDisplay = getAvailableSettlers();
 
   // Get the latest event for display
   const latestEvent = colony.logs && colony.logs.length > 0
@@ -246,14 +238,14 @@ function AssignmentPage() {
 
           // Build actions array
           const actions = [];
-          if (status === 'available' && dependencyMet && availableSettlers.length > 0) {
+          if (status === 'available' && dependencyMet && availableSettlersForDisplay.length > 0) {
             actions.push({
               label: "Assign Settler",
               onClick: () => handleAssignClick(assignment._id),
               variant: 'contained' as const,
               disabled: startingAssignmentId === assignment._id
             });
-          } else if (status === 'available' && dependencyMet && availableSettlers.length === 0) {
+          } else if (status === 'available' && dependencyMet && availableSettlersForDisplay.length === 0) {
             actions.push({
               label: "No Available Settlers",
               onClick: () => { },
@@ -332,16 +324,16 @@ function AssignmentPage() {
         open={settlerDialogOpen}
         onClose={() => setSettlerDialogOpen(false)}
         onSelect={handleSettlerSelect}
-        settlers={availableSettlers}
-        selectedTask={selectedTask}
+        settlers={availableSettlersForDisplay}
         title={`Assign Settler to: ${selectedTask?.name || ''}`}
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks."
         showSkills={true}
-        colonyId={colonyId}
         showStats={false}
         confirmPending={startAssignment.isPending}
-
+        settlerPreviews={settlerPreviews}
+        previewsLoading={previewsLoading}
+        previewsError={previewsError}
       />
 
       {/* Task Queue Placeholder */}

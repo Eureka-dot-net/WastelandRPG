@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Person } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
-import type { Assignment } from '../../../../lib/types/assignment';
+import type { UnifiedPreview } from '../../../../lib/types/preview';
 import SettlerPreviewCard from './SettlerPreviewCard';
 
 export interface SettlerSelectorDialogProps {
@@ -20,16 +20,16 @@ export interface SettlerSelectorDialogProps {
   onClose: () => void;
   onSelect: (settler: Settler) => void;
   settlers: Settler[];
-  selectedTask?: Assignment | null;
-  colonyId?: string;
   title?: string;
   emptyStateMessage?: string;
   emptyStateSubMessage?: string;
   showSkills?: boolean;
   showStats?: boolean;
   confirmPending?: boolean;
-  // Map exploration specific props
-  mapCoordinates?: { x: number; y: number };
+  // Unified preview data for all settlers - key is settlerId
+  settlerPreviews?: Record<string, UnifiedPreview>;
+  previewsLoading?: boolean;
+  previewsError?: Error | null;
 }
 
 const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
@@ -37,15 +37,15 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
   onClose,
   onSelect,
   settlers,
-  selectedTask,
-  colonyId,
   title = "Select Settler",
   emptyStateMessage = "No available settlers",
   emptyStateSubMessage = "All settlers are currently assigned to other tasks.",
   showSkills = true,
   showStats = false,
   confirmPending = false,
-  mapCoordinates
+  settlerPreviews = {},
+  previewsLoading = false,
+  previewsError = null
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -140,7 +140,7 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
           },
         },
       }}>
-        {settlers.length > 0 && colonyId ? (
+        {settlers.length > 0 ? (
           isSingleSettler ? (
             <Box
               display="flex"
@@ -154,14 +154,14 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
               <SettlerPreviewCard
                 key={settlers[0]._id}
                 settler={settlers[0]}
-                assignment={selectedTask}
-                colonyId={colonyId}
                 showSkills={showSkills}
                 showStats={showStats}
                 avatarIndex={0}
                 onClick={!confirmPending ? () => onSelect(settlers[0]) : undefined}
                 confirmPending={confirmPending}
-                mapCoordinates={mapCoordinates}
+                preview={settlerPreviews[settlers[0]._id]}
+                isLoading={previewsLoading}
+                error={previewsError}
               />
             </Box>
           ) : (
@@ -170,14 +170,14 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                 <SettlerPreviewCard
                   key={settler._id}
                   settler={settler}
-                  assignment={selectedTask}
-                  colonyId={colonyId}
                   showSkills={showSkills}
                   showStats={showStats}
                   avatarIndex={index}
                   onClick={!confirmPending ? () => onSelect(settler) : undefined}
                   confirmPending={confirmPending}
-                  mapCoordinates={mapCoordinates}
+                  preview={settlerPreviews[settler._id]}
+                  isLoading={previewsLoading}
+                  error={previewsError}
                 />
               ))}
             </Box>

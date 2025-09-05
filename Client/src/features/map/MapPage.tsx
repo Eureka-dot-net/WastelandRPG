@@ -1,7 +1,7 @@
 import { Explore, KeyboardArrowUp, KeyboardArrowLeft, ZoomOut, KeyboardArrowRight, KeyboardArrowDown, Lock } from "@mui/icons-material";
 import { useMediaQuery, Tooltip, Box, Typography, Card, CardContent, LinearProgress, Container, Paper, IconButton, Grid, useTheme } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -12,9 +12,12 @@ import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotific
 import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
+import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/useSmartBatchPreview";
 import type { MapResponse, MapTileAPI } from "../../lib/types/MapResponse ";
 import type { Settler } from "../../lib/types/settler";
+import type { UnifiedPreview } from "../../lib/types/preview";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
+import { transformMapExplorationPreview } from "../../lib/utils/previewTransformers";
 import { agent } from "../../lib/api/agent";
 
 
@@ -26,6 +29,7 @@ function MapPage() {
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTile, setSelectedTile] = useState<MapTileAPI | null>(null);
   const [startingExplorationKey, setStartingExplorationKey] = useState<string | null>(null);
+  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, UnifiedPreview>>({});
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
@@ -44,47 +48,79 @@ function MapPage() {
 
   const availableSettlers = getAvailableSettlers();
 
-  // Prefetch exploration previews for explorable tiles
-  useEffect(() => {
-    if (!colonyId || !map?.grid?.tiles || !availableSettlers.length) return;
-
-    const explorableTiles: { x: number; y: number }[] = [];
-
-    // Find all explorable tiles
+  // Get current explorable coordinates for batch preview
+  const getExplorableCoordinates = useMemo(() => {
+    if (!map?.grid?.tiles) return [];
+    
+    const explorableCoords: { x: number; y: number }[] = [];
     map.grid.tiles.forEach((row, rowIndex) => {
       row.forEach((tile, colIndex) => {
         if (tile.canExplore) {
           const worldX = centerX - 2 + colIndex;
           const worldY = centerY + 2 - rowIndex;
-          explorableTiles.push({ x: worldX, y: worldY });
+          explorableCoords.push({ x: worldX, y: worldY });
         }
       });
     });
+    return explorableCoords;
+  }, [map?.grid?.tiles, centerX, centerY]);
 
-    // Use batch prefetch instead of individual requests
-    const settlerIds = availableSettlers.map(s => s._id);
+  const explorableCoordinates = getExplorableCoordinates;
+  const selectedCoordinates = useMemo(() => {
+    return selectedTile ? [{
+      x: centerX - 2 + selectedTile.position.col,
+      y: centerY + 2 - selectedTile.position.row
+    }] : [];
+  }, [selectedTile, centerX, centerY]);
+
+  // Use smart batch preview hook for selected tile only
+  const settlerIds = availableSettlers.map(s => s._id);
+  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewMapExploration(
+    colonyId || '',
+    settlerIds,
+    selectedCoordinates,
+    !!(colonyId && settlerIds.length > 0 && selectedCoordinates.length > 0)
+  );
+
+  // Build unified preview data when batch data is available
+  useEffect(() => {
+    if (!batchPreviewData || selectedCoordinates.length === 0) return;
     
-    if (explorableTiles.length > 0 && settlerIds.length > 0) {
-      console.log(
-        `Batch prefetching ${settlerIds.length} settlers × ${explorableTiles.length} tiles = ${settlerIds.length * explorableTiles.length} exploration previews`
-      );
-      
-      queryClient.prefetchQuery({
-        queryKey: ["mapExplorationPreviewBatch", colonyId, settlerIds.sort(), explorableTiles],
-        queryFn: async () => {
-          const settlerIdsParam = settlerIds.join(',');
-          const coordinatesParam = explorableTiles.map(coord => `${coord.x}:${coord.y}`).join(',');
-          const url = `/colonies/${colonyId}/map/preview-batch?settlerIds=${settlerIdsParam}&coordinates=${coordinatesParam}`;
-          const response = await agent.get(url);
-          return response.data;
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      }).catch(err => {
-        console.warn('Failed to prefetch batch exploration previews:', err);
-      });
-    }
+    const previews: Record<string, UnifiedPreview> = {};
+    const coordinate = selectedCoordinates[0];
+    const coordKey = `${coordinate.x}:${coordinate.y}`;
+    
+    // Build preview for each available settler with the selected coordinates
+    availableSettlers.forEach(settler => {
+      const settlerPreview = batchPreviewData.results[settler._id]?.[coordKey];
+      if (settlerPreview) {
+        previews[settler._id] = transformMapExplorationPreview(settlerPreview);
+      }
+    });
+    
+    setSettlerPreviews(previews);
+  }, [batchPreviewData, selectedCoordinates, availableSettlers]);
 
-  }, [colonyId, map?.grid?.tiles, availableSettlers, centerX, centerY, queryClient]);
+  // Prefetch exploration previews for explorable tiles (background prefetch)
+  useEffect(() => {
+    if (!colonyId || explorableCoordinates.length === 0 || !availableSettlers.length) return;
+
+    // Use batch prefetch for background loading of all explorable tiles
+    queryClient.prefetchQuery({
+      queryKey: ["mapExplorationPreviewBatch", colonyId, settlerIds.sort(), explorableCoordinates],
+      queryFn: async () => {
+        const settlerIdsParam = settlerIds.join(',');
+        const coordinatesParam = explorableCoordinates.map(coord => `${coord.x}:${coord.y}`).join(',');
+        const url = `/colonies/${colonyId}/map/preview-batch?settlerIds=${settlerIdsParam}&coordinates=${coordinatesParam}`;
+        const response = await agent.get(url);
+        return response.data;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }).catch(err => {
+      console.warn('Failed to prefetch batch exploration previews:', err);
+    });
+
+  }, [colonyId, explorableCoordinates, availableSettlers, settlerIds, queryClient]);
 
   useEffect(() => {
   if (!colonyId || !serverId) return;
@@ -442,13 +478,11 @@ function MapPage() {
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks."
         showSkills={true}
-        colonyId={colonyId}
         showStats={false}
         confirmPending={startExploration.isPending}
-        mapCoordinates={selectedTile ? {
-          x: centerX - 2 + selectedTile.position.col,
-          y: centerY + 2 - selectedTile.position.row
-        } : undefined}
+        settlerPreviews={settlerPreviews}
+        previewsLoading={previewsLoading}
+        previewsError={previewsError}
       />
 
       {/* Future Features Placeholder */}
