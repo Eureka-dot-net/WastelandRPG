@@ -16,11 +16,10 @@ import {
   getTile,
   formatGridForAPI,
   canTileBeExplored,
-  createOrGetUserMapTile,
   hasColonyExploredTile
 } from '../utils/mapUtils';
 import { MapTile } from '../models/Server/MapTile';
-import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
+import { Assignment } from '../models/Player/Assignment';
 
 // GET /api/colonies/:colonyId/map?x=0&y=0
 export const getMapGrid5x5 = async (req: Request, res: Response) => {
@@ -143,12 +142,8 @@ export const startExploration = async (req: Request, res: Response) => {
       isNewTile = true;
     }
 
-    // Create or get UserMapTile record for this colony's exploration
-    await createOrGetUserMapTile(
-      tile._id.toString(),
-      colony._id.toString(),
-      session
-    );
+    // NOTE: UserMapTile creation moved to assignment completion
+    // This prevents adjacent tile exploration until exploration is actually complete
 
     // Create adjacent tiles when exploring a completely new area
     if (isNewTile) {
@@ -174,6 +169,7 @@ export const startExploration = async (req: Request, res: Response) => {
       serverId: colony.serverId,
       colonyId: colony._id,
       settlerId,
+      type: 'exploration',
       location: { x: tileX, y: tileY },
       state: 'in-progress',
       startedAt: new Date(),
