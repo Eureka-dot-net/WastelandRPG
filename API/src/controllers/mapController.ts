@@ -4,6 +4,7 @@ import mongoose, { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { logError, logWarn } from '../utils/logger';
+import { withSession } from '../utils/sessionUtils';
 import {
   calculateSettlerAdjustments,
   enrichRewardsWithMetadata,

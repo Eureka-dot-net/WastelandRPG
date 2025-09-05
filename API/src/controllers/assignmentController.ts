@@ -6,6 +6,7 @@ import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { logError, logWarn } from '../utils/logger';
+import { withSession } from '../utils/sessionUtils';
 import {
   calculateSettlerAdjustments,
   generateRewards,
@@ -134,64 +135,69 @@ export const startAssignment = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid IDs' });
   }
 
-  const session = await Assignment.startSession();
-  session.startTransaction();
   try {
-    const assignment = await Assignment.findById(assignmentId).session(session);
-    if (!assignment) {
-      await session.abortTransaction();
-      session.endSession();
+    const result = await withSession(async (session) => {
+      const assignment = await Assignment.findById(assignmentId).session(session);
+      if (!assignment) {
+        throw new Error('Assignment not found');
+      }
+
+      if (assignment.state !== 'available') {
+        throw new Error('Assignment already started or completed');
+      }
+
+      // Fetch settler data for calculations
+      const settler = await Settler.findById(settlerId).session(session);
+      if (!settler) {
+        throw new Error('Settler not found');
+      }
+
+      // Calculate adjusted duration and loot based on settler stats/skills/traits
+      const adjustments = calculateAssignmentAdjustments(assignment, settler);
+
+      await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
+
+      assignment.state = 'in-progress';
+      assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
+      assignment.startedAt = new Date();
+      assignment.completedAt = new Date(Date.now() + adjustments.adjustedDuration);
+
+      // Store adjustment calculations for reference
+      assignment.adjustments = adjustments;
+
+      await assignment.save({ session });
+
+      const colonyManager = new ColonyManager(colony);
+      await colonyManager.addLogEntry(
+        session,
+        "assignment",
+        `Assignment '${assignment.name}' started with ${settler.name}.`,
+        { assignmentId: assignment._id, settlerId }
+      );
+
+      return {
+        assignment: {
+          ...assignment.toObject(),
+          plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
+          adjustments
+        }
+      };
+    });
+
+    res.json(result.assignment);
+  } catch (err) {
+    const error = err as Error;
+    
+    if (error.message === 'Assignment not found') {
       return res.status(404).json({ error: 'Assignment not found' });
     }
-
-    if (assignment.state !== 'available') {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ error: 'Assignment already started or completed' });
-    }
-
-    // Fetch settler data for calculations
-    const settler = await Settler.findById(settlerId).session(session);
-    if (!settler) {
-      await session.abortTransaction();
-      session.endSession();
+    if (error.message === 'Settler not found') {
       return res.status(404).json({ error: 'Settler not found' });
     }
-
-    // Calculate adjusted duration and loot based on settler stats/skills/traits
-    const adjustments = calculateAssignmentAdjustments(assignment, settler);
-
-    await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
-
-    assignment.state = 'in-progress';
-    assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
-    assignment.startedAt = new Date();
-    assignment.completedAt = new Date(Date.now() + adjustments.adjustedDuration);
-
-    // Store adjustment calculations for reference
-    assignment.adjustments = adjustments;
-
-    await assignment.save({ session });
-
-    const colonyManager = new ColonyManager(colony);
-    await colonyManager.addLogEntry(
-      session,
-      "assignment",
-      `Assignment '${assignment.name}' started with ${settler.name}.`,
-      { assignmentId: assignment._id, settlerId }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
-
-    res.json({
-      ...assignment.toObject(),
-      plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
-      adjustments
-    });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
+    if (error.message === 'Assignment already started or completed') {
+      return res.status(400).json({ error: 'Assignment already started or completed' });
+    }
+    
     logError('Failed to start assignment', err, { 
       colonyId: req.colonyId, 
       assignmentId: req.params.assignmentId,
