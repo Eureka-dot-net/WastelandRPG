@@ -43,17 +43,82 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
       );
       return res.data as Settler;
     },
-    onSuccess: (returnedSettler) => {
+    onMutate: async ({ settlerId, interests }) => {
       if (!colonyId) return;
-      // Update the colony data in the cache
+      
+      // Cancel any outgoing colony queries to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["colony", serverId] });
+      
+      // Snapshot previous colony data for rollback
+      const prevColonyData = queryClient.getQueryData<Colony>(["colony", serverId]);
+      
+      // Create a temporary settler object for optimistic update
+      const tempSettler: Settler = {
+        _id: settlerId,
+        colonyId: colonyId,
+        isActive: true,
+        nameId: "temp-settler",
+        name: "New Settler", // Placeholder - will be replaced by server response
+        backstory: "A new settler joining the colony",
+        theme: "default",
+        stats: {
+          strength: 1,
+          speed: 1,
+          intelligence: 1,
+          resilience: 1
+        },
+        skills: {
+          combat: 1,
+          scavenging: 1,
+          farming: 1,
+          crafting: 1,
+          medical: 1,
+          engineering: 1
+        },
+        interests: interests || [],
+        traits: [],
+        status: "idle",
+        health: 100,
+        morale: 100,
+        hunger: 100,
+        energy: 100,
+        carry: [],
+        equipment: {},
+        foodConsumption: 1,
+        maxCarrySlots: 10,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Optimistically add the settler to colony data
+      queryClient.setQueryData<Colony>(["colony", serverId], (oldColony) => {
+        if (!oldColony) return oldColony;
+        return {
+          ...oldColony,
+          settlers: [...oldColony.settlers, tempSettler],
+          settlerCount: oldColony.settlerCount + 1,
+        };
+      });
+      
+      return { prevColonyData, settlerId };
+    },
+    onError: (_, __, context) => {
+      // Rollback colony data if mutation failed
+      if (context?.prevColonyData) {
+        queryClient.setQueryData<Colony>(["colony", serverId], context.prevColonyData);
+      }
+    },
+    onSuccess: (returnedSettler, _, context) => {
+      if (!colonyId) return;
+      // Replace the temporary settler with the real one from the server
       queryClient.setQueryData<Colony>(
         ["colony", serverId],
         (oldColony) => {
           if (!oldColony) return oldColony;
           return {
             ...oldColony,
-            settlers: [...oldColony.settlers, returnedSettler],
-            settlerCount: oldColony.settlerCount + 1,
+            settlers: oldColony.settlers.map(s => 
+              s._id === context?.settlerId ? returnedSettler : s
+            ),
           };
         }
       );
