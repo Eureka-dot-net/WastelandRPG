@@ -180,43 +180,71 @@ export function addItemsToSettlerInventory(
 }
 
 /**
- * Handle reward distribution for a settler returning from a task
- * First tries to add items to settler inventory, then adds overflow to colony inventory
+ * Transfer all items from settler's inventory to colony inventory
+ * This represents a settler returning from exploration/tasks and depositing their finds
+ * Could be made into a user-controlled action in the future
  */
-export async function distributeRewardsToSettlerAndColony(
+export async function transferSettlerItemsToColony(
   settler: SettlerDoc,
   colonyId: string,
+  session: ClientSession
+): Promise<{ transferredItems: Record<string, number> }> {
+  
+  const transferredItems: Record<string, number> = {};
+  
+  // Convert settler's carry items to the format expected by colony inventory
+  for (const carriedItem of settler.carry) {
+    if (carriedItem.quantity > 0) {
+      transferredItems[carriedItem.itemId] = carriedItem.quantity;
+    }
+  }
+  
+  // Clear settler's inventory
+  settler.carry = [];
+  
+  // Save settler changes
+  await settler.save({ session });
+  
+  // Add all items to colony inventory
+  if (Object.keys(transferredItems).length > 0) {
+    await addRewardsToColonyInventory(colonyId, session, transferredItems);
+  }
+  
+  return { transferredItems };
+}
+
+/**
+ * Add rewards directly to settler inventory (for when they find items during exploration)
+ * This is used during the exploration/task to give items to the settler
+ */
+export async function giveRewardsToSettler(
+  settler: SettlerDoc,
   rewards: Record<string, number>,
   session: ClientSession
-): Promise<{ settlerItems: Record<string, number>; colonyItems: Record<string, number> }> {
+): Promise<{ settlerItems: Record<string, number>; overflow: Record<string, number> }> {
   
   const settlerItems: Record<string, number> = {};
-  const colonyItems: Record<string, number> = {};
+  const overflow: Record<string, number> = {};
   
   for (const [itemId, quantity] of Object.entries(rewards)) {
     if (quantity <= 0) continue;
     
-    // Try to add items to settler first
+    // Try to add items to settler
     const result = addItemsToSettlerInventory(settler, itemId, quantity);
     
     if (result.added > 0) {
       settlerItems[itemId] = result.added;
     }
     
-    // Add overflow to colony inventory
-    const overflow = quantity - result.added;
-    if (overflow > 0) {
-      colonyItems[itemId] = overflow;
+    // Track overflow (items that couldn't fit)
+    const overflow_qty = quantity - result.added;
+    if (overflow_qty > 0) {
+      overflow[itemId] = overflow_qty;
     }
   }
   
   // Save settler changes
   await settler.save({ session });
   
-  // Add overflow items to colony inventory
-  if (Object.keys(colonyItems).length > 0) {
-    await addRewardsToColonyInventory(colonyId, session, colonyItems);
-  }
-  
-  return { settlerItems, colonyItems };
+  return { settlerItems, overflow };
 }

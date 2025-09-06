@@ -3,9 +3,18 @@ import {
   calculateCurrentCarriedWeight,
   canCarryItems,
   addItemsToSettlerInventory,
-  getItemFromCatalogue
+  getItemFromCatalogue,
+  transferSettlerItemsToColony,
+  giveRewardsToSettler
 } from '../src/utils/settlerInventoryUtils';
-import { ISettler, ISettlerItem } from '../src/models/Player/Settler';
+import { ISettler, ISettlerItem, Settler } from '../src/models/Player/Settler';
+import { Inventory } from '../src/models/Player/Inventory';
+import { ClientSession } from 'mongoose';
+
+// Mock the imports
+jest.mock('../src/services/gameEventsService', () => ({
+  addRewardsToColonyInventory: jest.fn()
+}));
 
 // Mock settler data for testing
 const createMockSettler = (strength: number = 10, carryItems: ISettlerItem[] = []): ISettler => ({
@@ -44,6 +53,11 @@ const createMockSettler = (strength: number = 10, carryItems: ISettlerItem[] = [
 });
 
 describe('Settler Inventory System', () => {
+  beforeEach(() => {
+    // Clear mocks before each test
+    const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
+    addRewardsToColonyInventory.mockClear();
+  });
   
   describe('calculateCarryingCapacity', () => {
     test('should calculate capacity based on strength', () => {
@@ -167,6 +181,102 @@ describe('Settler Inventory System', () => {
       const result = addItemsToSettlerInventory(settler, 'map', 1);
       expect(result.added).toBe(0);
       expect(result.reason).toContain('not stackable');
+    });
+  });
+
+  describe('transferSettlerItemsToColony', () => {
+    test('should transfer all items from settler to colony', async () => {
+      const mockSession = {} as ClientSession;
+      const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
+      
+      // Mock settler document with save method
+      const mockSettler = {
+        carry: [
+          { itemId: 'wood', quantity: 5 },
+          { itemId: 'berries', quantity: 10 }
+        ],
+        save: jest.fn()
+      };
+      
+      const result = await transferSettlerItemsToColony(
+        mockSettler as any, 
+        'test_colony', 
+        mockSession
+      );
+      
+      expect(result.transferredItems).toEqual({
+        wood: 5,
+        berries: 10
+      });
+      expect(mockSettler.carry).toEqual([]); // Settler's inventory should be cleared
+      expect(mockSettler.save).toHaveBeenCalledWith({ session: mockSession });
+      expect(addRewardsToColonyInventory).toHaveBeenCalledWith(
+        'test_colony', 
+        mockSession, 
+        { wood: 5, berries: 10 }
+      );
+    });
+
+    test('should handle empty settler inventory', async () => {
+      const mockSession = {} as ClientSession;
+      const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
+      
+      const mockSettler = {
+        carry: [],
+        save: jest.fn()
+      };
+      
+      const result = await transferSettlerItemsToColony(
+        mockSettler as any, 
+        'test_colony', 
+        mockSession
+      );
+      
+      expect(result.transferredItems).toEqual({});
+      expect(mockSettler.save).toHaveBeenCalled();
+      expect(addRewardsToColonyInventory).not.toHaveBeenCalled(); // No items to transfer
+    });
+  });
+
+  describe('giveRewardsToSettler', () => {
+    test('should give rewards to settler within capacity', async () => {
+      const mockSession = {} as ClientSession;
+      const settler = createMockSettler(10); // 50 capacity
+      
+      // Mock the settler document
+      const mockSettler = {
+        ...settler,
+        save: jest.fn()
+      };
+      
+      const rewards = { berries: 20 }; // 20 * 0.3 = 6 weight, well within capacity
+      
+      const result = await giveRewardsToSettler(mockSettler as any, rewards, mockSession);
+      
+      expect(result.settlerItems.berries).toBe(20);
+      expect(result.overflow).toEqual({});
+      expect(mockSettler.carry).toHaveLength(1);
+      expect(mockSettler.carry[0]).toEqual({ itemId: 'berries', quantity: 20 });
+      expect(mockSettler.save).toHaveBeenCalledWith({ session: mockSession });
+    });
+
+    test('should handle overflow when settler cannot carry all items', async () => {
+      const mockSession = {} as ClientSession;
+      const settler = createMockSettler(10); // 50 capacity
+      
+      const mockSettler = {
+        ...settler,
+        save: jest.fn()
+      };
+      
+      const rewards = { wood: 20 }; // 20 * 3 = 60 weight, exceeds 50 capacity
+      
+      const result = await giveRewardsToSettler(mockSettler as any, rewards, mockSession);
+      
+      expect(result.settlerItems.wood).toBeLessThan(20);
+      expect(result.settlerItems.wood).toBeGreaterThan(0);
+      expect(result.overflow.wood).toBeGreaterThan(0);
+      expect(result.settlerItems.wood + result.overflow.wood).toBe(20);
     });
   });
 });
