@@ -66,7 +66,7 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await withSessionReadOnly(async (session) => {
+    const batchResults = await withSessionReadOnly(async (session) => {
       return await calculateBatchExplorationPreviews(
         colony,
         validation.coordinates,
@@ -75,7 +75,59 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
       );
     });
 
-    res.json(result);
+    // Transform BatchPreviewResult[] to expected client format
+    const transformedResults: Record<string, Record<string, any>> = {};
+    
+    batchResults.forEach(result => {
+      if (!transformedResults[result.settlerId]) {
+        transformedResults[result.settlerId] = {};
+      }
+      
+      const coordKey = `${result.coordinate.x}:${result.coordinate.y}`;
+      
+      if (result.error) {
+        // Include error in the structure
+        transformedResults[result.settlerId][coordKey] = {
+          error: result.error
+        };
+      } else if (result.preview) {
+        // Determine if tile is already explored based on userMapTile
+        const isAlreadyExplored = !!result.preview.userMapTile?.exploredAt;
+        
+        // Transform the preview data to match MapExplorationPreviewResult format
+        transformedResults[result.settlerId][coordKey] = {
+          coordinates: result.preview.coordinates,
+          settler: result.preview.settler,
+          preview: {
+            duration: result.preview.duration,
+            adjustments: result.preview.adjustments?.effects || {
+              speedEffects: [],
+              lootEffects: [],
+              traitEffects: []
+            },
+            alreadyExplored: isAlreadyExplored,
+            // Only include loot info as estimated rewards (not revealing actual unexplored tile details)
+            ...(result.preview.rewards && Object.keys(result.preview.rewards).length > 0 && {
+              estimatedLoot: Object.entries(result.preview.rewards).reduce((acc, [key, amount]) => {
+                acc[key] = { amount, itemId: key, name: key, type: 'resource' };
+                return acc;
+              }, {} as Record<string, any>)
+            }),
+            // Only include terrain info if already explored (privacy protection)
+            ...(isAlreadyExplored && result.preview.mapTile && {
+              terrain: {
+                type: result.preview.mapTile.terrain,
+                name: result.preview.mapTile.terrain,
+                description: `${result.preview.mapTile.terrain} terrain`,
+                icon: result.preview.mapTile.icon
+              }
+            })
+          }
+        };
+      }
+    });
+
+    res.json({ results: transformedResults });
   } catch (err) {
     logError('Error in batch preview exploration', err, { 
       colonyId: req.colonyId, 
@@ -156,25 +208,12 @@ export const startExploration = async (req: Request, res: Response) => {
         { tileX, tileY, settlerId: validatedSettlerId }
       );
 
-      return {
-        assignment: assignment.toObject(),
-        adjustments: explorationData.adjustments,
-        tileInfo: {
-          x: tileX,
-          y: tileY,
-          terrain: userMapTile.terrain,
-          icon: userMapTile.icon,
-          explored: false, // Will be true when exploration completes
-
-        }
-      };
+      return assignment.toObject();
     });
 
     res.json({
-      ...result.assignment,
-      plannedRewards: enrichRewardsWithMetadata(result.assignment.plannedRewards),
-      adjustments: result.adjustments,
-      tileInfo: result.tileInfo
+      ...result,
+      plannedRewards: enrichRewardsWithMetadata(result.plannedRewards)
     });
   } catch (err) {
     logError('Error starting exploration', err, { colonyId: req.colonyId, x, y, settlerId });
