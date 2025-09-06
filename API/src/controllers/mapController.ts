@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
 import { logError } from '../utils/logger';
-import { executeInParallel, withSession, withSessionReadOnly } from '../utils/sessionUtils';
+import { withSession, withSessionReadOnly } from '../utils/sessionUtils';
 import {
   enrichRewardsWithMetadata,
   calculateDistance,

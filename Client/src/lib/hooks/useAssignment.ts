@@ -57,6 +57,7 @@ export function useAssignment(
 
     type StartAssignmentContext = {
         prevData: { key: unknown[]; data: Assignment[] | undefined }[];
+        settlerId: string;
     };
 
     // Start assignment (optimistic)
@@ -110,13 +111,27 @@ export function useAssignment(
             );
 
             // Return snapshot for rollback in onError
-            return { prevData };
+            return { prevData, settlerId };
         },
         onError: (_, __, context) => {
             // Rollback previous cache if mutation failed
             context?.prevData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
+            
+            // Rollback settler status to idle
+            if (context?.settlerId) {
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
+                    old
+                        ? {
+                            ...old,
+                            settlers: old.settlers.map((s) =>
+                                s._id === context.settlerId ? { ...s, status: "idle" } : s
+                            ),
+                        }
+                        : old
+                );
+            }
         },
         onSuccess: (updatedAssignment) => {
             // Patch all assignment caches with confirmed server data
@@ -134,6 +149,8 @@ export function useAssignment(
     //TODO: I don't really understand why we need readonly here. Investigate
     type InformAssignmentContext = {
         prevData: { key: readonly unknown[]; data: Assignment[] | undefined }[];
+        settlerId?: string;
+        prevColonyData?: Colony;
     };
 
     // Inform assignment (optimistic)
@@ -161,6 +178,9 @@ export function useAssignment(
                 key: query.queryKey,
                 data: query.state.data as Assignment[] | undefined,
             }));
+
+            // Snapshot previous colony data
+            const prevColonyData = queryClient.getQueryData<Colony>(["colony", serverId]);
 
             // Find the settlerId from the cached assignment
             let settlerId: string | undefined;
@@ -208,12 +228,18 @@ export function useAssignment(
             }
 
 
-            return { prevData };
+            return { prevData, settlerId, prevColonyData };
         },
         onError: (_, __, context) => {
+            // Rollback assignment data
             context?.prevData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
+            
+            // Rollback colony data (settler status and unlocks)
+            if (context?.prevColonyData) {
+                queryClient.setQueryData<Colony>(["colony", serverId], context.prevColonyData);
+            }
         },
 
     });

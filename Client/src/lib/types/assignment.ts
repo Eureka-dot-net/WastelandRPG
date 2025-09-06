@@ -45,6 +45,10 @@ export interface Assignment {
   unlocks: string;
   settlerFound?: Settler;
   completionMessage?: string;
+  location?: {
+    x: number;
+    y: number;
+  };
   plannedRewards: PlannedRewards;
   adjustments?: AssignmentAdjustments;
   createdAt: string;      // ISO date string

@@ -56,7 +56,7 @@ export async function getMapGrid(
     if (isInGrid) {
       tileMap.set(key, {
         position: {
-          row: userTile.y - (centerY - offset),
+          row: (centerY + offset) - userTile.y,
           col: userTile.x - (centerX - offset)
         },
         explored: userTile.isExplored,
@@ -83,7 +83,7 @@ export async function getMapGrid(
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
-      const y = centerY - offset + row;
+      const y = centerY + offset - row;
       const key = `${x},${y}`;
       
       if (!exploredCoords.has(key)) {
@@ -106,7 +106,7 @@ export async function getMapGrid(
     const gridRow = [];
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
-      const y = centerY - offset + row;
+      const y = centerY + offset - row;
       const key = `${x},${y}`;
 
       const knownTile = tileMap.get(key);

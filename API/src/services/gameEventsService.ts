@@ -207,13 +207,21 @@ export async function completeGameEventsForColony(
   eventType: string,
   eventModel: any,
   eventTypeData?: any,
-  now: Date = new Date()
+  now: Date = new Date(),
+  additionalFilter?: any
 ) {
-  const events = await eventModel.find({
+  const query: any = {
     colonyId: colony._id,
     state: 'in-progress',
     completedAt: { $lte: now }
-  }).session(session);
+  };
+
+  // Apply additional filter if provided
+  if (additionalFilter) {
+    Object.assign(query, additionalFilter);
+  }
+
+  const events = await eventModel.find(query).session(session);
 
   if (!events.length) return;
 
