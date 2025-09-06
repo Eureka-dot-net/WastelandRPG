@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
-import type { MapResponse } from "../types/MapResponse";
+import type { MapResponse } from "../types/mapResponse";
 import type { Assignment } from "../types/assignment";
 import type { Colony } from "../types/colony";
 
