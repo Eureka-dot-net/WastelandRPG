@@ -46,7 +46,7 @@
     "terrainId": "ruins",
     "name": "Urban Ruins",
     "description": "Collapsed buildings and crumbling infrastructure from the old world. Rich in salvageable materials but dangerous.",
-    "icon": "GiRuins",
+    "icon": "GiAncientRuins",
     "lootMultiplier": 1.5,
     "threatLevel": 0.6,
     "eventChance": 0.25,

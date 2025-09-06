@@ -3,9 +3,10 @@ import type { IconType } from 'react-icons';
 
 interface DynamicIconProps {
   name: string;
+  size?: string;
 }
 
-export default function DynamicIcon({ name }: DynamicIconProps) {
+export default function DynamicIcon({ name, size = '20' }: DynamicIconProps) {
   const [IconComponent, setIconComponent] = useState<IconType | null>(null);
 
   useEffect(() => {
@@ -30,13 +31,13 @@ export default function DynamicIcon({ name }: DynamicIconProps) {
       });
   }, [name]);
 
-  if (!IconComponent) {
+  if (!IconComponent) { 
     return null; // Or fallback: <GiQuestionMark size={20} color="#8b3a3a" />
   }
 
   return (
     <Suspense fallback={<span>Loading...</span>}>
-      <IconComponent size={20}  />
+      <IconComponent size={size}  />
     </Suspense>
   );
 }

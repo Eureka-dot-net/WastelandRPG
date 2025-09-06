@@ -211,7 +211,7 @@ function MapPage() {
                 )}
                 {tile.terrain?.rewards && Object.keys(tile.terrain.rewards).length > 0 && (
                   <Typography variant="body2">
-                    Loot: {Object.entries(tile.terrain.rewards).map(([item, amount]) => `${amount} ${item}`).join(', ')}
+                    Loot: {Object.entries(tile.terrain.rewards).map(([item]) => `${item}`).join(', ')}
                   </Typography>
                 )}
                 {/* {tile.threat && (
@@ -287,7 +287,7 @@ function MapPage() {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {tile.terrain?.icon && <DynamicIcon name={tile.terrain.icon} />}
+                {tile.terrain?.icon && <DynamicIcon name={tile.terrain.icon} size={isMobile ? "1.5rem" : "2rem"} />}
                 <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center' }}>
                   {tile.terrain?.type || 'Unknown'}
                 </Typography>
