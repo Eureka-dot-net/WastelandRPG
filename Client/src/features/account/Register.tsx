@@ -140,7 +140,7 @@ export default function Register() {
               sx={{ mt: 3, mb: 2 }}
             >
               {registerMutation.isPending && <CircularProgress size={20} sx={{ mr: 1 }} />}
-              Create Survivor
+              Create Colony
             </Button>
 
             <Box textAlign="center">

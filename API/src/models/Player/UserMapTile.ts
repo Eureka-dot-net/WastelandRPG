@@ -1,5 +1,5 @@
 import { Schema, model, Types, HydratedDocument } from 'mongoose';
-import { ILootInfo, IThreatInfo, MapTileDoc } from '../Server/MapTile';
+import {  MapTileDoc } from '../Server/MapTile';
 
 // --- User-specific tile interface ---
 export interface IUserMapTile {
@@ -7,6 +7,7 @@ export interface IUserMapTile {
   x: number;                               // redundant copy of tile coords for easy querying
   y: number;                               // redundant copy of tile coords for easy querying
   terrain: string;                        // redundant copy of terrain type in case master tile changes. Need to reexplore to get updates
+  icon: string;                           // icon representing the tile
   colonyId: string;                        // which colony discovered it
   exploredAt: Date;
   isExplored: boolean;                     // false when exploration starts, true when completed
@@ -20,6 +21,7 @@ const UserMapTileSchema = new Schema({
   x: { type: Number, required: true },
   y: { type: Number, required: true },
   terrain: { type: String, required: true },
+  icon: {type: String, required: true },
   colonyId: { type: String, required: true },
   exploredAt: { type: Date, default: Date.now },
   isExplored: { type: Boolean, default: false },

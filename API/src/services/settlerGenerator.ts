@@ -193,11 +193,14 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
 // Generate three unique onboarding choices (settlers)
 export async function generateSettlerChoices(colonyId: string, session: ClientSession): Promise<ISettler[]> {
     // Generate 3 unique names for this colony
-    const uniqueNames = await generateUniqueNames(colonyId, 3);
+     const uniqueNames = await generateUniqueNames(colonyId, 3);
 
-    const settlerPromises = uniqueNames.map(nameObj =>
-        generateSettler(colonyId, session, { assignInterests: true, isActive: false, nameObj })
-    );
-    const newSettlers = await Promise.all(settlerPromises);
+    const newSettlers: SettlerDoc[] = [];
+    for (const nameObj of uniqueNames) {
+        const settler = await generateSettler(colonyId, session, { assignInterests: true, isActive: false, nameObj });
+        // optional debug:
+        // console.log('Saved settler in tx:', settler._id?.toString(), settler.name);
+        newSettlers.push(settler);
+    }
     return newSettlers;
 }

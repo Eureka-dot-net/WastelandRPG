@@ -3,7 +3,6 @@ import { Router } from 'express';
 import { 
   getMapGrid5x5, 
   startExploration, 
-  previewExploration, 
   previewExplorationBatch,
 } from '../controllers/mapController';
 
@@ -18,7 +17,5 @@ router.post('/start', startExploration);
 // GET /api/colonies/:colonyId/map/preview-batch?settlerIds=...&coordinates=... - batch preview
 router.get('/preview-batch', previewExplorationBatch);
 
-// GET /api/colonies/:colonyId/map/preview?x=...&y=...&settlerId=... - single preview
-router.get('/preview', previewExploration);
 
 export default router;

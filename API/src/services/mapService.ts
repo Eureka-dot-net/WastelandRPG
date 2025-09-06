@@ -43,12 +43,15 @@ export async function createColonyWithSpiralLocation(
             
             // Create the initial UserMapTile record for this colony's homestead
             const homesteadUserTile = await createUserMapTile(
-                homesteadTile._id.toString(), 
                 colony._id.toString(),
+                homesteadTile._id.toString(), 
                 homesteadTile.x, 
-                homesteadTile.y, 
-                homesteadTile.terrain,
+                homesteadTile.y,
+                'homestead', // terrain type
+                'GiHut',
                 0, // distance is 0 for homestead
+                0, // explorationTime is 0 for homestead
+                1, // lootMultiplier is 1 for homestead
                 true, // isExplored is true for homestead
                 session
             );

@@ -13,7 +13,7 @@ import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
 import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/useSmartBatchPreview";
-import type { MapResponse, MapTileAPI } from "../../lib/types/MapResponse ";
+import type { MapResponse, MapTileAPI } from "../../lib/types/mapResponse ";
 import type { Settler } from "../../lib/types/settler";
 import type { UnifiedPreview } from "../../lib/types/preview";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
@@ -206,15 +206,15 @@ function MapPage() {
               <>
                 {tile.terrain && (
                   <Typography variant="body2">
-                    Terrain: {tile.terrain.type}
+                    Terrain: {tile.terrain.type} - {tile.terrain.description}
                   </Typography>
                 )}
-                {tile.loot && tile.loot.length > 0 && (
+                {tile.terrain?.rewards && Object.keys(tile.terrain.rewards).length > 0 && (
                   <Typography variant="body2">
-                    Loot: {tile.loot.map(l => `${l.amount} ${l.item}`).join(', ')}
+                    Loot: {Object.entries(tile.terrain.rewards).map(([item, amount]) => `${amount} ${item}`).join(', ')}
                   </Typography>
                 )}
-                {tile.threat && (
+                {/* {tile.threat && (
                   <Typography variant="body2">
                     Threat: {tile.threat.type} (Level {tile.threat.level})
                   </Typography>
@@ -223,7 +223,7 @@ function MapPage() {
                   <Typography variant="body2">
                     Event: {tile.event.description}
                   </Typography>
-                )}
+                )} */}
               </>
             )}
             {tile.canExplore && (
@@ -287,7 +287,7 @@ function MapPage() {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {tile.icon && <DynamicIcon name={tile.icon} />}
+                {tile.terrain?.icon && <DynamicIcon name={tile.terrain.icon} />}
                 <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center' }}>
                   {tile.terrain?.type || 'Unknown'}
                 </Typography>
