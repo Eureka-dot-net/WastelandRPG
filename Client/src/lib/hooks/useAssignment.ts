@@ -161,7 +161,7 @@ export function useAssignment(
                     
                     // Find the difference between what we optimistically added and actual server response
                     const expectedOptimistic = assignments?.find(a => a._id === updatedAssignment._id)?.expectedNewItems || 0;
-                    const actualFromServer = updatedAssignment.expectedNewItems;
+                    const actualFromServer = updatedAssignment.expectedNewItems || 0;
                     const adjustmentNeeded = actualFromServer - expectedOptimistic;
                     
                     return {
