@@ -117,17 +117,7 @@ export const calculateExplorationDetails = async (
 interface BatchPreviewResult {
   coordinate: { x: number; y: number };
   settlerId: string;
-  preview?: {
-    coordinates: { x: number; y: number };
-    distance: number;
-    duration: number;
-    rewards: Record<string, number>;
-    settler: {
-      id: string;
-      name: string;
-      stats: any;
-    };
-  };
+  preview?: ExplorationCalculationResult;
   error?: string;
 }
 
