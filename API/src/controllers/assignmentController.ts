@@ -163,6 +163,13 @@ export const startAssignment = async (req: Request, res: Response) => {
       await assignment.save({ session });
 
       const colonyManager = new ColonyManager(colony);
+      
+      // Calculate expected new items that will be added to colony inventory
+      const expectedNewItems = await colonyManager.calculateExpectedNewItems(
+        assignment.plannedRewards || {},
+        session
+      );
+      
       await colonyManager.addLogEntry(
         session,
         "assignment",
@@ -174,7 +181,8 @@ export const startAssignment = async (req: Request, res: Response) => {
         assignment: {
           ...assignment.toObject(),
           plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
-          adjustments
+          adjustments,
+          expectedNewItems
         }
       };
     });

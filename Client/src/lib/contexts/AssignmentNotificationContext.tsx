@@ -107,8 +107,10 @@ useEffect(() => {
 
       if (!settler) return;
 
-      // Prepare rewards
+      // Prepare rewards and calculate new inventory stacks
       const rewards: Record<string, number> = {};
+      let newInventoryStacks = 0;
+      
       if (assignment.plannedRewards) {
         Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
           rewards[key] = reward.amount;
@@ -118,7 +120,20 @@ useEffect(() => {
             return updateColonyResource(old, key, reward.type, reward.amount, reward.properties || {});
           });
         });
+        
+        // Calculate how many new inventory stacks we expect
+        // This is an approximation - server calculation will be authoritative
+        newInventoryStacks = Object.keys(assignment.plannedRewards).length;
       }
+
+      // Optimistically update inventory stacks
+      queryClient.setQueryData(['colony', serverId], (old: Colony | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          currentInventoryStacks: old.currentInventoryStacks + newInventoryStacks
+        };
+      });
 
       // Call inform endpoint
       const data = await informAssignment.mutateAsync(assignmentId);

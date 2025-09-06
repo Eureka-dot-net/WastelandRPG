@@ -51,6 +51,7 @@ export interface Assignment {
   };
   plannedRewards: PlannedRewards;
   adjustments?: AssignmentAdjustments;
+  expectedNewItems?: number;
   createdAt: string;      // ISO date string
   updatedAt: string;      // ISO date string
   startedAt?: string;     // ISO date string

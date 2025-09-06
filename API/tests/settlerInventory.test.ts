@@ -197,7 +197,7 @@ describe('Settler Inventory System', () => {
       // Mock colony with inventory size limit
       const mockColony = {
         _id: mockColonyId,
-        inventorySize: 3 // Only 3 item types allowed
+        maxInventory: 3 // Only 3 item types allowed
       };
       
       // Mock existing colony inventory (already has 2 item types)
@@ -259,7 +259,7 @@ describe('Settler Inventory System', () => {
       // Mock colony with large inventory size
       const mockColony = {
         _id: mockColonyId,
-        inventorySize: 10
+        maxInventory: 10
       };
       
       // Mock empty colony inventory

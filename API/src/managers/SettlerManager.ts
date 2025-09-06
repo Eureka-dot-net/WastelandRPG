@@ -246,7 +246,7 @@ export class SettlerManager {
     
     const transferredItems: Record<string, number> = {};
     const remainingItems: Record<string, number> = {};
-    const maxSlots = colony.inventorySize;
+    const maxSlots = colony.maxInventory;
     const currentUniqueItems = inventory.items.length;
     
     // Process each carried item
