@@ -127,13 +127,31 @@ export async function completeGameEvent(
   // Mark event as completed
   eventDoc.state = 'completed';
 
-  // Free up the assigned settler
+  // Free up the assigned settler and handle their return with items
   if (eventDoc.settlerId) {
-    await Settler.findByIdAndUpdate(eventDoc.settlerId, { status: 'idle' }, { session });
-  }
-
-  // Add planned rewards to inventory
-  if (eventDoc.plannedRewards) {
+    const assignedSettler = await Settler.findById(eventDoc.settlerId).session(session);
+    if (assignedSettler) {
+      // Update settler status
+      assignedSettler.status = 'idle';
+      
+      // If there are planned rewards, first give them to the settler (they found items during exploration)
+      // Then transfer everything from settler to colony (settler returns home and deposits items)
+      if (eventDoc.plannedRewards) {
+        const { SettlerManager } = await import('../managers/SettlerManager');
+        const settlerManager = new SettlerManager(assignedSettler);
+        
+        // Step 1: Give rewards to settler (simulating finding items during exploration)
+        await settlerManager.giveRewards(eventDoc.plannedRewards, session);
+        
+        // Step 2: Settler returns home and deposits everything to colony
+        await settlerManager.transferItemsToColony(colony._id.toString(), session);
+      } else {
+        // No rewards - just save the settler status change
+        await assignedSettler.save({ session });
+      }
+    }
+  } else if (eventDoc.plannedRewards) {
+    // No settler assigned - add rewards directly to colony inventory
     await addRewardsToColonyInventory(colony._id.toString(), session, eventDoc.plannedRewards);
   }
 

@@ -309,6 +309,13 @@ npm run dev  # Starts Vite dev server
 - Client only displays data and sends user actions
 - All business logic resides on the server
 
+**SettlerManager Pattern**:
+- Encapsulates settler-specific logic and computed properties
+- Provides weight-based inventory management for settlers
+- Methods: `canCarryItems()`, `addItems()`, `giveRewards()`, `transferItemsToColony()`
+- Computed properties: `carryingCapacity`, `currentCarriedWeight`, `effectiveSpeed`, `foodSatiationRate`
+- Used for settler inventory operations instead of utility functions
+
 **Mobile-First Considerations**:
 - All UI components must work on mobile devices  
 - Server selector integrated into hamburger menu for mobile
@@ -363,6 +370,7 @@ npm run dev  # Starts Vite dev server
 - Assignment completion timing handled by middleware
 - Inventory limits not yet enforced (TODO items in codebase)
 - **NO UNUSED IMPORTS**: All unused imports and variables must be removed - linting now fails on warnings. . FIX ALL ISSUES even if they are not related to the check in
+- **SettlerManager Usage**: Use `SettlerManager` instance methods for settler inventory operations instead of utility functions. Create manager with `new SettlerManager(settler)` and use methods like `giveRewards()`, `transferItemsToColony()`, `addItems()`, `canCarryItems()`
 
 ## MongoDB Session Management Guidelines
 
@@ -455,6 +463,7 @@ await Model2.findByIdAndUpdate(id, update);
 ### Examples in Codebase
 
 - `ColonyManager.addLogEntry()` - accepts and uses session parameter
+- `SettlerManager` - encapsulates settler-specific logic with inventory management methods
 - `routes/dev.ts` - uses `withSession()` for multi-collection deletes
 - `controllers/assignmentController.ts` - refactored to use session utilities
 - `middleware/updateCompletedTasks.ts` - uses `withSession()` for completion processing

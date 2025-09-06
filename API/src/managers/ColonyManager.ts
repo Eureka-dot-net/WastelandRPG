@@ -70,6 +70,51 @@ export class ColonyManager {
       return settlers;
   }
 
+  /**
+   * Drop entire item stack from colony's inventory
+   * Returns the dropped items for confirmation
+   */
+  async dropItems(
+    itemId: string,
+    session: ClientSession
+  ): Promise<{ droppedItems: Record<string, number>; success: boolean; message: string }> {
+    
+    const inventory = await Inventory.findOne({ colonyId: this.colony._id }).session(session);
+    
+    if (!inventory) {
+      return {
+        droppedItems: {},
+        success: false,
+        message: `Colony inventory not found`
+      };
+    }
+    
+    const itemIndex = inventory.items.findIndex(item => item.itemId === itemId);
+    
+    if (itemIndex === -1) {
+      return {
+        droppedItems: {},
+        success: false,
+        message: `Colony doesn't have item: ${itemId}`
+      };
+    }
+    
+    const droppedItem = inventory.items[itemIndex];
+    const droppedQuantity = droppedItem.quantity;
+    
+    // Remove item from colony's inventory
+    inventory.items.splice(itemIndex, 1);
+    
+    // Save inventory changes
+    await inventory.save({ session });
+    
+    return {
+      droppedItems: { [itemId]: droppedQuantity },
+      success: true,
+      message: `Dropped ${droppedQuantity} ${itemId} from colony inventory`
+    };
+  }
+
   async toViewModel() {
      const unlocks = await this.getUnlocks();
     const resources = await this.getResources();
