@@ -19,17 +19,16 @@ function InventoryPage() {
   const { colony, colonyLoading, colonyError } = useColony(serverId);
   const colonyId = colony?._id;
 
-  const { inventory, loadingInventory, errorInventory } = useInventory(colonyId || "");
+  const { inventory, loadingInventory, errorInventory, dropColonyItem } = useInventory(colonyId || "");
 
   const handleDropItem = async (itemId: string) => {
     setDroppingItems(prev => new Set(prev).add(itemId));
     
     try {
-      // TODO: Implement dropItem mutation
-      console.log("Dropping item:", itemId);
-      // dropItem.mutate({ itemId });
+      await dropColonyItem.mutateAsync(itemId);
     } catch (error) {
       console.error("Error dropping item:", error);
+      // Error handling is managed by the mutation's onError callback
     } finally {
       setDroppingItems(prev => {
         const newSet = new Set(prev);

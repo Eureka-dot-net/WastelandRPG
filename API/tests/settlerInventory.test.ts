@@ -184,12 +184,91 @@ describe('Settler Inventory System', () => {
     });
   });
 
-  describe('transferSettlerItemsToColony', () => {
-    test('should transfer all items from settler to colony', async () => {
-      const mockSession = {} as ClientSession;
+  describe('transferItemsToColony (SettlerManager)', () => {
+    test('should transfer items respecting colony inventory limits', async () => {
+      const { SettlerManager } = require('../src/managers/SettlerManager');
+      const { Colony } = require('../src/models/Player/Colony');
+      const { Inventory } = require('../src/models/Player/Inventory');
       const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
       
-      // Mock settler document with save method
+      const mockSession = {} as ClientSession;
+      const mockColonyId = '507f1f77bcf86cd799439011'; // Valid ObjectId
+      
+      // Mock colony with inventory size limit
+      const mockColony = {
+        _id: mockColonyId,
+        inventorySize: 3 // Only 3 item types allowed
+      };
+      
+      // Mock existing colony inventory (already has 2 item types)
+      const mockInventory = {
+        colonyId: mockColonyId,
+        items: [
+          { itemId: 'existing1', quantity: 5 },
+          { itemId: 'existing2', quantity: 3 }
+        ]
+      };
+      
+      // Mock settler with 3 items (1 existing, 2 new)
+      const mockSettler = {
+        carry: [
+          { itemId: 'existing1', quantity: 2 }, // Should transfer (existing type)
+          { itemId: 'wood', quantity: 5 },      // Should transfer (new type fits)
+          { itemId: 'berries', quantity: 10 }   // Should remain (no space)
+        ],
+        save: jest.fn()
+      };
+      
+      // Mock Mongoose methods
+      Colony.findById = jest.fn().mockReturnValue({ session: jest.fn().mockResolvedValue(mockColony) });
+      Inventory.findOne = jest.fn().mockReturnValue({ session: jest.fn().mockResolvedValue(mockInventory) });
+      
+      const settlerManager = new SettlerManager(mockSettler as any);
+      const result = await settlerManager.transferItemsToColony(mockColonyId, mockSession);
+      
+      // Should transfer existing1 and wood, but berries remains with settler
+      expect(result.transferredItems).toEqual({
+        existing1: 2,
+        wood: 5
+      });
+      expect(result.remainingItems).toEqual({
+        berries: 10
+      });
+      
+      // Settler should only have remaining items
+      expect(mockSettler.carry).toEqual([
+        { itemId: 'berries', quantity: 10 }
+      ]);
+      expect(mockSettler.save).toHaveBeenCalledWith({ session: mockSession });
+      expect(addRewardsToColonyInventory).toHaveBeenCalledWith(
+        mockColonyId, 
+        mockSession, 
+        { existing1: 2, wood: 5 }
+      );
+    });
+
+    test('should transfer all items when colony has space', async () => {
+      const { SettlerManager } = require('../src/managers/SettlerManager');
+      const { Colony } = require('../src/models/Player/Colony');
+      const { Inventory } = require('../src/models/Player/Inventory');
+      const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
+      
+      const mockSession = {} as ClientSession;
+      const mockColonyId = '507f1f77bcf86cd799439011'; // Valid ObjectId
+      
+      // Mock colony with large inventory size
+      const mockColony = {
+        _id: mockColonyId,
+        inventorySize: 10
+      };
+      
+      // Mock empty colony inventory
+      const mockInventory = {
+        colonyId: mockColonyId,
+        items: []
+      };
+      
+      // Mock settler with items
       const mockSettler = {
         carry: [
           { itemId: 'wood', quantity: 5 },
@@ -198,43 +277,25 @@ describe('Settler Inventory System', () => {
         save: jest.fn()
       };
       
-      const result = await transferSettlerItemsToColony(
-        mockSettler as any, 
-        'test_colony', 
-        mockSession
-      );
+      // Mock Mongoose methods
+      Colony.findById = jest.fn().mockReturnValue({ session: jest.fn().mockResolvedValue(mockColony) });
+      Inventory.findOne = jest.fn().mockReturnValue({ session: jest.fn().mockResolvedValue(mockInventory) });
+      
+      const settlerManager = new SettlerManager(mockSettler as any);
+      const result = await settlerManager.transferItemsToColony(mockColonyId, mockSession);
       
       expect(result.transferredItems).toEqual({
         wood: 5,
         berries: 10
       });
-      expect(mockSettler.carry).toEqual([]); // Settler's inventory should be cleared
+      expect(result.remainingItems).toEqual({});
+      expect(mockSettler.carry).toEqual([]); // All items transferred
       expect(mockSettler.save).toHaveBeenCalledWith({ session: mockSession });
       expect(addRewardsToColonyInventory).toHaveBeenCalledWith(
-        'test_colony', 
+        mockColonyId, 
         mockSession, 
         { wood: 5, berries: 10 }
       );
-    });
-
-    test('should handle empty settler inventory', async () => {
-      const mockSession = {} as ClientSession;
-      const { addRewardsToColonyInventory } = require('../src/services/gameEventsService');
-      
-      const mockSettler = {
-        carry: [],
-        save: jest.fn()
-      };
-      
-      const result = await transferSettlerItemsToColony(
-        mockSettler as any, 
-        'test_colony', 
-        mockSession
-      );
-      
-      expect(result.transferredItems).toEqual({});
-      expect(mockSettler.save).toHaveBeenCalled();
-      expect(addRewardsToColonyInventory).not.toHaveBeenCalled(); // No items to transfer
     });
   });
 

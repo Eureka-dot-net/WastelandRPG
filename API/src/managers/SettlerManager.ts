@@ -213,36 +213,86 @@ export class SettlerManager {
   }
 
   /**
-   * Transfer all items from settler's inventory to colony inventory
+   * Transfer items from settler's inventory to colony inventory
+   * Respects colony inventory slot limits - only new item types are blocked
+   * Items that cannot fit remain in the settler's inventory
    * This represents a settler returning from exploration/tasks and depositing their finds
    * Could be made into a user-controlled action in the future
    */
   async transferItemsToColony(
     colonyId: string,
     session: ClientSession
-  ): Promise<{ transferredItems: Record<string, number> }> {
+  ): Promise<{ transferredItems: Record<string, number>; remainingItems: Record<string, number> }> {
+    
+    const { Inventory } = await import('../models/Player/Inventory');
+    const { Colony } = await import('../models/Player/Colony');
+    
+    // Get colony to check inventory limits
+    const colony = await Colony.findById(colonyId).session(session);
+    if (!colony) {
+      throw new Error(`Colony ${colonyId} not found`);
+    }
+    
+    // Get current colony inventory
+    let inventory = await Inventory.findOne({ colonyId }).session(session);
+    
+    // If no inventory exists, create one
+    if (!inventory) {
+      inventory = new Inventory({
+        colonyId,
+        items: [],
+      });
+    }
     
     const transferredItems: Record<string, number> = {};
+    const remainingItems: Record<string, number> = {};
+    const maxSlots = colony.inventorySize;
+    const currentUniqueItems = inventory.items.length;
     
-    // Convert settler's carry items to the format expected by colony inventory
+    // Process each carried item
     for (const carriedItem of this.settler.carry) {
-      if (carriedItem.quantity > 0) {
-        transferredItems[carriedItem.itemId] = carriedItem.quantity;
+      if (carriedItem.quantity <= 0) continue;
+      
+      const itemId = carriedItem.itemId;
+      const quantity = carriedItem.quantity;
+      
+      // Check if colony already has this item type
+      const existingColonyItem = inventory.items.find(item => item.itemId === itemId);
+      
+      if (existingColonyItem) {
+        // Colony already has this item type - can always add more quantity
+        transferredItems[itemId] = quantity;
+      } else {
+        // New item type - check if colony has available slots
+        const newItemsBeingAdded = Object.keys(transferredItems).filter(id => 
+          !inventory.items.find(item => item.itemId === id)
+        ).length;
+        
+        if (currentUniqueItems + newItemsBeingAdded < maxSlots) {
+          // Colony has space for this new item type
+          transferredItems[itemId] = quantity;
+        } else {
+          // Colony is full - item stays with settler
+          remainingItems[itemId] = quantity;
+        }
       }
     }
     
-    // Clear settler's inventory
-    this.settler.carry = [];
+    // Update settler's carry inventory - remove transferred items, keep remaining ones
+    this.settler.carry = this.settler.carry.filter(carriedItem => {
+      const itemId = carriedItem.itemId;
+      return remainingItems.hasOwnProperty(itemId);
+    });
     
     // Save settler changes
     await this.settler.save({ session });
     
-    // Add all items to colony inventory
+    // Add transferred items to colony inventory
     if (Object.keys(transferredItems).length > 0) {
       await addRewardsToColonyInventory(colonyId, session, transferredItems);
     }
     
-    return { transferredItems };
+    return { transferredItems, remainingItems };
   }
 
   /**
@@ -278,6 +328,41 @@ export class SettlerManager {
     await this.settler.save({ session });
     
     return { settlerItems, overflow };
+  }
+
+  /**
+   * Drop entire item stack from settler's inventory
+   * Returns the dropped items for confirmation
+   */
+  async dropItems(
+    itemId: string,
+    session: ClientSession
+  ): Promise<{ droppedItems: Record<string, number>; success: boolean; message: string }> {
+    
+    const itemIndex = this.settler.carry.findIndex(item => item.itemId === itemId);
+    
+    if (itemIndex === -1) {
+      return {
+        droppedItems: {},
+        success: false,
+        message: `Settler doesn't have item: ${itemId}`
+      };
+    }
+    
+    const droppedItem = this.settler.carry[itemIndex];
+    const droppedQuantity = droppedItem.quantity;
+    
+    // Remove item from settler's inventory
+    this.settler.carry.splice(itemIndex, 1);
+    
+    // Save settler changes
+    await this.settler.save({ session });
+    
+    return {
+      droppedItems: { [itemId]: droppedQuantity },
+      success: true,
+      message: `Dropped ${droppedQuantity} ${itemId} from settler inventory`
+    };
   }
 
   toViewModel() {//return the full object to use in controllers.

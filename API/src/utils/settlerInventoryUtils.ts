@@ -73,9 +73,13 @@ export async function transferSettlerItemsToColony(
   settler: SettlerDoc,
   colonyId: string,
   session: ClientSession
-): Promise<{ transferredItems: Record<string, number> }> {
+): Promise<{ transferredItems: Record<string, number>; remainingItems?: Record<string, number> }> {
   const manager = new SettlerManager(settler);
-  return manager.transferItemsToColony(colonyId, session);
+  const result = await manager.transferItemsToColony(colonyId, session);
+  return {
+    transferredItems: result.transferredItems,
+    remainingItems: result.remainingItems
+  };
 }
 
 /**

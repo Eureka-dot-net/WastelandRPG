@@ -7,11 +7,13 @@ import {
 import {
   Person, Security, Build, LocalHospital, Agriculture, Science, Star,
   Speed, Psychology, Shield, ExpandMore, ExpandLess, Inventory,
-  Restaurant, BatteryFull, Favorite, SentimentSatisfied, ArrowBack
+  Restaurant, BatteryFull, Favorite, SentimentSatisfied, ArrowBack,
+  Delete as DropIcon
 } from '@mui/icons-material';
 
 import { useColony } from "../../lib/hooks/useColony";
 import { useSettler } from "../../lib/hooks/useSettler";
+import { useInventory } from "../../lib/hooks/useInventory";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import type { Settler } from "../../lib/types/settler";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -28,10 +30,12 @@ function SettlerPage() {
   const [backstoryExpanded, setBackstoryExpanded] = useState(false);
   const [selectedSettler, setSelectedSettler] = useState<Settler | null>(null);
   const [viewMode, setViewMode] = useState<'overview' | 'detail'>('overview');
+  const [droppingItems, setDroppingItems] = useState<Set<string>>(new Set());
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const { rejectSettler } = useSettler(serverId, colonyId);
+  const { dropSettlerItem } = useInventory(colonyId || "");
 
   // Helper functions for icons and colors
   const getSkillIcon = (skill: string) => {
@@ -109,6 +113,22 @@ function SettlerPage() {
       console.error("Error banishing settler:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDropSettlerItem = async (settlerId: string, itemId: string) => {
+    setDroppingItems(prev => new Set(prev).add(`${settlerId}-${itemId}`));
+    
+    try {
+      await dropSettlerItem.mutateAsync({ settlerId, itemId });
+    } catch (error) {
+      console.error("Error dropping item from settler:", error);
+    } finally {
+      setDroppingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(`${settlerId}-${itemId}`);
+        return newSet;
+      });
     }
   };
 
@@ -517,22 +537,41 @@ function SettlerPage() {
                   <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5}> {/* Reduced gap */}
                     {Array.from({ length: settler.maxCarrySlots }).map((_, index) => {
                       const item = settler.carry[index];
+                      const isDropping = droppingItems.has(`${settler._id}-${item?.itemId}`);
                       return (
                         <Card key={index} variant="outlined" sx={{ p: 0.5, minHeight: 50, textAlign: 'center' }}> {/* Reduced padding and height */}
                           {item ? (
-                            <Tooltip title={`${item.name}${item.quantity ? ` (${item.quantity})` : ''}`}>
-                              <Box>
-                                <Inventory fontSize="small" />
-                                <Typography variant="caption" display="block">
-                                  {item.name}
-                                </Typography>
-                                {item.quantity && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    x{item.quantity}
+                            <Box>
+                              <Tooltip title={`${item.name}${item.quantity ? ` (${item.quantity})` : ''}`}>
+                                <Box>
+                                  <Inventory fontSize="small" />
+                                  <Typography variant="caption" display="block">
+                                    {item.name}
                                   </Typography>
-                                )}
-                              </Box>
-                            </Tooltip>
+                                  {item.quantity && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      x{item.quantity}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Tooltip>
+                              <Tooltip title="Drop this item">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDropSettlerItem(settler._id, item.itemId)}
+                                  disabled={isDropping}
+                                  sx={{ 
+                                    p: 0.25, 
+                                    mt: 0.25,
+                                    color: 'error.main',
+                                    '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },
+                                    opacity: isDropping ? 0.6 : 1
+                                  }}
+                                >
+                                  <DropIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
                           ) : (
                             <Box sx={{ color: 'text.disabled', pt: 0.5 }}>
                               <Inventory fontSize="small" />
