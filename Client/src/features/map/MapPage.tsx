@@ -152,7 +152,7 @@ function MapPage() {
       },
       {
         onSuccess: (updatedAssignment) => {
-          // Start the notification timer
+          // Start the notification timer with the real assignment from server
           startNotificationTimer(updatedAssignment);
         },
         onSettled: () => {

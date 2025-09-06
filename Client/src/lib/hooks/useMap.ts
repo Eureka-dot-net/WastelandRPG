@@ -51,6 +51,11 @@ export function useMap(
 
       // Add the new assignment optimistically to the map grid
       if (prevMapData) {
+        // Estimate duration (5 minutes as default, matches server base duration)
+        const estimatedDuration = 300000; // 5 minutes in milliseconds
+        const now = new Date();
+        const completionTime = new Date(now.getTime() + estimatedDuration);
+
         const newAssignment: Assignment = {
           _id: `temp-${Date.now()}`, // temporary ID
           colonyId: colonyId!,
@@ -63,12 +68,22 @@ export function useMap(
           duration: 0,
           unlocks: '',
           location: { x: col, y: row },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          startedAt: new Date().toISOString(),
-          completedAt: undefined,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          startedAt: now.toISOString(),
+          completedAt: completionTime.toISOString(),
           plannedRewards: {},
-          adjustments: undefined
+          adjustments: {
+            adjustedDuration: estimatedDuration,
+            effectiveSpeed: 1.0,
+            lootMultiplier: 1.0,
+            adjustedPlannedRewards: {},
+            effects: {
+              speedEffects: [],
+              lootEffects: [],
+              traitEffects: []
+            }
+          }
         };
 
         // Add assignment to the assignments array in the map response
@@ -76,6 +91,11 @@ export function useMap(
           ...prevMapData,
           assignments: [...(prevMapData.assignments || []), newAssignment],
         });
+
+        // Also add the assignment to the general assignments query so timer system can see it
+        queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
+          old ? [...old, newAssignment] : [newAssignment]
+        );
       }
 
       // Mark the settler as busy in colony data
@@ -98,6 +118,11 @@ export function useMap(
         queryClient.setQueryData(["map", colonyId, centerX, centerY], context.prevMapData);
       }
       
+      // Rollback assignment from general assignments query
+      queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
+        old ? old.filter(a => !a._id.startsWith('temp-')) : old
+      );
+      
       // Rollback settler status
       queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
         old
@@ -111,7 +136,7 @@ export function useMap(
       );
     },
     onSuccess: (updatedAssignment) => {
-      // Replace the temporary assignment with the real one from the server
+      // Replace the temporary assignment with the real one from the server in map data
       queryClient.setQueryData<MapResponse>(["map", colonyId, centerX, centerY], (old) => {
         if (!old) return old;
         
@@ -126,6 +151,20 @@ export function useMap(
               : a
           ) || [updatedAssignment]
         };
+      });
+      
+      // Replace the temporary assignment in the general assignments query
+      queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) => {
+        if (!old) return [updatedAssignment];
+        
+        return old.map(a => 
+          a._id.startsWith('temp-') && 
+          a.settlerId === updatedAssignment.settlerId &&
+          a.location?.x === updatedAssignment.location?.x &&
+          a.location?.y === updatedAssignment.location?.y
+            ? updatedAssignment 
+            : a
+        );
       });
       
       // Invalidate assignments query to keep it in sync
