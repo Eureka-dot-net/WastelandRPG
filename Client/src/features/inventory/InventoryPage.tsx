@@ -83,19 +83,15 @@ function InventoryPage() {
     return inventory?.items.length || 0;
   };
 
-  const getUsedSlots = () => {
-    return inventory?.items.length || 0;
-  };
-
   const getAvailableSlots = () => {
-    const maxSlots = colony?.inventorySize || 0;
-    const usedSlots = getUsedSlots();
+    const maxSlots = colony?.maxInventory || 0;
+    const usedSlots = colony?.currentInventoryStacks || 0;
     return maxSlots - usedSlots;
   };
 
   const getSlotUtilization = () => {
-    const maxSlots = colony?.inventorySize || 1;
-    const usedSlots = getUsedSlots();
+    const maxSlots = colony?.maxInventory || 1;
+    const usedSlots = colony?.currentInventoryStacks || 0;
     return (usedSlots / maxSlots) * 100;
   };
 
@@ -166,7 +162,7 @@ function InventoryPage() {
           />
           <Box display="flex" alignItems="center" gap={1}>
             <Chip 
-              label={`${getUsedSlots()}/${colony?.inventorySize || 0} Slots`}
+              label={`${colony?.currentInventoryStacks || 0}/${colony?.maxInventory || 0} Slots`}
               color={getAvailableSlots() <= 5 ? 'error' : 
                      getAvailableSlots() <= 10 ? 'warning' : 'success'}
               variant="filled"

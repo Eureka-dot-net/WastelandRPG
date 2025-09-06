@@ -20,7 +20,8 @@ export interface Colony {
   inventory: string;           // Inventory ObjectId as string
   createdAt?: string;          // ISO date string
   settlerCount: number;
-  inventorySize?: number;
+  currentInventoryStacks?: number;
+  maxInventory?: number;
   unlocks: Record<string, boolean>;
   daysFood: number;
   scrapMetal: number;
