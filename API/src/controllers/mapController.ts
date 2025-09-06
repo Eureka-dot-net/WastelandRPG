@@ -193,11 +193,9 @@ export const startExploration = async (req: Request, res: Response) => {
         adjustments: explorationData.adjustments
       });
 
-      // Update settler and save assignment
-      await executeInParallel([
-        (s) => Settler.findByIdAndUpdate(validatedSettlerId, { status: 'busy' }, { session: s }),
-        (s) => assignment.save({ session: s })
-      ], session);
+      await Settler.findByIdAndUpdate(validatedSettlerId, { status: 'busy' }, { session: session });
+      await assignment.save({ session: session });
+
 
       // Log exploration start
       const colonyManager = new ColonyManager(colony);
