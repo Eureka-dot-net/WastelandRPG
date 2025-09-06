@@ -98,17 +98,26 @@ export function useAssignment(
                 );
             });
 
-            // Also mark the settler as busy
-            queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
-                old
-                    ? {
-                        ...old,
-                        settlers: old.settlers.map((s) =>
-                            s._id === settlerId ? { ...s, status: "busy" } : s
-                        ),
-                    }
-                    : old
-            );
+            // Also mark the settler as busy and optimistically update inventory stacks
+            queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                if (!old) return old;
+                
+                let optimisticInventoryIncrease = 0;
+                
+                // Try to get the assignment data to find expectedNewItems
+                const assignment = assignments?.find(a => a._id === assignmentId);
+                if (assignment && assignment.expectedNewItems) {
+                    optimisticInventoryIncrease = assignment.expectedNewItems;
+                }
+                
+                return {
+                    ...old,
+                    settlers: old.settlers.map((s) =>
+                        s._id === settlerId ? { ...s, status: "busy" } : s
+                    ),
+                    currentInventoryStacks: old.currentInventoryStacks + optimisticInventoryIncrease
+                };
+            });
 
             // Return snapshot for rollback in onError
             return { prevData, settlerId };
@@ -119,23 +128,48 @@ export function useAssignment(
                 queryClient.setQueryData(key, data)
             );
             
-            // Rollback settler status to idle
+            // Rollback settler status to idle and undo inventory update
             if (context?.settlerId) {
-                queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
-                    old
-                        ? {
-                            ...old,
-                            settlers: old.settlers.map((s) =>
-                                s._id === context.settlerId ? { ...s, status: "idle" } : s
-                            ),
-                        }
-                        : old
-                );
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                    if (!old) return old;
+                    
+                    let optimisticInventoryDecrease = 0;
+                    // Try to get the assignment data to find expectedNewItems for rollback
+                    const assignment = assignments?.find(a => a._id.toString().includes(context.settlerId));
+                    if (assignment && assignment.expectedNewItems) {
+                        optimisticInventoryDecrease = assignment.expectedNewItems;
+                    }
+                    
+                    return {
+                        ...old,
+                        settlers: old.settlers.map((s) =>
+                            s._id === context.settlerId ? { ...s, status: "idle" } : s
+                        ),
+                        currentInventoryStacks: Math.max(0, old.currentInventoryStacks - optimisticInventoryDecrease)
+                    };
+                });
             }
         },
         onSuccess: (updatedAssignment) => {
             // Patch all assignment caches with confirmed server data
             patchAllAssignmentCaches(updatedAssignment);
+            
+            // Update colony cache with actual server data
+            if (updatedAssignment.expectedNewItems !== undefined) {
+                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                    if (!old) return old;
+                    
+                    // Find the difference between what we optimistically added and actual server response
+                    const expectedOptimistic = assignments?.find(a => a._id === updatedAssignment._id)?.expectedNewItems || 0;
+                    const actualFromServer = updatedAssignment.expectedNewItems;
+                    const adjustmentNeeded = actualFromServer - expectedOptimistic;
+                    
+                    return {
+                        ...old,
+                        currentInventoryStacks: old.currentInventoryStacks + adjustmentNeeded
+                    };
+                });
+            }
         },
     });
 
