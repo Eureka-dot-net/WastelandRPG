@@ -139,15 +139,15 @@ function MapPage() {
 
     // Calculate world coordinates from grid position
     const worldX = centerX - 2 + selectedTile.position.col;
-    const worldY = centerY - 2 + selectedTile.position.row;
+    const worldY = centerY + 2 - selectedTile.position.row;
 
     const explorationKey = `${worldX},${worldY}`;
     setStartingExplorationKey(explorationKey);
 
     startExploration.mutate(
       {
-        row: worldX,
-        col: worldY,
+        row: worldY,
+        col: worldX,
         settlerId: settler._id
       },
       {

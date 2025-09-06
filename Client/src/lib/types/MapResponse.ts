@@ -33,4 +33,5 @@ export interface MapResponse {
     y: number;
   };
   grid: MapGridAPI;
+  assignments: Assignment[];
 }
