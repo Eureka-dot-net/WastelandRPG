@@ -32,12 +32,13 @@ export function useMap(
   type StartExplorationContext = {
     prevMapData: MapResponse | undefined;
     settlerId: string;
+    previewDuration?: number;
   };
 
   const startExploration = useMutation<
     Assignment, // backend returns assignment object
     Error,
-    { row: number; col: number; settlerId: string },
+    { row: number; col: number; settlerId: string; previewDuration?: number },
     StartExplorationContext
   >({
     mutationFn: async ({ row, col, settlerId }) => {
@@ -45,14 +46,14 @@ export function useMap(
       const response = await agent.post(url, { row, col, settlerId });
       return response.data as Assignment;
     },
-    onMutate: async ({ row, col, settlerId }) => {
+    onMutate: async ({ row, col, settlerId, previewDuration }) => {
       await queryClient.cancelQueries({ queryKey: ["map", colonyId, centerX, centerY] });
       const prevMapData = queryClient.getQueryData<MapResponse>(["map", colonyId, centerX, centerY]);
 
       // Add the new assignment optimistically to the map grid
       if (prevMapData) {
-        // Estimate duration (5 minutes as default, matches server base duration)
-        const estimatedDuration = 300000; // 5 minutes in milliseconds
+        // Use preview duration if available, otherwise fall back to 5 minutes default
+        const estimatedDuration = previewDuration || 300000; // 5 minutes in milliseconds
         const now = new Date();
         const completionTime = new Date(now.getTime() + estimatedDuration);
 
@@ -67,7 +68,7 @@ export function useMap(
           description: 'Exploring new territory',
           duration: 0,
           unlocks: '',
-          location: { x: col, y: row },
+          location: { x: col, y: row }, // These are world coordinates (row=y, col=x)
           createdAt: now.toISOString(),
           updatedAt: now.toISOString(),
           startedAt: now.toISOString(),
@@ -86,11 +87,33 @@ export function useMap(
           }
         };
 
-        // Add assignment to the assignments array in the map response
-        queryClient.setQueryData<MapResponse>(["map", colonyId, centerX, centerY], {
+        // Clone the map data to avoid mutations
+        const updatedMapData = { 
           ...prevMapData,
           assignments: [...(prevMapData.assignments || []), newAssignment],
-        });
+          grid: {
+            ...prevMapData.grid,
+            tiles: prevMapData.grid.tiles.map((tileRow, rowIndex) => 
+              tileRow.map((tile, colIndex) => {
+                // Calculate world coordinates for this grid position
+                const tileWorldX = centerX - 2 + colIndex;
+                const tileWorldY = centerY + 2 - rowIndex;
+                
+                // Check if this is the tile where the assignment should be added
+                if (tileWorldX === col && tileWorldY === row) {
+                  return {
+                    ...tile,
+                    assignments: [...(tile.assignments || []), newAssignment]
+                  };
+                }
+                return tile;
+              })
+            )
+          }
+        };
+
+        // Add assignment to both the assignments array and the specific grid tile
+        queryClient.setQueryData<MapResponse>(["map", colonyId, centerX, centerY], updatedMapData);
 
         // Also add the assignment to the general assignments query so timer system can see it
         queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) =>
@@ -110,7 +133,7 @@ export function useMap(
           : old
       );
 
-      return { prevMapData, settlerId };
+      return { prevMapData, settlerId, previewDuration };
     },
     onError: (_, __, context) => {
       // rollback if mutation fails
@@ -140,16 +163,50 @@ export function useMap(
       queryClient.setQueryData<MapResponse>(["map", colonyId, centerX, centerY], (old) => {
         if (!old) return old;
         
+        // Update the top-level assignments array
+        const updatedAssignments = old.assignments?.map(a => 
+          a._id.startsWith('temp-') && 
+          a.settlerId === updatedAssignment.settlerId &&
+          a.location?.x === updatedAssignment.location?.x &&
+          a.location?.y === updatedAssignment.location?.y
+            ? updatedAssignment 
+            : a
+        ) || [updatedAssignment];
+
+        // Also update the specific grid tile's assignments
+        const updatedGrid = {
+          ...old.grid,
+          tiles: old.grid.tiles.map((tileRow, rowIndex) => 
+            tileRow.map((tile, colIndex) => {
+              // Calculate world coordinates for this grid position
+              const tileWorldX = centerX - 2 + colIndex;
+              const tileWorldY = centerY + 2 - rowIndex;
+              
+              // Check if this tile matches the assignment location
+              if (updatedAssignment.location && 
+                  tileWorldX === updatedAssignment.location.x && 
+                  tileWorldY === updatedAssignment.location.y) {
+                return {
+                  ...tile,
+                  assignments: (tile.assignments || []).map(a =>
+                    a._id.startsWith('temp-') && 
+                    a.settlerId === updatedAssignment.settlerId &&
+                    a.location?.x === updatedAssignment.location?.x &&
+                    a.location?.y === updatedAssignment.location?.y
+                      ? updatedAssignment
+                      : a
+                  )
+                };
+              }
+              return tile;
+            })
+          )
+        };
+
         return {
           ...old,
-          assignments: old.assignments?.map(a => 
-            a._id.startsWith('temp-') && 
-            a.settlerId === updatedAssignment.settlerId &&
-            a.location?.x === updatedAssignment.location?.x &&
-            a.location?.y === updatedAssignment.location?.y
-              ? updatedAssignment 
-              : a
-          ) || [updatedAssignment]
+          assignments: updatedAssignments,
+          grid: updatedGrid
         };
       });
       

@@ -144,11 +144,26 @@ function MapPage() {
     const explorationKey = `${worldX},${worldY}`;
     setStartingExplorationKey(explorationKey);
 
+    // Get preview duration for this settler if available
+    const settlerPreview = settlerPreviews[settler._id];
+    let previewDuration: number | undefined;
+    
+    if (settlerPreview) {
+      if (settlerPreview.type === 'exploration') {
+        // MapExplorationPreview has estimatedDuration
+        previewDuration = settlerPreview.estimatedDuration;
+      } else {
+        // AssignmentPreview only has duration
+        previewDuration = settlerPreview.duration;
+      }
+    }
+
     startExploration.mutate(
       {
         row: worldY,
         col: worldX,
-        settlerId: settler._id
+        settlerId: settler._id,
+        previewDuration
       },
       {
         onSuccess: (updatedAssignment) => {
