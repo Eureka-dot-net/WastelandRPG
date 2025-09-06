@@ -349,10 +349,10 @@ npm run dev  # Starts Vite dev server
 ### Validation Steps for Code Changes
 
 **Before submitting changes, ALWAYS:**
-1. Run linting for both API and Client: `npm run lint` (now fails on ANY warnings)
+1. Run linting for both API and Client: `npm run lint` (now fails on ANY warnings). FIX ALL ISSUES even if they are not related to the check in
 2. Run typecheck for API: `npm run typecheck` (TypeScript compilation without emit)
 3. Build both projects successfully: `npm run build`
-4. Run API tests: `npm test` (now works reliably with graceful MongoDB detection)
+4. Run API tests: `npm test` (now works reliably with graceful MongoDB detection). . FIX ALL ISSUES even if they are not related to the check in
 5. Test multi-server functionality if touching server-related code
 6. Verify mobile responsiveness for UI changes
 
@@ -362,7 +362,7 @@ npm run dev  # Starts Vite dev server
 - Colony ownership validation for player operations
 - Assignment completion timing handled by middleware
 - Inventory limits not yet enforced (TODO items in codebase)
-- **NO UNUSED IMPORTS**: All unused imports and variables must be removed - linting now fails on warnings
+- **NO UNUSED IMPORTS**: All unused imports and variables must be removed - linting now fails on warnings. . FIX ALL ISSUES even if they are not related to the check in
 
 ## MongoDB Session Management Guidelines
 
