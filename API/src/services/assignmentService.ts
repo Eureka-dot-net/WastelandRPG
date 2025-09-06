@@ -9,5 +9,5 @@ export async function completeAssignmentsForColony(colony: ColonyDoc, session: C
     getTaskData: (assignment: AssignmentDoc) => {
       return cleaningTasksCatalogue.find(task => task.taskId === assignment.taskId);
     }
-  }, now);
+  }, now, { type: { $ne: 'exploration' } }); // Exclude exploration assignments
 }

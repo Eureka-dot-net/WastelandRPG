@@ -201,5 +201,5 @@ export const calculateBatchExplorationPreviews = async (
 };
 
 export async function completeExplorationsForColony(colony: ColonyDoc, session: ClientSession, now: Date = new Date()) {
-  await completeGameEventsForColony(colony, session, 'exploration', Assignment, undefined, now);
+  await completeGameEventsForColony(colony, session, 'exploration', Assignment, undefined, now, { type: 'exploration' });
 }
