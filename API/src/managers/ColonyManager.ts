@@ -103,7 +103,7 @@ export class ColonyManager {
     const droppedQuantity = droppedItem.quantity;
     
     // Remove item from colony's inventory
-    inventory.items.splice(itemIndex, 1);
+    inventory.items = inventory.items.filter(i => i.itemId !== itemId);
     
     // Save inventory changes
     await inventory.save({ session });
