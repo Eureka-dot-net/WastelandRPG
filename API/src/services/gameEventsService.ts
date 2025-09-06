@@ -137,13 +137,14 @@ export async function completeGameEvent(
       // If there are planned rewards, first give them to the settler (they found items during exploration)
       // Then transfer everything from settler to colony (settler returns home and deposits items)
       if (eventDoc.plannedRewards) {
-        const { giveRewardsToSettler, transferSettlerItemsToColony } = await import('../utils/settlerInventoryUtils');
+        const { SettlerManager } = await import('../managers/SettlerManager');
+        const settlerManager = new SettlerManager(assignedSettler);
         
         // Step 1: Give rewards to settler (simulating finding items during exploration)
-        await giveRewardsToSettler(assignedSettler, eventDoc.plannedRewards, session);
+        await settlerManager.giveRewards(eventDoc.plannedRewards, session);
         
         // Step 2: Settler returns home and deposits everything to colony
-        await transferSettlerItemsToColony(assignedSettler, colony._id.toString(), session);
+        await settlerManager.transferItemsToColony(colony._id.toString(), session);
       } else {
         // No rewards - just save the settler status change
         await assignedSettler.save({ session });
