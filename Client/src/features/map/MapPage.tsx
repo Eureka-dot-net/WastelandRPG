@@ -151,7 +151,7 @@ function MapPage() {
     if (settlerPreview) {
       if (settlerPreview.type === 'exploration') {
         // MapExplorationPreview has estimatedDuration
-        previewDuration = settlerPreview.duration || settlerPreview.estimatedDuration;
+        previewDuration = settlerPreview.estimatedDuration;
       } else {
         // AssignmentPreview only has duration
         previewDuration = settlerPreview.duration;
