@@ -127,13 +127,29 @@ export async function completeGameEvent(
   // Mark event as completed
   eventDoc.state = 'completed';
 
-  // Free up the assigned settler
+  // Free up the assigned settler and handle reward distribution
   if (eventDoc.settlerId) {
-    await Settler.findByIdAndUpdate(eventDoc.settlerId, { status: 'idle' }, { session });
-  }
-
-  // Add planned rewards to inventory
-  if (eventDoc.plannedRewards) {
+    const assignedSettler = await Settler.findById(eventDoc.settlerId).session(session);
+    if (assignedSettler) {
+      // Update settler status
+      assignedSettler.status = 'idle';
+      
+      // Distribute rewards between settler inventory and colony inventory
+      if (eventDoc.plannedRewards) {
+        const { distributeRewardsToSettlerAndColony } = await import('../utils/settlerInventoryUtils');
+        await distributeRewardsToSettlerAndColony(
+          assignedSettler, 
+          colony._id.toString(), 
+          eventDoc.plannedRewards, 
+          session
+        );
+      } else {
+        // Just update settler if no rewards
+        await assignedSettler.save({ session });
+      }
+    }
+  } else if (eventDoc.plannedRewards) {
+    // No settler assigned - add rewards directly to colony inventory
     await addRewardsToColonyInventory(colony._id.toString(), session, eventDoc.plannedRewards);
   }
 

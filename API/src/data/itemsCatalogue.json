@@ -7,8 +7,15 @@
     "rarity": "common",
     "description": "A basic resource for building and crafting.",
     "icon": "GiWoodStick",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "cleaning", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 3
+    },
+    "obtainMethods": [
+      "exploring",
+      "cleaning",
+      "trading"
+    ]
   },
   {
     "itemId": "scrap",
@@ -18,8 +25,15 @@
     "rarity": "common",
     "description": "After currencies fell, we use this to trade.",
     "icon": "GiHorseshoe",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "cleaning", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring",
+      "cleaning",
+      "trading"
+    ]
   },
   {
     "itemId": "tinned_food",
@@ -31,9 +45,14 @@
     "icon": "GiOpenedFoodCan",
     "properties": {
       "stackable": true,
-      "foodValue": 1
+      "foodValue": 1,
+      "weight": 1
     },
-    "obtainMethods": ["exploring", "cleaning", "trading"]
+    "obtainMethods": [
+      "exploring",
+      "cleaning",
+      "trading"
+    ]
   },
   {
     "itemId": "canned_fish",
@@ -45,9 +64,14 @@
     "icon": "GiCannedFish",
     "properties": {
       "stackable": true,
-      "foodValue": 0.5
+      "foodValue": 0.5,
+      "weight": 1
     },
-    "obtainMethods": ["scavenging", "cleaning", "trading"]
+    "obtainMethods": [
+      "scavenging",
+      "cleaning",
+      "trading"
+    ]
   },
   {
     "itemId": "stale_bread",
@@ -59,9 +83,14 @@
     "icon": "GiBreadSlice",
     "properties": {
       "stackable": true,
-      "foodValue": 0.25
+      "foodValue": 0.25,
+      "weight": 0.5
     },
-    "obtainMethods": ["trading", "cleaning", "exploring"]
+    "obtainMethods": [
+      "trading",
+      "cleaning",
+      "exploring"
+    ]
   },
   {
     "itemId": "dried_meat",
@@ -73,13 +102,18 @@
     "icon": "GiMeat",
     "properties": {
       "stackable": true,
-      "foodValue": 1.5
+      "foodValue": 1.5,
+      "weight": 1
     },
-    "obtainMethods": ["scavenging", "cleaning", "trading"]
+    "obtainMethods": [
+      "scavenging",
+      "cleaning",
+      "trading"
+    ]
   },
   {
     "itemId": "hen_egg",
-    "name": "Hen’s Egg",
+    "name": "Hen\u2019s Egg",
     "type": "food",
     "tradeValue": 1,
     "rarity": "common",
@@ -87,9 +121,13 @@
     "icon": "GiEggClutch",
     "properties": {
       "stackable": true,
-      "foodValue": 0.2
+      "foodValue": 0.2,
+      "weight": 0.2
     },
-    "obtainMethods": ["farming", "trading"]
+    "obtainMethods": [
+      "farming",
+      "trading"
+    ]
   },
   {
     "itemId": "spear",
@@ -99,13 +137,26 @@
     "rarity": "common",
     "description": "Better than your fist but not by much.",
     "icon": "GiSpearHook",
-    "properties": { "damage": 6, "durability": 30 },
+    "properties": {
+      "damage": 6,
+      "durability": 30,
+      "weight": 8
+    },
     "recipe": [
-      { "itemId": "wood", "quantity": 4 },
-      { "itemId": "scrap", "quantity": 2 }
+      {
+        "itemId": "wood",
+        "quantity": 4
+      },
+      {
+        "itemId": "scrap",
+        "quantity": 2
+      }
     ],
     "craftingTime": 5,
-    "obtainMethods": ["crafting", "trading"]
+    "obtainMethods": [
+      "crafting",
+      "trading"
+    ]
   },
   {
     "itemId": "key_fragment",
@@ -115,8 +166,14 @@
     "rarity": "rare",
     "description": "A fragment of a key that may unlock something valuable.",
     "icon": "GiKey",
-    "properties": { "stackable": true },
-    "obtainMethods": ["tasks", "exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "tasks",
+      "exploring"
+    ]
   },
   {
     "itemId": "carrot_seeds",
@@ -126,8 +183,14 @@
     "rarity": "common",
     "description": "Seeds for planting carrots.",
     "icon": "GiCarrot",
-    "properties": { "stackable": true },
-    "obtainMethods": ["tasks", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "tasks",
+      "trading"
+    ]
   },
   {
     "itemId": "tomato_seeds",
@@ -137,8 +200,14 @@
     "rarity": "common",
     "description": "Seeds for planting tomatoes.",
     "icon": "GiTomato",
-    "properties": { "stackable": true },
-    "obtainMethods": ["tasks", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "tasks",
+      "trading"
+    ]
   },
   {
     "itemId": "fertilizer",
@@ -148,8 +217,14 @@
     "rarity": "common",
     "description": "Improves soil fertility for better crop yields.",
     "icon": "GiFertilizerBag",
-    "properties": { "stackable": true },
-    "obtainMethods": ["tasks", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "tasks",
+      "trading"
+    ]
   },
   {
     "itemId": "map",
@@ -159,8 +234,13 @@
     "rarity": "uncommon",
     "description": "A basic map of the surrounding area.",
     "icon": "GiMap",
-    "properties": { "stackable": false },
-    "obtainMethods": ["tasks"]
+    "properties": {
+      "stackable": false,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "tasks"
+    ]
   },
   {
     "itemId": "tool",
@@ -170,8 +250,15 @@
     "rarity": "uncommon",
     "description": "Useful for repairs and crafting.",
     "icon": "GiHammer",
-    "properties": { "durability": 20 },
-    "obtainMethods": ["tasks", "crafting", "trading"]
+    "properties": {
+      "durability": 20,
+      "weight": 12
+    },
+    "obtainMethods": [
+      "tasks",
+      "crafting",
+      "trading"
+    ]
   },
   {
     "itemId": "trap",
@@ -181,8 +268,15 @@
     "rarity": "uncommon",
     "description": "Can be set up to protect your homestead.",
     "icon": "GiBearTrap",
-    "properties": { "durability": 5, "stackable": true },
-    "obtainMethods": ["tasks", "crafting"]
+    "properties": {
+      "durability": 5,
+      "stackable": true,
+      "weight": 6
+    },
+    "obtainMethods": [
+      "tasks",
+      "crafting"
+    ]
   },
   {
     "itemId": "metal",
@@ -192,8 +286,15 @@
     "rarity": "common",
     "description": "A basic material for crafting and reinforcement.",
     "icon": "GiMetalBar",
-    "properties": { "stackable": true },
-    "obtainMethods": ["tasks", "trading", "exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 4
+    },
+    "obtainMethods": [
+      "tasks",
+      "trading",
+      "exploring"
+    ]
   },
   {
     "itemId": "ammunition",
@@ -203,8 +304,14 @@
     "rarity": "uncommon",
     "description": "Military ammunition. Valuable for defense and trading.",
     "icon": "GiBullets",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "ancient_seeds",
@@ -214,8 +321,13 @@
     "rarity": "rare",
     "description": "Seeds from the old world with unknown properties.",
     "icon": "GiSeedling",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "ash",
@@ -225,8 +337,13 @@
     "rarity": "common",
     "description": "Remnants of the old world. Useful for soil conditioning.",
     "icon": "GiDustCloud",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.5
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "berries",
@@ -236,8 +353,15 @@
     "rarity": "common",
     "description": "Fresh wild berries. Nutritious and tasty.",
     "icon": "GiBerriesBowl",
-    "properties": { "stackable": true, "foodValue": 0.5 },
-    "obtainMethods": ["exploring", "farming"]
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.5,
+      "weight": 0.3
+    },
+    "obtainMethods": [
+      "exploring",
+      "farming"
+    ]
   },
   {
     "itemId": "bones",
@@ -247,8 +371,13 @@
     "rarity": "common",
     "description": "Animal bones. Can be crafted into tools or fertilizer.",
     "icon": "GiBones",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "buried_cache",
@@ -258,8 +387,13 @@
     "rarity": "rare",
     "description": "A hidden stash from before the war. Contains random valuables.",
     "icon": "GiTreasureMap",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 25
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "camouflage_gear",
@@ -269,8 +403,13 @@
     "rarity": "uncommon",
     "description": "Military camouflage equipment. Useful for stealth missions.",
     "icon": "GiCamouflagedSuit",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 4
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "cave_crystals",
@@ -280,8 +419,13 @@
     "rarity": "rare",
     "description": "Beautiful crystals found in deep caves. Highly valuable.",
     "icon": "GiCrystals",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 5
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "chemical_compounds",
@@ -291,8 +435,13 @@
     "rarity": "rare",
     "description": "Industrial chemicals. Dangerous but valuable for advanced crafting.",
     "icon": "GiChemicalDrop",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 4
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "chemicals",
@@ -302,8 +451,13 @@
     "rarity": "uncommon",
     "description": "Common industrial chemicals for basic processing.",
     "icon": "GiTestTubes",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 3
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "classified_documents",
@@ -313,8 +467,13 @@
     "rarity": "rare",
     "description": "Military documents with sensitive information. Extremely valuable.",
     "icon": "GiSecretBook",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "cloth",
@@ -324,8 +483,14 @@
     "rarity": "common",
     "description": "Basic fabric material for crafting and repairs.",
     "icon": "GiFabric",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "clothing",
@@ -335,8 +500,13 @@
     "rarity": "common",
     "description": "Worn clothing from the old world. Can be repaired or recycled.",
     "icon": "GiClothes",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "communication_equipment",
@@ -346,8 +516,13 @@
     "rarity": "rare",
     "description": "Old world communication devices. Could be restored.",
     "icon": "GiRadioTower",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 25
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "concrete",
@@ -357,8 +532,13 @@
     "rarity": "common",
     "description": "Concrete blocks and rubble. Heavy but useful for construction.",
     "icon": "GiBrickWall",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 10
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "contaminated_water",
@@ -368,8 +548,13 @@
     "rarity": "common",
     "description": "Polluted water. Needs treatment before consumption.",
     "icon": "GiPoisonBottle",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "electronics",
@@ -379,8 +564,14 @@
     "rarity": "uncommon",
     "description": "Various electronic components and devices.",
     "icon": "GiCircuitBoard",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 3
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "family_photos",
@@ -390,8 +581,13 @@
     "rarity": "uncommon",
     "description": "Personal photographs from before the war. Emotionally valuable.",
     "icon": "GiPhotoCamera",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "farming_tools",
@@ -401,8 +597,15 @@
     "rarity": "uncommon",
     "description": "Agricultural implements for farming and gardening.",
     "icon": "GiHoe",
-    "properties": { "durability": 25, "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "durability": 25,
+      "stackable": true,
+      "weight": 20
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "filtration_equipment",
@@ -412,8 +615,13 @@
     "rarity": "rare",
     "description": "Equipment for purifying contaminated water.",
     "icon": "GiWaterDrop",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 35
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "fossil_fuel",
@@ -423,8 +631,13 @@
     "rarity": "rare",
     "description": "Precious fuel from the old world. Extremely valuable.",
     "icon": "GiOilBarrel",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 6
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "fruits",
@@ -434,8 +647,15 @@
     "rarity": "common",
     "description": "Fresh fruits from overgrown gardens. Nutritious and refreshing.",
     "icon": "GiFruitBowl",
-    "properties": { "stackable": true, "foodValue": 0.8 },
-    "obtainMethods": ["exploring", "farming"]
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.8,
+      "weight": 0.5
+    },
+    "obtainMethods": [
+      "exploring",
+      "farming"
+    ]
   },
   {
     "itemId": "garden_tools",
@@ -445,8 +665,15 @@
     "rarity": "uncommon",
     "description": "Small gardening implements. Perfect for tending plants.",
     "icon": "GiGardeningShears",
-    "properties": { "durability": 20, "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "durability": 20,
+      "stackable": true,
+      "weight": 8
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "glass_shards",
@@ -456,8 +683,13 @@
     "rarity": "common",
     "description": "Broken glass pieces. Sharp and potentially useful.",
     "icon": "GiBrokenGlass",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "grain",
@@ -467,8 +699,15 @@
     "rarity": "common",
     "description": "Harvested grain. Can be processed into flour or eaten directly.",
     "icon": "GiWheat",
-    "properties": { "stackable": true, "foodValue": 1.0 },
-    "obtainMethods": ["exploring", "farming"]
+    "properties": {
+      "stackable": true,
+      "foodValue": 1.0,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring",
+      "farming"
+    ]
   },
   {
     "itemId": "grass",
@@ -478,8 +717,13 @@
     "rarity": "common",
     "description": "Common wild grass. Can be used for basic crafting.",
     "icon": "GiGrass",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "grazing_livestock",
@@ -489,8 +733,13 @@
     "rarity": "rare",
     "description": "Wild animals suitable for domestication. Extremely valuable.",
     "icon": "GiCow",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 0
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "hazmat_gear",
@@ -500,8 +749,14 @@
     "rarity": "rare",
     "description": "Protective equipment for handling toxic materials.",
     "icon": "GiHazmatSuit",
-    "properties": { "durability": 15, "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "durability": 15,
+      "stackable": true,
+      "weight": 15
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "heavy_equipment",
@@ -511,8 +766,13 @@
     "rarity": "rare",
     "description": "Large industrial machinery. Difficult to transport but very valuable.",
     "icon": "GiMechanicalArm",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 50
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "heirloom_seeds",
@@ -522,8 +782,13 @@
     "rarity": "rare",
     "description": "Rare pre-war seeds. Produce superior crops.",
     "icon": "GiPlantSeed",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "herbs",
@@ -533,8 +798,13 @@
     "rarity": "common",
     "description": "Medicinal herbs growing wild. Useful for basic healing.",
     "icon": "GiHerbsBundle",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.3
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "home_electronics",
@@ -544,8 +814,13 @@
     "rarity": "uncommon",
     "description": "Household electronic devices from the old world.",
     "icon": "GiTv",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 5
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "household_items",
@@ -555,8 +830,13 @@
     "rarity": "common",
     "description": "Common household objects. Might be useful.",
     "icon": "GiHouse",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 5
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "industrial_blueprints",
@@ -566,8 +846,13 @@
     "rarity": "rare",
     "description": "Technical diagrams for industrial equipment. Extremely valuable.",
     "icon": "GiBluePrint",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.3
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "irrigation_equipment",
@@ -577,8 +862,13 @@
     "rarity": "rare",
     "description": "Advanced farming irrigation systems.",
     "icon": "GiWaterGun",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 30
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "jewelry",
@@ -588,8 +878,14 @@
     "rarity": "uncommon",
     "description": "Personal jewelry and accessories. Valuable for trading.",
     "icon": "GiDiamondRing",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.5
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "livestock_supplies",
@@ -599,8 +895,13 @@
     "rarity": "uncommon",
     "description": "Equipment and supplies for raising livestock.",
     "icon": "GiHayFork",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 8
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "machinery_parts",
@@ -610,8 +911,14 @@
     "rarity": "uncommon",
     "description": "Mechanical components from industrial equipment.",
     "icon": "GiGears",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 10
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "maps",
@@ -621,8 +928,13 @@
     "rarity": "uncommon",
     "description": "Pre-war maps of the local area. Could reveal interesting locations.",
     "icon": "GiTreasureMap",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "marsh_gas",
@@ -632,8 +944,13 @@
     "rarity": "uncommon",
     "description": "Flammable gas from swampland. Can be used as fuel.",
     "icon": "GiGasMask",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 4
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "medicines",
@@ -643,8 +960,14 @@
     "rarity": "rare",
     "description": "Medical supplies from before the war. Highly sought after.",
     "icon": "GiMedicineBottle",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.5
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "meteor_fragments",
@@ -654,8 +977,13 @@
     "rarity": "rare",
     "description": "Extraterrestrial metal fragments. Unique properties.",
     "icon": "GiMeteor",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 12
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "meteorites",
@@ -665,8 +993,13 @@
     "rarity": "rare",
     "description": "Small space rocks. Interesting composition.",
     "icon": "GiStoneBlock",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 8
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "military_rations",
@@ -676,8 +1009,14 @@
     "rarity": "uncommon",
     "description": "Military food rations. Long-lasting and nutritious.",
     "icon": "GiMilkCarton",
-    "properties": { "stackable": true, "foodValue": 1.2 },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "foodValue": 1.2,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "minerals",
@@ -687,8 +1026,14 @@
     "rarity": "common",
     "description": "Various raw minerals useful for crafting.",
     "icon": "GiCrystals",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "mining"]
+    "properties": {
+      "stackable": true,
+      "weight": 3
+    },
+    "obtainMethods": [
+      "exploring",
+      "mining"
+    ]
   },
   {
     "itemId": "mining_equipment",
@@ -698,8 +1043,13 @@
     "rarity": "rare",
     "description": "Heavy equipment for mining operations.",
     "icon": "GiMiningHelmet",
-    "properties": { "stackable": false },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": false,
+      "weight": 40
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "mountain_herbs",
@@ -709,8 +1059,13 @@
     "rarity": "uncommon",
     "description": "Rare herbs that grow in high altitudes. Potent medicinal properties.",
     "icon": "GiMountaintop",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.3
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "mutated_plants",
@@ -720,8 +1075,13 @@
     "rarity": "uncommon",
     "description": "Plants changed by radiation. Dangerous but potentially useful.",
     "icon": "GiPlantRoots",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "personal_effects",
@@ -731,8 +1091,13 @@
     "rarity": "common",
     "description": "Personal belongings from the old world. Sentimental value.",
     "icon": "GiSuitcase",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "power_cells",
@@ -742,8 +1107,13 @@
     "rarity": "rare",
     "description": "High-capacity energy storage devices. Very valuable.",
     "icon": "GiBattery",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "pre_war_tools",
@@ -753,8 +1123,15 @@
     "rarity": "uncommon",
     "description": "Well-made tools from before the war. High quality.",
     "icon": "GiWrench",
-    "properties": { "durability": 40, "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "durability": 40,
+      "stackable": true,
+      "weight": 15
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "precious_metals",
@@ -764,8 +1141,14 @@
     "rarity": "rare",
     "description": "Gold, silver, and other precious metals. Extremely valuable.",
     "icon": "GiGoldBar",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "mining"]
+    "properties": {
+      "stackable": true,
+      "weight": 8
+    },
+    "obtainMethods": [
+      "exploring",
+      "mining"
+    ]
   },
   {
     "itemId": "rocks",
@@ -775,8 +1158,13 @@
     "rarity": "common",
     "description": "Common stones. Basic building material.",
     "icon": "GiStoneBlock",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "rope",
@@ -786,8 +1174,14 @@
     "rarity": "common",
     "description": "Strong rope. Useful for many purposes.",
     "icon": "GiRope",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "crafting"]
+    "properties": {
+      "stackable": true,
+      "weight": 2
+    },
+    "obtainMethods": [
+      "exploring",
+      "crafting"
+    ]
   },
   {
     "itemId": "seeds",
@@ -797,8 +1191,14 @@
     "rarity": "common",
     "description": "Various plant seeds. Good for starting a garden.",
     "icon": "GiPlantSeed",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "farming"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.2
+    },
+    "obtainMethods": [
+      "exploring",
+      "farming"
+    ]
   },
   {
     "itemId": "small_stones",
@@ -808,8 +1208,13 @@
     "rarity": "common",
     "description": "Small pebbles and stones. Can be used for basic construction.",
     "icon": "GiStoneBlock",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "steel",
@@ -819,8 +1224,14 @@
     "rarity": "uncommon",
     "description": "High-quality steel. Excellent for construction and tools.",
     "icon": "GiSteelClaws",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 6
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "stone",
@@ -830,8 +1241,14 @@
     "rarity": "common",
     "description": "Solid stone blocks. Good for construction.",
     "icon": "GiStoneBlock",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "mining"]
+    "properties": {
+      "stackable": true,
+      "weight": 8
+    },
+    "obtainMethods": [
+      "exploring",
+      "mining"
+    ]
   },
   {
     "itemId": "survivor_notes",
@@ -841,8 +1258,13 @@
     "rarity": "uncommon",
     "description": "Written notes from other survivors. Might contain useful information.",
     "icon": "GiScrollUnfurled",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "tactical_equipment",
@@ -852,8 +1274,13 @@
     "rarity": "rare",
     "description": "Advanced military equipment. High-tech and valuable.",
     "icon": "GiNightVision",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 12
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "tractor_parts",
@@ -863,8 +1290,13 @@
     "rarity": "rare",
     "description": "Parts from agricultural machinery. Could restore old equipment.",
     "icon": "GiFarmTractor",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 25
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "trade_goods",
@@ -874,8 +1306,14 @@
     "rarity": "uncommon",
     "description": "Various items specifically valuable for trading.",
     "icon": "GiTakeMyMoney",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring", "trading"]
+    "properties": {
+      "stackable": true,
+      "weight": 3
+    },
+    "obtainMethods": [
+      "exploring",
+      "trading"
+    ]
   },
   {
     "itemId": "vegetables",
@@ -885,8 +1323,15 @@
     "rarity": "common",
     "description": "Fresh vegetables from abandoned gardens. Nutritious and healthy.",
     "icon": "GiCarrot",
-    "properties": { "stackable": true, "foodValue": 0.7 },
-    "obtainMethods": ["exploring", "farming"]
+    "properties": {
+      "stackable": true,
+      "foodValue": 0.7,
+      "weight": 0.5
+    },
+    "obtainMethods": [
+      "exploring",
+      "farming"
+    ]
   },
   {
     "itemId": "weapons",
@@ -896,8 +1341,15 @@
     "rarity": "rare",
     "description": "Military weapons from the old world. Dangerous but valuable.",
     "icon": "GiAk47",
-    "properties": { "damage": 12, "durability": 25, "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "damage": 12,
+      "durability": 25,
+      "stackable": true,
+      "weight": 18
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "wild_herbs",
@@ -907,8 +1359,13 @@
     "rarity": "common",
     "description": "Common wild herbs with mild medicinal properties.",
     "icon": "GiGrassMushroom",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.2
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   },
   {
     "itemId": "wildflowers",
@@ -918,7 +1375,12 @@
     "rarity": "common",
     "description": "Beautiful wild flowers. Mostly decorative but uplifting to find.",
     "icon": "GiFlowers",
-    "properties": { "stackable": true },
-    "obtainMethods": ["exploring"]
+    "properties": {
+      "stackable": true,
+      "weight": 0.1
+    },
+    "obtainMethods": [
+      "exploring"
+    ]
   }
 ]
