@@ -6,7 +6,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import LogoutIcon from "@mui/icons-material/Logout";
 
-
 import BuildIcon from '@mui/icons-material/Build'; // Scrap Metal
 import NatureIcon from '@mui/icons-material/Nature'; // Wood
 
@@ -22,15 +21,14 @@ import { useServerContext } from "../../lib/contexts/ServerContext";
 import ServerSelector from "../../components/ServerSelector/ServerSelector";
 import { useAuth } from "../../lib/hooks/useAuth";
 
-import { GiCorn, GiCrownedSkull, GiHeartBeats, GiHorseshoe,  GiPerson, GiRunningNinja, GiShieldEchoes, GiWoodStick } from "react-icons/gi";
+import { GiCorn, GiCrownedSkull, GiHeartBeats, GiHorseshoe, GiPerson, GiRunningNinja, GiShieldEchoes, GiWoodStick, GiChest, GiBackpack } from "react-icons/gi";
 
 type StatItemProps = {
-   icon: ReactElement<SvgIconProps>;
+  icon: ReactElement<SvgIconProps>;
   label: string;
   value: string | number;
   color?: string;
   tooltip?: string;
-  showLabel?: boolean; // New prop for mobile tiny text
 };
 
 const StatItem: React.FC<StatItemProps> = ({
@@ -39,7 +37,6 @@ const StatItem: React.FC<StatItemProps> = ({
   value,
   color = 'text.primary',
   tooltip,
-  showLabel = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -50,9 +47,9 @@ const StatItem: React.FC<StatItemProps> = ({
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         alignItems: 'center',
-        gap: showLabel ? 0 : 0.3, // small gap when stacking vertically
+        gap: isMobile ? 0 : 0.3,
         px: isMobile ? 1 : 1.5,
-        py: showLabel ? 0.3 : 0.3,
+        py: 0.3,
         fontSize: isMobile ? '0.75rem' : '0.85rem',
         borderRadius: 1,
         bgcolor: 'rgba(255,255,255,0.05)',
@@ -69,7 +66,7 @@ const StatItem: React.FC<StatItemProps> = ({
         fontSize: isMobile ? '0.9rem' : '1.1rem',
         lineHeight: 1,
       }}>
-          {React.isValidElement(icon) ? React.cloneElement(icon, { fontSize: 'inherit' }) : icon}
+        {React.isValidElement(icon) ? React.cloneElement(icon, { fontSize: 'inherit' }) : icon}
       </Box>
       <Typography
         variant="body2"
@@ -84,7 +81,7 @@ const StatItem: React.FC<StatItemProps> = ({
       >
         {value}
       </Typography>
-      {showLabel && (
+      {isMobile && (
         <Typography
           variant="caption"
           sx={{
@@ -99,6 +96,11 @@ const StatItem: React.FC<StatItemProps> = ({
       )}
     </Box>
   );
+
+  // On mobile, don't use tooltip since labels are shown
+  if (isMobile) {
+    return content;
+  }
 
   return (
     <Tooltip title={tooltip || `${value} ${label}`} arrow>
@@ -130,7 +132,7 @@ const DashboardTopBar: React.FC = () => {
   const { colony, colonyLoading } = useColony(currentServerId || undefined);
   
   // Use colony data from context if available, fallback to API data
-  const displayColony =  colony;
+  const displayColony = colony;
 
   // Dynamic navigation based on unlocked features
   const NAV_ITEMS = useMemo(() => {
@@ -160,14 +162,14 @@ const DashboardTopBar: React.FC = () => {
 
   // Calculate dynamic settler stats
   const settlerStats = useMemo(() => {
-    if (!displayColony?.settlers) return { idle: 0, busy: 0, averageMorale: 0, total: 0 };
+    if (!displayColony?.settlers) return { idle: 0, busy: 0, lowMorale: 0, carrying: 0, total: 0 };
 
     const idle = displayColony.settlers.filter(s => s.status === "idle").length;
     const busy = displayColony.settlers.filter(s => s.status !== "idle").length;
-    const totalMorale = displayColony.settlers.reduce((sum, s) => sum + (s.morale || 0), 0);
-    const averageMorale = displayColony.settlers.length > 0 ? Math.round(totalMorale / displayColony.settlers.length) : 0;
+    const lowMorale = displayColony.settlers.filter(s => (s.morale || 0) < 60).length;
+    const carrying = displayColony.settlers.filter(s => s.carry && s.carry.length > 0).length;
 
-    return { idle, busy, averageMorale, total: displayColony.settlers.length };
+    return { idle, busy, lowMorale, carrying, total: displayColony.settlers.length };
   }, [displayColony?.settlers]);
 
   // Get notoriety color
@@ -179,74 +181,102 @@ const DashboardTopBar: React.FC = () => {
     return "error.main";
   };
 
-  // Get morale color
-  const getMoraleColor = (morale: number) => {
-    if (morale >= 70) return "success.main";
-    if (morale >= 40) return "warning.main";
-    return "error.main";
+  // Get low morale color
+  const getLowMoraleColor = (count: number) => {
+    return count > 0 ? "error.main" : "success.main";
   };
 
-  // Example resources - you'd replace this with actual inventory data
-  const resources: StatItemProps[] = [
-    {
-      icon: <GiHorseshoe fontSize="inherit" />,
-      label: "Scrap",
-      value: displayColony?.scrapMetal || 0, // This would come from inventory
-      color: "text.secondary",
-    },
-    {
-      icon: <GiWoodStick fontSize="inherit"  />,
-      label: "Wood",
-      value: displayColony?.wood || 0, // This would come from inventory
-      color: "success.main",
-    },
-    {
-      icon: <GiCorn fontSize="inherit"  />,
-      label: "Food",
-      value: displayColony?.daysFood || 0 + "d",
-      color: "warning.main",
-      tooltip: `${displayColony?.daysFood || 0} days of food remaining`,
-    },
-  ];
+  // Get carrying color
+  const getCarryingColor = (count: number) => {
+    return count > 0 ? "warning.main" : "text.secondary";
+  };
 
-  const settlers: StatItemProps[] = [
-    {
-      icon: <GiPerson  fontSize="inherit"  />,
-      label: "Idle",
-      value: settlerStats.idle,
-      color: "info.main",
-    },
-    {
-      icon: <GiRunningNinja fontSize="inherit"  />,
-      label: "Busy",
-      value: settlerStats.busy,
-      color: "success.main",
-      tooltip: settlerStats.busy > 0 ? `${settlerStats.busy} settlers working on tasks` : "No settlers currently working",
-    },
-    {
-      icon: <GiHeartBeats fontSize="inherit"  />,
-      label: "Morale",
-      value: `${settlerStats.averageMorale}%`,
-      color: getMoraleColor(settlerStats.averageMorale),
-    },
-  ];
+  // Create unified stats array
+  const allStats = useMemo(() => {
+    if (!displayColony) return { resources: [], settlers: [], status: [] };
 
-  const status: StatItemProps[] = [
-    {
-      icon: <GiShieldEchoes fontSize="inherit"  />,
-      label: "Shield",
-      value: "On",
-      color: "success.main",
-      tooltip: "Shield active"
-    },
-    {
-      icon: <GiCrownedSkull fontSize="inherit"  />,
-      label: "Notoriety",
-      value: displayColony?.notoriety || 0,
-      color: getNotorietyColor(displayColony?.notoriety || 0),
-      tooltip: `Notoriety level: ${displayColony?.notoriety || 0}/100`,
-    },
-  ];
+    const resources: StatItemProps[] = [
+      {
+        icon: <GiHorseshoe fontSize="inherit" />,
+        label: "Scrap",
+        value: displayColony.scrapMetal || 0,
+        color: "text.secondary",
+      },
+      {
+        icon: <GiWoodStick fontSize="inherit" />,
+        label: "Wood",
+        value: displayColony.wood || 0,
+        color: "success.main",
+      },
+      {
+        icon: <GiCorn fontSize="inherit" />,
+        label: "Food",
+        value: `${displayColony.daysFood || 0}d`,
+        color: "warning.main",
+        tooltip: `${displayColony.daysFood || 0} days of food remaining`,
+      },
+      {
+        icon: <GiChest fontSize="inherit" />,
+        label: "Inventory",
+        value: `${displayColony.currentInventoryStacks || 0}/${displayColony.maxInventory || 0}`,
+        color: "info.main",
+        tooltip: `${displayColony.currentInventoryStacks || 0} stacks used of ${displayColony.maxInventory || 0} maximum`,
+      },
+    ];
+
+    const settlers: StatItemProps[] = [
+      {
+        icon: <GiPerson fontSize="inherit" />,
+        label: "Idle",
+        value: settlerStats.idle,
+        color: "info.main",
+      },
+      {
+        icon: <GiRunningNinja fontSize="inherit" />,
+        label: "Busy",
+        value: settlerStats.busy,
+        color: "success.main",
+        tooltip: settlerStats.busy > 0 ? `${settlerStats.busy} settlers working on tasks` : "No settlers currently working",
+      },
+      {
+        icon: <GiHeartBeats fontSize="inherit" />,
+        label: "Low Morale",
+        value: settlerStats.lowMorale,
+        color: getLowMoraleColor(settlerStats.lowMorale),
+        tooltip: settlerStats.lowMorale > 0 
+          ? `${settlerStats.lowMorale} settlers have morale below 60` 
+          : "All settlers have good morale",
+      },
+      {
+        icon: <GiBackpack fontSize="inherit" />,
+        label: "Carrying",
+        value: settlerStats.carrying,
+        color: getCarryingColor(settlerStats.carrying),
+        tooltip: settlerStats.carrying > 0 
+          ? `${settlerStats.carrying} settlers are carrying items` 
+          : "No settlers carrying items",
+      },
+    ];
+
+    const status: StatItemProps[] = [
+      {
+        icon: <GiShieldEchoes fontSize="inherit" />,
+        label: "Shield",
+        value: "On",
+        color: "success.main",
+        tooltip: "Shield active"
+      },
+      {
+        icon: <GiCrownedSkull fontSize="inherit" />,
+        label: "Notoriety",
+        value: displayColony.notoriety || 0,
+        color: getNotorietyColor(displayColony.notoriety || 0),
+        tooltip: `Notoriety level: ${displayColony.notoriety || 0}/100`,
+      },
+    ];
+
+    return { resources, settlers, status };
+  }, [displayColony, settlerStats]);
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -379,6 +409,60 @@ const DashboardTopBar: React.FC = () => {
     </Drawer>
   );
 
+  const renderStats = () => {
+    if (isMobile) {
+      // Mobile: Single scrollable row
+      const allStatsFlat = [...allStats.resources, ...allStats.settlers, ...allStats.status];
+      
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: 'rgba(0,0,0,0.3)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 0,
+            py: 0.75,
+            px: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            overflow: 'auto',
+          }}
+        >
+          {allStatsFlat.map((stat) => (
+            <StatItem key={stat.label} {...stat} />
+          ))}
+        </Paper>
+      );
+    }
+
+    // Desktop: Horizontal toolbar with sections
+    return (
+      <Toolbar sx={{ minHeight: { xs: 48, sm: 46 }, px: 1, gap: 0.5, display: 'flex' }}>
+        {/* Resources Section - Left */}
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {allStats.resources.map((stat) => (
+            <StatItem key={stat.label} {...stat} />
+          ))}
+        </Box>
+
+        {/* Settlers Section - Center */}
+        <Box sx={{ display: 'flex', gap: 0.5, flexGrow: 1, justifyContent: 'center' }}>
+          {allStats.settlers.map((stat) => (
+            <StatItem key={stat.label} {...stat} />
+          ))}
+        </Box>
+
+        {/* Status Section - Right */}
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {allStats.status.map((stat) => (
+            <StatItem key={stat.label} {...stat} />
+          ))}
+        </Box>
+      </Toolbar>
+    );
+  };
+
   return (
     <>
       <AppBar
@@ -479,71 +563,8 @@ const DashboardTopBar: React.FC = () => {
           )}
         </Paper>
 
-        {/* Mobile Stats Bar - underneath header */}
-        {isMobile && (
-          <Paper
-            elevation={0}
-            sx={{
-              bgcolor: 'rgba(0,0,0,0.3)',
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 0,
-              py: 0.75,
-              px: 1,
-              display: 'flex',
-              justifyContent: 'space-around',
-              alignItems: 'center',
-              gap: 1,
-              overflow: 'auto',
-            }}
-          >
-            {/* Resources */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {resources.map((stat) => (
-                <StatItem key={stat.label} {...stat} showLabel={true} />
-              ))}
-            </Box>
-
-            {/* Settlers */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {settlers.map((stat) => (
-                <StatItem key={stat.label} {...stat} showLabel={true} />
-              ))}
-            </Box>
-
-            {/* Status */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {status.map((stat) => (
-                <StatItem key={stat.label} {...stat} showLabel={true} />
-              ))}
-            </Box>
-          </Paper>
-        )}
-
-        {/* Stats Row - Desktop only */}
-        {!isMobile && (
-          <Toolbar sx={{ minHeight: { xs: 48, sm: 46 }, px: 1, gap: 0.5, display: 'flex' }}>
-            {/* Resources Section - Left */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {resources.map((stat) => (
-                <StatItem key={stat.label} {...stat} />
-              ))}
-            </Box>
-
-            {/* Settlers Section - Center */}
-            <Box sx={{ display: 'flex', gap: 0.5, flexGrow: 1, justifyContent: 'center' }}>
-              {settlers.map((stat) => (
-                <StatItem key={stat.label} {...stat} />
-              ))}
-            </Box>
-
-            {/* Status Section - Right */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {status.map((stat) => (
-                <StatItem key={stat.label} {...stat} />
-              ))}
-            </Box>
-          </Toolbar>
-        )}
+        {/* Stats Section - Unified for mobile and desktop */}
+        {renderStats()}
       </AppBar>
 
       {/* Mobile Menu Drawer */}
