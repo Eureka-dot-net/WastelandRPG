@@ -145,9 +145,23 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
     }
   });
 
+   // Drop item from settler inventory
+    const dropSettlerItem = useMutation({
+        mutationFn: async ({ settlerId, itemId }: { settlerId: string; itemId: string }) => {
+            const res = await agent.delete(`/colonies/${colonyId}/inventory/settler/${settlerId}/${itemId}`);
+            return res.data;
+        },
+        onSuccess: (_data, variables) => {
+            // Invalidate relevant queries after successful settler inventory change
+            queryClient.invalidateQueries({ queryKey: ['settlers', colonyId] });
+            queryClient.invalidateQueries({ queryKey: ['settler', variables.settlerId] });
+        },
+    });
+
   return { 
     onboardSettler, 
     selectSettler, 
-    rejectSettler 
+    rejectSettler, 
+    dropSettlerItem
   };
 }

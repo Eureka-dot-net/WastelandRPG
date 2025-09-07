@@ -156,7 +156,6 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
                 settler={settlers[0]}
                 showSkills={showSkills}
                 showStats={showStats}
-                avatarIndex={0}
                 onClick={!confirmPending ? () => onSelect(settlers[0]) : undefined}
                 confirmPending={confirmPending}
                 preview={settlerPreviews[settlers[0]._id]}
@@ -166,13 +165,12 @@ const SettlerSelectorDialog: React.FC<SettlerSelectorDialogProps> = ({
             </Box>
           ) : (
             <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={isMobile ? 0.75 : 1.5}>
-              {settlers.map((settler, index) => (
+              {settlers.map((settler) => (
                 <SettlerPreviewCard
                   key={settler._id}
                   settler={settler}
                   showSkills={showSkills}
                   showStats={showStats}
-                  avatarIndex={index}
                   onClick={!confirmPending ? () => onSelect(settler) : undefined}
                   confirmPending={confirmPending}
                   preview={settlerPreviews[settler._id]}

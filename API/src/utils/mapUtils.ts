@@ -23,11 +23,11 @@ export async function getMapGrid(
   session?: ClientSession
 ): Promise<any> {
 
-  
+
   const gridSize = 5;
   const offset = Math.floor(gridSize / 2);
   const expandedOffset = offset + 1;
-  
+
   const [userTiles, assignments] = await Promise.all([
     getUserMapTilesInArea(
       colonyId,
@@ -45,14 +45,16 @@ export async function getMapGrid(
 
   const tileMap = new Map<string, any>();
   const exploredCoords = new Set<string>();
-  
+
   userTiles.forEach(userTile => {
     const key = `${userTile.x},${userTile.y}`;
-    exploredCoords.add(key);
-    
+    if (MapTile) {
+      exploredCoords.add(key);
+    }
+
     const isInGrid = userTile.x >= centerX - offset && userTile.x <= centerX + offset &&
-                     userTile.y >= centerY - offset && userTile.y <= centerY + offset;
-    
+      userTile.y >= centerY - offset && userTile.y <= centerY + offset;
+
     if (isInGrid) {
       tileMap.set(key, {
         position: {
@@ -79,19 +81,19 @@ export async function getMapGrid(
   });
 
   const canExploreCache = new Map<string, boolean>();
-  
+
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
       const y = centerY + offset - row;
       const key = `${x},${y}`;
-      
+
       if (!exploredCoords.has(key)) {
         const isAdjacent = [
-          `${x-1},${y}`, `${x+1},${y}`, 
-          `${x},${y-1}`, `${x},${y+1}`,
+          `${x - 1},${y}`, `${x + 1},${y}`,
+          `${x},${y - 1}`, `${x},${y + 1}`,
         ].some(adjKey => exploredCoords.has(adjKey));
-        
+
         canExploreCache.set(key, isAdjacent);
       }
     }
@@ -173,7 +175,7 @@ export async function createOrUpdateMapTile(
   serverId: string,
   x: number,
   y: number,
-    session: ClientSession,
+  session: ClientSession,
   colony?: ColonyDoc,
 ): Promise<MapTileDoc> {
   // Try to find existing tile first
@@ -241,7 +243,7 @@ export async function getAssignmentsInArea(
   colonyId: string,
   minX: number,
   maxX: number,
-  minY: number, 
+  minY: number,
   maxY: number,
   session?: ClientSession
 ): Promise<AssignmentDoc[]> {
@@ -275,7 +277,7 @@ export async function createUserMapTile(
   isExplored: boolean,
   session: ClientSession
 ): Promise<UserMapTileDoc> {
-  
+
   const userTileData = {
     colonyId,
     serverTile: mapTileId,
