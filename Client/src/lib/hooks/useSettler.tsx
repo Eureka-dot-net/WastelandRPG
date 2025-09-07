@@ -108,19 +108,34 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
         queryClient.setQueryData<Colony>(["colony", serverId], context.prevColonyData);
       }
     },
-    onSuccess: (returnedSettler, _, context) => {
+    onSuccess: (returnedSettler) => {
       if (!colonyId) return;
       // Replace the temporary settler with the real one from the server
+      // Use robust duplicate prevention to avoid adding settler twice
       queryClient.setQueryData<Colony>(
         ["colony", serverId],
         (oldColony) => {
           if (!oldColony) return oldColony;
-          return {
-            ...oldColony,
-            settlers: oldColony.settlers.map(s => 
-              s._id === context?.settlerId ? returnedSettler : s
-            ),
-          };
+          
+          // Check if settler already exists (could be temporary or real)
+          const existingIndex = oldColony.settlers.findIndex(s => s._id === returnedSettler._id);
+          
+          if (existingIndex >= 0) {
+            // Settler exists - replace it with the real one from server
+            const updatedSettlers = [...oldColony.settlers];
+            updatedSettlers[existingIndex] = returnedSettler;
+            return {
+              ...oldColony,
+              settlers: updatedSettlers,
+            };
+          } else {
+            // Settler doesn't exist - add it (fallback case, shouldn't happen with proper optimistic update)
+            return {
+              ...oldColony,
+              settlers: [...oldColony.settlers, returnedSettler],
+              settlerCount: oldColony.settlerCount + 1,
+            };
+          }
         }
       );
     },

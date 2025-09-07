@@ -147,6 +147,11 @@ export const startAssignment = async (req: Request, res: Response) => {
         throw new Error('Settler not found');
       }
 
+      // Validate settler is available (not already busy)
+      if (settler.status !== 'idle') {
+        throw new Error(`Settler is currently ${settler.status} and cannot be assigned to a new task`);
+      }
+
       // Calculate adjusted duration and loot based on settler stats/skills/traits
       const adjustments = calculateAssignmentAdjustments(assignment, settler);
 
@@ -200,6 +205,9 @@ export const startAssignment = async (req: Request, res: Response) => {
     }
     if (error.message === 'Assignment already started or completed') {
       return res.status(400).json({ error: 'Assignment already started or completed' });
+    }
+    if (error.message.includes('Settler is currently') && error.message.includes('cannot be assigned')) {
+      return res.status(400).json({ error: error.message });
     }
     
     logError('Failed to start assignment', err, { 
