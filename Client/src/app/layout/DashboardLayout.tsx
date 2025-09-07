@@ -1,5 +1,5 @@
 import React, { useState, useMemo, type ReactElement, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -573,4 +573,17 @@ const DashboardTopBar: React.FC = () => {
   );
 };
 
-export default DashboardTopBar;
+// Dashboard Layout Component that includes top bar and content area
+const DashboardLayout: React.FC = () => {
+  return (
+    <>
+      <DashboardTopBar />
+      {/* Content area with proper spacing below the fixed AppBar */}
+      <Box component="main" sx={{ pt: { xs: '140px', md: '120px' }, minHeight: '100vh' }}>
+        <Outlet />
+      </Box>
+    </>
+  );
+};
+
+export default DashboardLayout;
