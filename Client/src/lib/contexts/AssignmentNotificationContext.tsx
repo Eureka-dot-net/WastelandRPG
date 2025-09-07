@@ -30,6 +30,9 @@ interface AssignmentNotificationContextValue {
   // Timer data for UI display
   timers: Record<string, number>; // assignmentId -> milliseconds remaining
 
+  // Loading states
+  informingAssignments: Set<string>; // assignmentIds currently being informed (unloading inventory)
+
   // Notification management  
   pendingNotifications: NotificationState[];
 
@@ -62,6 +65,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   const [timers, setTimers] = useState<Record<string, number>>({});
   const [activeTimers, setActiveTimers] = useState<AssignmentTimer[]>([]);
   const [pendingNotifications, setPendingNotifications] = useState<NotificationState[]>([]);
+  const [informingAssignments, setInformingAssignments] = useState<Set<string>>(new Set());
   const [settlerDialog, setSettlerDialog] = useState<{ isOpen: boolean; settler: Settler | null }>({
     isOpen: false,
     settler: null,
@@ -109,6 +113,7 @@ useEffect(() => {
       if (!settler) return;
 
       // Call inform endpoint first to get actual transfer results
+      setInformingAssignments(prev => new Set([...prev, assignmentId]));
       const data = await informAssignment.mutateAsync(assignmentId);
       
       // Use actual transferred items and inventory stacks from inform response
@@ -152,6 +157,13 @@ useEffect(() => {
       ]);
     } catch (error) {
       console.error('Error handling assignment completion:', error);
+    } finally {
+      // Always clear the informing state
+      setInformingAssignments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(assignmentId);
+        return newSet;
+      });
     }
   }, [assignments, informAssignment, queryClient, colonyId, serverId]);
 
@@ -285,6 +297,7 @@ useEffect(() => {
 
   const value: AssignmentNotificationContextValue = {
     timers,
+    informingAssignments,
     pendingNotifications,
     startAssignment,
     clearNotification,

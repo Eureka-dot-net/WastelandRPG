@@ -19,7 +19,8 @@ import {
   Assignment as AssignmentIcon,
   Timer,
   Lock,
-  Launch
+  Launch,
+  Inventory
 } from '@mui/icons-material';
 import { formatTimeRemaining } from '../../../../lib/utils/timeUtils';
 import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
@@ -42,7 +43,7 @@ export interface TaskCardProps {
   icon?: React.ReactNode;
 
   // Task status
-  status: 'available' | 'blocked' | 'in-progress' | 'completed' | 'starting';
+  status: 'available' | 'blocked' | 'in-progress' | 'completed' | 'starting' | 'unloading';
 
   // Progress (for in-progress tasks)
   progress?: number;
@@ -104,10 +105,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isInProgress = status === 'in-progress';
   const isCompleted = status === 'completed';
   const isStarting = status === 'starting';
+  const isUnloading = status === 'unloading';
 
   const getCardBorder = () => {
     if (isInProgress) return '2px solid #4caf50';
     if (isStarting) return '2px solid #ff9800';
+    if (isUnloading) return '2px solid #2196f3';
     if (isBlocked) return '1px solid #666';
     return '1px solid #333';
   };
@@ -222,6 +225,28 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </Box>
             <LinearProgress
               color="warning"
+              sx={{ height: compact || isMobile ? 3 : 6, borderRadius: 3 }}
+            />
+          </Box>
+        )}
+
+        {/* Unloading message */}
+        {isUnloading && (
+          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Box display="flex" justifyContent="center" alignItems="center" mb={1}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="info.main"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontStyle: 'italic' }}
+                >
+                  <Inventory fontSize="small" /> 
+                  Unloading inventory...
+                </Typography>
+              </Box>
+            </Box>
+            <LinearProgress
+              color="info"
               sx={{ height: compact || isMobile ? 3 : 6, borderRadius: 3 }}
             />
           </Box>
