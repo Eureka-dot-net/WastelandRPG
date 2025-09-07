@@ -158,6 +158,7 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
         },
     });
 
+
   return { 
     onboardSettler, 
     selectSettler, 

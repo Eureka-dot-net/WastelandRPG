@@ -48,7 +48,8 @@ export async function getMapGrid(
 
   userTiles.forEach(userTile => {
     const key = `${userTile.x},${userTile.y}`;
-    if (MapTile) {
+
+    if (userTile.isExplored) {
       exploredCoords.add(key);
     }
 
