@@ -35,6 +35,7 @@ function SettlerPage() {
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const { rejectSettler, dropSettlerItem } = useSettler(serverId, colonyId);
+
   // Helper functions for icons and colors
   const getSkillIcon = (skill: string) => {
     const icons: Record<string, React.ReactElement> = {

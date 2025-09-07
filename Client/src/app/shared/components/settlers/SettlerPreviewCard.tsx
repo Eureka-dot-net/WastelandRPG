@@ -183,7 +183,10 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
       <CardContent sx={{ p: isMobile ? 1 : 1.5 }}>
         {/* Settler Basic Info */}
         <Box display="flex" alignItems="center" gap={isMobile ? 1 : 1.5} mb={isMobile ? 1 : 1.5}>
-          <SettlerAvatar settler={settler} size={isMobile ? 50 : 60} />
+          <SettlerAvatar
+            settler={settler}
+            size={isMobile ? 28 : 32}
+          />
           <Box flex={1}>
             <Typography 
               variant={isMobile ? "subtitle1" : "h6"} 
