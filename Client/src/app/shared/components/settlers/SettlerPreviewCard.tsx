@@ -4,7 +4,6 @@ import {
   CardContent,
   Box,
   Typography,
-  Avatar,
   Divider,
   Chip,
   LinearProgress,
@@ -17,8 +16,7 @@ import type { Settler } from '../../../../lib/types/settler';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
 import type { UnifiedPreview } from '../../../../lib/types/preview';
 import { isAssignmentPreview, isMapExplorationPreview } from '../../../../lib/types/preview';
-
-const avatarColors = ['primary.main', 'secondary.main', 'success.main', 'warning.main', 'info.main', 'error.main'];
+import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
 
 const getSpeedChipColor = (multiplier: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
   if (multiplier < 0.25) return "error";
@@ -143,7 +141,6 @@ export interface SettlerPreviewCardProps {
   showSkills?: boolean;
   showStats?: boolean;
   onClick?: () => void;
-  avatarIndex?: number;
   confirmPending?: boolean;
   // Preview data - if provided, will skip hook calls
   preview?: UnifiedPreview;
@@ -156,7 +153,6 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   showSkills = true,
   showStats = false,
   onClick,
-  avatarIndex = 0,
   confirmPending = false,
   preview: providedPreview,
   isLoading: providedIsLoading,
@@ -169,8 +165,6 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
   const preview = providedPreview;
   const isLoading = providedIsLoading || false;
   const error = providedError || null;
-
-  const avatarColor = avatarColors[avatarIndex % avatarColors.length];
 
   return (
     <Card
@@ -189,17 +183,7 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
       <CardContent sx={{ p: isMobile ? 1 : 1.5 }}>
         {/* Settler Basic Info */}
         <Box display="flex" alignItems="center" gap={isMobile ? 1 : 1.5} mb={isMobile ? 1 : 1.5}>
-          <Avatar
-            sx={{
-              bgcolor: avatarColor,
-              width: isMobile ? 28 : 32,
-              height: isMobile ? 28 : 32,
-              fontSize: isMobile ? '0.8rem' : '0.9rem',
-              fontWeight: 'bold'
-            }}
-          >
-            {settler.name.charAt(0)}
-          </Avatar>
+          <SettlerAvatar settler={settler} size={isMobile ? 50 : 60} />
           <Box flex={1}>
             <Typography 
               variant={isMobile ? "subtitle1" : "h6"} 
