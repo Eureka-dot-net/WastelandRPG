@@ -162,16 +162,7 @@ export function useMap(
       // Replace the temporary assignment with the real one from the server in map data
       queryClient.setQueryData<MapResponse>(["map", colonyId, centerX, centerY], (old) => {
         if (!old) return old;
-        
-        // Update the top-level assignments array
-        const updatedAssignments = old.assignments?.map(a => 
-          a._id.startsWith('temp-') && 
-          a.settlerId === updatedAssignment.settlerId &&
-          a.location?.x === updatedAssignment.location?.x &&
-          a.location?.y === updatedAssignment.location?.y
-            ? updatedAssignment 
-            : a
-        ) || [updatedAssignment];
+
 
         // Also update the specific grid tile's assignments
         const updatedGrid = {
@@ -205,23 +196,8 @@ export function useMap(
 
         return {
           ...old,
-          assignments: updatedAssignments,
           grid: updatedGrid
         };
-      });
-      
-      // Replace the temporary assignment in the general assignments query
-      queryClient.setQueryData<Assignment[]>(["assignments", colonyId], (old) => {
-        if (!old) return [updatedAssignment];
-        
-        return old.map(a => 
-          a._id.startsWith('temp-') && 
-          a.settlerId === updatedAssignment.settlerId &&
-          a.location?.x === updatedAssignment.location?.x &&
-          a.location?.y === updatedAssignment.location?.y
-            ? updatedAssignment 
-            : a
-        );
       });
       
       // Invalidate assignments query to keep it in sync
