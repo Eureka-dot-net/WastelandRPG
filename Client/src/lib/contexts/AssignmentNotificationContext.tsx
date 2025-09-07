@@ -68,12 +68,12 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   });
 
   const { selectSettler, rejectSettler } = useSettler(serverId, colonyId);
-  const { assignments, informAssignment } = useAssignment(serverId, colonyId);
+  const { assignments, informAssignment } = useAssignment(serverId, colonyId, {status: ['in-progress', 'completed']});
 
   // Initialize timers from current assignments
 useEffect(() => {
+  console.log('Initializing timers from assignments:', assignments);
   if (!assignments) return;
-
   setActiveTimers(prev => {
     const prevIds = prev.map(t => t.assignmentId);
     const newTimers = assignments
@@ -94,6 +94,7 @@ useEffect(() => {
     try {
       // Find assignment from useAssignment hook
       const assignment = assignments?.find(a => a._id === assignmentId);
+      console.log('Handling completion for assignment:', assignmentId, assignment);
       if (!assignment) return;
 
       // Mark as completed manually in the cache

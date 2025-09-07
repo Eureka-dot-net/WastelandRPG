@@ -81,7 +81,10 @@ export function useAssignment(
 
             // Grab all cached queries for this colony
             const queries = queryClient.getQueryCache().findAll({
-                queryKey: ["assignments", colonyId],
+                predicate: (query) => {
+                    const key = query.queryKey as unknown[];
+                    return key[0] === "assignments" && key[1] === colonyId;
+                },
             });
 
             // Snapshot previous data for rollback
@@ -89,6 +92,7 @@ export function useAssignment(
                 key: query.queryKey as unknown[],
                 data: query.state.data as Assignment[] | undefined,
             }));
+
 
             // Optimistically mark assignment as in-progress
             queries.forEach((query) => {
@@ -102,7 +106,7 @@ export function useAssignment(
             // Also mark the settler as working
             queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                 if (!old) return old;
-                
+
                 // Determine status based on assignment type
                 let settlerStatus: 'working' | 'questing' | 'crafting' = 'working';
                 const assignment = assignments?.find(a => a._id === assignmentId);
@@ -111,7 +115,7 @@ export function useAssignment(
                 } else if (assignment?.type === 'crafting') {
                     settlerStatus = 'crafting';
                 }
-                
+
                 return {
                     ...old,
                     settlers: old.settlers.map((s) =>
@@ -128,12 +132,12 @@ export function useAssignment(
             context?.prevData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
-            
+
             // Rollback settler status to idle
             if (context?.settlerId) {
                 queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                     if (!old) return old;
-                    
+
                     return {
                         ...old,
                         settlers: old.settlers.map((s) =>
@@ -143,9 +147,12 @@ export function useAssignment(
                 });
             }
         },
-        onSuccess: (updatedAssignment) => {
+        onSuccess: () => {
             // Patch all assignment caches with confirmed server data
-            patchAllAssignmentCaches(updatedAssignment);
+            queryClient.invalidateQueries({
+                queryKey: ["assignments", colonyId],
+                exact: false
+            });
         },
     });
 
@@ -248,19 +255,19 @@ export function useAssignment(
                         if (!old) return old;
 
                         // Update the top-level assignments array
-                        const updatedAssignments = old.assignments?.map(a => 
+                        const updatedAssignments = old.assignments?.map(a =>
                             a._id === assignmentId ? { ...a, state: "informed" as const } : a
                         ) || [];
 
                         // Update assignments in specific grid tiles that match the location
                         const updatedGrid = {
                             ...old.grid,
-                            tiles: old.grid.tiles.map((tileRow) => 
+                            tiles: old.grid.tiles.map((tileRow) =>
                                 tileRow.map((tile) => {
                                     // Check if this tile contains the assignment by location match
-                                    const hasTargetAssignment = tile.assignments?.some(a => 
-                                        a._id === assignmentId && 
-                                        a.location?.x === assignmentLocation!.x && 
+                                    const hasTargetAssignment = tile.assignments?.some(a =>
+                                        a._id === assignmentId &&
+                                        a.location?.x === assignmentLocation!.x &&
                                         a.location?.y === assignmentLocation!.y
                                     );
 
@@ -290,7 +297,7 @@ export function useAssignment(
             if (settlerId) {
                 queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                     if (!old) return old;
-                
+
                     const newUnlocks = { ...old.unlocks };
                     if (newUnlock) {
                         newUnlocks[newUnlock as keyof typeof old.unlocks] = true;
@@ -315,12 +322,12 @@ export function useAssignment(
             context?.prevData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
-            
+
             // Rollback map data
             context?.prevMapData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
-            
+
             // Rollback colony data (settler status and unlocks)
             if (context?.prevColonyData) {
                 queryClient.setQueryData<Colony>(["colony", serverId], context.prevColonyData);
