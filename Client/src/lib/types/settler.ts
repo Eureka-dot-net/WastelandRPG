@@ -47,11 +47,12 @@ export interface Settler {
 
   traits: SettlerTrait[];
 
-  status: "idle" | "busy" | "resting";
+  status: 'idle' | 'working' | 'resting' | 'exploring' | 'crafting';
   health: number;
   morale: number;
   hunger: number;
   energy: number;
+  isFemale: boolean;
   carry: SettlerItem[];
   equipment: Equipment;
   foodConsumption: number;

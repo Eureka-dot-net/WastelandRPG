@@ -5,7 +5,7 @@ import {
   Collapse, Tooltip
 } from "@mui/material";
 import {
-  Person, Security, Build, LocalHospital, Agriculture, Science, Star,
+  Security, Build, LocalHospital, Agriculture, Science, Star,
   Speed, Psychology, Shield, ExpandMore, ExpandLess, Inventory,
   Restaurant, BatteryFull, Favorite, SentimentSatisfied, ArrowBack,
   Delete as DropIcon
@@ -21,6 +21,7 @@ import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
 import SettlerStatusGrid from "./SettlerStatusGrid";
+import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
 
 function SettlerPage() {
   const theme = useTheme();
@@ -245,16 +246,7 @@ function SettlerPage() {
               <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} gap={2} alignItems={isMobile ? 'center' : 'flex-start'}> {/* Reduced gap */}
                 {/* Avatar and basic info - Made smaller */}
                 <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
-                  <Avatar
-                    sx={{
-                      width: 60,
-                      height: 60,
-                      bgcolor: theme.palette.primary.main,
-                      fontSize: '1.5rem'
-                    }}
-                  >
-                    <Person fontSize="medium" />
-                  </Avatar>
+                  <SettlerAvatar settler={settler} size={80} />
                   <Chip
                     label={settler.status.toUpperCase()}
                     size="small"

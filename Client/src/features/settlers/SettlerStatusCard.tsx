@@ -4,9 +4,10 @@ import {
   Divider
 } from '@mui/material';
 import { 
-  Favorite, SentimentSatisfied, Restaurant, BatteryFull, Person 
+  Favorite, SentimentSatisfied, Restaurant, BatteryFull 
 } from '@mui/icons-material';
 import type { Settler } from '../../lib/types/settler';
+import SettlerAvatar from '../../lib/avatars/SettlerAvatar';
 
 interface SettlerStatusCardAction {
   label: string | ((settler: Settler) => string);
@@ -57,7 +58,7 @@ const SettlerStatusCard: React.FC<SettlerStatusCardProps> = ({
         {/* Header with name and status */}
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
           <Box display="flex" alignItems="center" gap={1}>
-            <Person color="primary" fontSize="small" />
+            <SettlerAvatar settler={settler} size={40} />
             <Typography variant="h6" color="primary" sx={{ fontSize: '1.1rem' }}>
               {settler.name}
             </Typography>
