@@ -160,10 +160,10 @@ function UnderConstructionPage({ featureName, expectedCompletion }: Props) {
         </Button>
         <Button
           variant="outlined"
-          onClick={() => navigate('/assignments')}
+          onClick={() => navigate('/quests')}
           sx={{ fontWeight: 600 }}
         >
-          Return to Assignments
+          Return to Quests
         </Button>
       </Box>
 

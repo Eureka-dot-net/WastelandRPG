@@ -139,7 +139,7 @@ const DashboardTopBar: React.FC = () => {
     if (!displayColony) return [];
 
     const baseItems = [
-      { label: "Assignments", href: "/assignments", icon: <WarningAmberIcon /> },
+      { label: "Quests", href: "/quests", icon: <WarningAmberIcon /> },
       { label: "Events", href: "/events", icon: <FeedIcon /> },
     ];
 

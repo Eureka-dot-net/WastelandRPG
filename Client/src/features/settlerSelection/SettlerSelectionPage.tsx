@@ -127,7 +127,7 @@ function SettlerSelection() {
 
   // Handle navigation after modal is closed
   if (shouldNavigate) {
-    return <Navigate to="/assignments" replace />;
+    return <Navigate to="/quests" replace />;
   }
 
   // Loading state for colony

@@ -5,7 +5,7 @@ import type { Colony } from "../types/colony";
 import type { Settler } from "../types/settler";
 
 interface UseAssignmentOptions {
-    type?: string[];   // e.g. ['general', 'exploration']
+    type?: string[];   // e.g. ['quest', 'exploration']
     status?: string[]; // e.g. ['in-progress', 'completed']
 }
 

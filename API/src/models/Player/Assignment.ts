@@ -2,7 +2,7 @@
 import { Schema, model, Types, HydratedDocument } from 'mongoose';
 
 export type AssignmentType =
-  | 'general'
+  | 'quest'
   | 'farming'
   | 'exploration'
   | 'crafting'

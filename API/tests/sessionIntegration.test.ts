@@ -82,7 +82,7 @@ describe('Session Integration Tests', () => {
         const assignment = new Assignment({
           colonyId: testColony._id,
           settlerId: settler._id,
-          type: 'general',
+          type: 'quest',
           taskId: 'clean-debris',
           name: 'Clean Debris',
           description: 'Clean up debris around the colony',
@@ -166,7 +166,7 @@ describe('Session Integration Tests', () => {
           const assignment = new Assignment({
             colonyId: testColony._id,
             settlerId: settler._id,
-            type: 'general',
+            type: 'quest',
             // Missing required fields to trigger validation error
           } as any);
           
