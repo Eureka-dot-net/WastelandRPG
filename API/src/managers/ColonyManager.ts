@@ -5,7 +5,7 @@ import { Inventory } from '../models/Player/Inventory';
 import { SettlerManager } from './SettlerManager';
 
 export class ColonyManager {
-  constructor(private colony: ColonyDoc) {}
+  constructor(private colony: ColonyDoc) { }
 
   async getUnlocks() {
     const assignments = await Assignment.find({
@@ -28,7 +28,7 @@ export class ColonyManager {
   }
 
   async getResources() {
-    const [foodAgg, scrapDoc, woodDoc, inventoryDoc] = await Promise.all([
+    const [foodAgg, scrapDoc, woodDoc,  currentInventoryStacks] = await Promise.all([
       Inventory.aggregate([
         { $match: { colonyId: this.colony._id } },
         { $unwind: "$items" },
@@ -42,18 +42,20 @@ export class ColonyManager {
       ]),
       Inventory.findOne({ colonyId: this.colony._id, "items.itemId": "scrap" }, { "items.$": 1 }).lean(),
       Inventory.findOne({ colonyId: this.colony._id, "items.itemId": "wood" }, { "items.$": 1 }).lean(),
-      Inventory.findOne({ colonyId: this.colony._id }).lean()
+      Inventory.aggregate([
+        { $match: { colonyId: this.colony._id } },
+        { $project: { currentInventoryStacks: { $size: { $ifNull: ["$items", []] } } } }
+      ])
     ]);
 
     const settlerCount = this.colony.settlers?.length || 0;
     const daysFood = foodAgg.length > 0 ? Number((foodAgg[0].totalFood / settlerCount).toFixed(1)) : 0;
-    const currentInventoryStacks = inventoryDoc?.items?.length || 0;
 
     return {
       daysFood,
       scrapMetal: scrapDoc?.items?.[0]?.quantity || 0,
       wood: woodDoc?.items?.[0]?.quantity || 0,
-      currentInventoryStacks
+      currentInventoryStacks: currentInventoryStacks[0]?.currentInventoryStacks || 0
     };
   }
 
@@ -67,10 +69,10 @@ export class ColonyManager {
 
   getSettlerDetails() {
     const settlers = this.colony.settlers.map((s: any) => {
-        const manager = new SettlerManager(s);
-        return manager.toViewModel();
-      });
-      return settlers;
+      const manager = new SettlerManager(s);
+      return manager.toViewModel();
+    });
+    return settlers;
   }
 
   /**
@@ -81,9 +83,9 @@ export class ColonyManager {
     itemId: string,
     session: ClientSession
   ): Promise<{ droppedItems: Record<string, number>; success: boolean; message: string }> {
-    
+
     const inventory = await Inventory.findOne({ colonyId: this.colony._id }).session(session);
-    
+
     if (!inventory) {
       return {
         droppedItems: {},
@@ -91,9 +93,9 @@ export class ColonyManager {
         message: `Colony inventory not found`
       };
     }
-    
+
     const itemIndex = inventory.items.findIndex(item => item.itemId === itemId);
-    
+
     if (itemIndex === -1) {
       return {
         droppedItems: {},
@@ -101,16 +103,16 @@ export class ColonyManager {
         message: `Colony doesn't have item: ${itemId}`
       };
     }
-    
+
     const droppedItem = inventory.items[itemIndex];
     const droppedQuantity = droppedItem.quantity;
-    
+
     // Remove item from colony's inventory
     inventory.items = inventory.items.filter(i => i.itemId !== itemId);
-    
+
     // Save inventory changes
     await inventory.save({ session });
-    
+
     return {
       droppedItems: { [itemId]: droppedQuantity },
       success: true,
@@ -132,7 +134,7 @@ export class ColonyManager {
 
     // Get current colony inventory
     const inventory = await Inventory.findOne({ colonyId: this.colony._id }).session(session || null);
-    
+
     if (!inventory) {
       // No inventory yet, so all rewards would be new items
       return Object.keys(rewards).length;
@@ -146,7 +148,7 @@ export class ColonyManager {
   }
 
   async toViewModel() {
-     const unlocks = await this.getUnlocks();
+    const unlocks = await this.getUnlocks();
     const resources = await this.getResources();
     return {
       ...this.colony.toObject(),
