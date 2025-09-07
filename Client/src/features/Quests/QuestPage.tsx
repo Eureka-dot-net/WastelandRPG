@@ -44,28 +44,10 @@ function QuestPage() {
 
   // Get available settlers and assignments for batch preview
   const availableSettlers = useMemo(() => {
-    if (!colony?.settlers || !assignments) return [];
-    
-    return colony.settlers.filter(settler => {
-      // Basic availability check
-      if (settler.status !== "idle") return false;
-      
-      // Find any assignment assigned to this settler
-      const settlerAssignment = assignments.find(a => a.settlerId === settler._id);
-      
-      // Exclude settlers whose assignments are currently starting
-      if (settlerAssignment && startingAssignmentId === settlerAssignment._id) {
-        return false;
-      }
-      
-      // Exclude settlers whose assignments are currently unloading
-      if (settlerAssignment && informingAssignments.has(settlerAssignment._id)) {
-        return false;
-      }
-      
-      return true;
-    });
-  }, [colony?.settlers, assignments, startingAssignmentId, informingAssignments]);
+    return colony?.settlers?.filter(
+      settler => settler.status === "idle"
+    ) || [];
+  }, [colony?.settlers]);
 
   const availableAssignments = useMemo(() => {
     return assignments?.filter(a =>
@@ -173,7 +155,7 @@ function QuestPage() {
     return linkMap[unlocks] || `/${unlocks}`;
   };
 
-  if (colonyLoading || loadingAssignment || !serverId) {
+  if (colonyLoading || loadingAssignment || startAssignment.isPending || informingAssignments.size > 0 || !serverId) {
     return (
       <LoadingDisplay
         showContainer={true}
