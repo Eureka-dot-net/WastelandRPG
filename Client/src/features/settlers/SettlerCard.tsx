@@ -1,10 +1,11 @@
 // File: src/components/settlers/SettlerCard.tsx
 import React from 'react';
 
-import { Person, Security, Build, LocalHospital, Agriculture, Science, Star, Speed, Psychology, Shield, Favorite, FavoriteBorder } from '@mui/icons-material';
+import { Security, Build, LocalHospital, Agriculture, Science, Star, Speed, Psychology, Shield, Favorite, FavoriteBorder } from '@mui/icons-material';
 import type { Settler } from '../../lib/types/settler';
 import DynamicIcon from '../../app/shared/components/DynamicIcon';
 import { Card, CardContent, Box, Typography, Divider, LinearProgress, Tooltip, Chip, Avatar, CardActions, Button, Grid, IconButton } from '@mui/material';
+import SettlerAvatar from '../../lib/avatars/SettlerAvatar';
 
 interface SettlerCardAction {
   label: string | ((settler: Settler) => string);
@@ -85,7 +86,7 @@ const SettlerCard: React.FC<SettlerCardProps> = ({
     >
       <CardContent sx={{ flexGrow: 1 }}>
         <Box display="flex" alignItems="center" gap={1} mb={2}>
-          <Person color="primary" />
+          <SettlerAvatar settler={settler} size={50} />
           <Typography variant="h6" color="primary">
             {settler.name}
           </Typography>
