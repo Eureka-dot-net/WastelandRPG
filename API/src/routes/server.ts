@@ -21,13 +21,13 @@ router.get('/colonies', authenticate, async (req: Request, res: Response) => {
   try {
     const colonies = await Colony.find({ userId }).populate('settlers');
     
-    const coloniesViewModels = await Promise.all(
-      colonies.map(async (colony) => {
-        const colonyManager = new ColonyManager(colony);
-        const viewModel = await colonyManager.toViewModel();
-        return viewModel;
-      })
-    );
+    const coloniesViewModels = colonies.map((colony) => ({
+      userId: colony.userId,
+      serverId: colony.serverId,
+      serverName: colony.serverName,
+      serverType: colony.serverType,
+      colonyName: colony.colonyName
+    }));
 
     return res.json({ colonies: coloniesViewModels });
   } catch (error) {

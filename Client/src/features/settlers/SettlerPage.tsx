@@ -13,7 +13,6 @@ import {
 
 import { useColony } from "../../lib/hooks/useColony";
 import { useSettler } from "../../lib/hooks/useSettler";
-import { useInventory } from "../../lib/hooks/useInventory";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import type { Settler } from "../../lib/types/settler";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -35,9 +34,7 @@ function SettlerPage() {
 
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
-  const { rejectSettler } = useSettler(serverId, colonyId);
-  const { dropSettlerItem } = useInventory(colonyId || "");
-
+  const { rejectSettler, dropSettlerItem } = useSettler(serverId, colonyId);
   // Helper functions for icons and colors
   const getSkillIcon = (skill: string) => {
     const icons: Record<string, React.ReactElement> = {
