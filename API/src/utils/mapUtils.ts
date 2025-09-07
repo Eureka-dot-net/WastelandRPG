@@ -48,8 +48,10 @@ export async function getMapGrid(
   
   userTiles.forEach(userTile => {
     const key = `${userTile.x},${userTile.y}`;
-    exploredCoords.add(key);
-    
+    if (userTile.isExplored) {
+      exploredCoords.add(key);
+    }
+
     const isInGrid = userTile.x >= centerX - offset && userTile.x <= centerX + offset &&
                      userTile.y >= centerY - offset && userTile.y <= centerY + offset;
     
