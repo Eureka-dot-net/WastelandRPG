@@ -92,14 +92,33 @@ useEffect(() => {
   // Handle assignment completion
   const handleAssignmentCompletion = useCallback(async (assignmentId: string) => {
     try {
-      // Find assignment from useAssignment hook
-      const assignment = assignments?.find(a => a._id === assignmentId);
+      // Find assignment from any cached assignment query for this colony
+      let assignment: Assignment | undefined;
+      
+      // Look across all assignment caches for this colony
+      const queries = queryClient.getQueryCache().findAll({
+        queryKey: ["assignments", colonyId],
+      });
+      
+      for (const query of queries) {
+        const data = query.state.data as Assignment[] | undefined;
+        assignment = data?.find(a => a._id === assignmentId);
+        if (assignment) break;
+      }
+      
+      console.log('Handling completion for assignment:', assignmentId, assignment);
       if (!assignment) return;
 
-      // Mark as completed manually in the cache
-      queryClient.setQueryData<Assignment[]>(['assignments', colonyId], old =>
-        old?.map(a => a._id === assignmentId ? { ...a, state: 'completed' } : a) ?? []
-      );
+      // Mark as completed manually in all assignment caches
+      const assignmentQueries = queryClient.getQueryCache().findAll({
+        queryKey: ["assignments", colonyId],
+      });
+      
+      assignmentQueries.forEach((query) => {
+        queryClient.setQueryData<Assignment[]>(query.queryKey, old =>
+          old?.map(a => a._id === assignmentId ? { ...a, state: 'completed' } : a) ?? []
+        );
+      });
 
       // Get settler info from the colony cache
       const colony = queryClient.getQueryData<Colony>(['colony', serverId]);
@@ -155,7 +174,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Error handling assignment completion:', error);
     }
-  }, [assignments, informAssignment, queryClient, colonyId, serverId]);
+  }, [informAssignment, queryClient, colonyId, serverId]);
 
   // Main timer loop
   useEffect(() => {
