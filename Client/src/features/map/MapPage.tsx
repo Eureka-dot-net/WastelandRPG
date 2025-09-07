@@ -1,4 +1,4 @@
-import { Explore, KeyboardArrowUp, KeyboardArrowLeft, ZoomOut, KeyboardArrowRight, KeyboardArrowDown, Lock } from "@mui/icons-material";
+import { Explore, KeyboardArrowUp, KeyboardArrowLeft, ZoomOut, KeyboardArrowRight, KeyboardArrowDown, Lock, Timer } from "@mui/icons-material";
 import { useMediaQuery, Tooltip, Box, Typography, Card, CardContent, LinearProgress, Container, Paper, IconButton, Grid, useTheme } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
@@ -39,7 +39,7 @@ function MapPage() {
   const { map, loadingMap, startExploration } = useMap(serverId, colonyId, centerX, centerY);
 
   // Use the assignment notifications for exploration timers
-  const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
+  const { timers } = useAssignmentNotifications();
 
 
   const availableSettlers = useMemo(() => {
@@ -167,10 +167,6 @@ function MapPage() {
         previewDuration
       },
       {
-        onSuccess: (updatedAssignment) => {
-          // Start the notification timer with the real assignment from server
-          startNotificationTimer(updatedAssignment);
-        },
         onSettled: () => {
           setStartingExplorationKey(null);
         }
@@ -320,8 +316,20 @@ function MapPage() {
             justifyContent: 'center',
             position: 'relative'
           }}>
-            {/* Fog of War or Content */}
-            {!tile.explored ? (
+            {/* Fog of War, Starting State, or Content */}
+            {isStarting ? (
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                opacity: 0.8
+              }}>
+                <Timer color="warning" />
+                <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center', color: 'warning.main' }}>
+                  Starting...
+                </Typography>
+              </Box>
+            ) : !tile.explored ? (
               <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
