@@ -306,6 +306,7 @@ function QuestPage() {
                 progress={progress}
                 timeRemaining={timeRemaining}
                 assignedEntityName={assignedSettler?.name}
+                assignedSettler={assignedSettler || undefined}
                 completionMessage={assignment.completionMessage}
                 unlocks={assignment.unlocks}
                 unlockLink={assignment.unlocks ? getUnlockLink(assignment.unlocks) : undefined}

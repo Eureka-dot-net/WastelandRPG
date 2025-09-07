@@ -22,6 +22,8 @@ import {
   Launch
 } from '@mui/icons-material';
 import { formatTimeRemaining } from '../../../../lib/utils/timeUtils';
+import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
+import type { Settler } from '../../../../lib/types/settler';
 
 export interface TaskCardAction {
   label: string;
@@ -46,6 +48,7 @@ export interface TaskCardProps {
   progress?: number;
   timeRemaining?: number;
   assignedEntityName?: string; // Could be settler name or other entity
+  assignedSettler?: Settler; // The actual settler object for displaying avatar
 
   // Completion
   completionMessage?: string;
@@ -77,6 +80,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   progress = 0,
   timeRemaining,
   assignedEntityName,
+  assignedSettler,
   completionMessage,
   unlocks,
   unlockLink,
@@ -222,16 +226,25 @@ const TaskCard: React.FC<TaskCardProps> = ({
         )}
 
         {/* In progress display */}
-        {isInProgress && assignedEntityName && (
+        {isInProgress && (assignedEntityName || assignedSettler) && (
           <Box sx={{ mb: 0 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography
-                variant="body2"
-                color="secondary.main"
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
-              >
-                <AssignmentIcon fontSize="small" /> {assignedEntityName} is working...
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {assignedSettler && (
+                  <SettlerAvatar 
+                    settler={assignedSettler} 
+                    size={compact || isMobile ? 24 : 32} 
+                  />
+                )}
+                <Typography
+                  variant="body2"
+                  color="secondary.main"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: compact || isMobile ? '0.7rem' : '0.875rem' }}
+                >
+                  <AssignmentIcon fontSize="small" /> 
+                  {assignedSettler?.name || assignedEntityName} is working...
+                </Typography>
+              </Box>
               {timeRemaining !== undefined && (
                 <Typography
                   variant="body2"

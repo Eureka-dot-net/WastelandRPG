@@ -7,6 +7,7 @@ import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerS
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
+import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import { useColony } from "../../lib/hooks/useColony";
@@ -188,6 +189,11 @@ function MapPage() {
     // Get in-progress assignments for this tile
     const inProgressAssignments = tile.assignments?.filter(a => a.state === 'in-progress') || [];
 
+    // Get settlers assigned to this tile from the colony data
+    const assignedSettlers = inProgressAssignments
+      .map(assignment => colony?.settlers?.find(s => s._id === assignment.settlerId))
+      .filter((settler): settler is Settler => settler !== undefined);
+
     // Calculate progress for assignments
     const assignmentsWithProgress = inProgressAssignments.map(assignment => {
       const timeRemaining = timers[assignment._id];
@@ -199,10 +205,14 @@ function MapPage() {
         ));
       }
 
+      // Find the settler for this assignment
+      const assignedSettler = colony?.settlers?.find(s => s._id === assignment.settlerId);
+
       return {
         ...assignment,
         progress,
-        timeRemaining
+        timeRemaining,
+        settler: assignedSettler
       };
     });
 
@@ -217,6 +227,11 @@ function MapPage() {
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
               Position: ({worldX}, {worldY})
             </Typography>
+            {assignedSettlers.length > 0 && (
+              <Typography variant="body2" color="secondary.main">
+                Exploring: {assignedSettlers.map(s => s.name).join(', ')}
+              </Typography>
+            )}
             {tile.explored && (
               <>
                 {tile.terrain && (
@@ -341,6 +356,48 @@ function MapPage() {
                   <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
                     +{assignmentsWithProgress.length - 2} more
                   </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Settler avatars for in-progress explorations */}
+            {assignedSettlers.length > 0 && (
+              <Box sx={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                display: 'flex',
+                gap: 0.5,
+                flexWrap: 'wrap',
+                maxWidth: isMobile ? 50 : 70,
+              }}>
+                {assignedSettlers.slice(0, 3).map((settler, idx) => (
+                  <Box key={settler._id} sx={{
+                    position: 'relative',
+                    zIndex: assignedSettlers.length - idx,
+                  }}>
+                    <SettlerAvatar 
+                      settler={settler} 
+                      size={isMobile ? 20 : 24}
+                    />
+                  </Box>
+                ))}
+                {assignedSettlers.length > 3 && (
+                  <Box sx={{
+                    width: isMobile ? 20 : 24,
+                    height: isMobile ? 20 : 24,
+                    borderRadius: '50%',
+                    bgcolor: 'grey.300',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid',
+                    borderColor: 'grey.400'
+                  }}>
+                    <Typography variant="caption" sx={{ fontSize: '0.5rem', fontWeight: 'bold' }}>
+                      +{assignedSettlers.length - 3}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
             )}
