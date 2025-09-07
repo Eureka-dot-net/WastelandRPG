@@ -47,7 +47,7 @@ export interface Settler {
 
   traits: SettlerTrait[];
 
-  status: 'idle' | 'working' | 'resting' | 'exploring' | 'crafting';
+  status: 'idle' | 'working' | 'resting' | 'exploring' | 'crafting' | 'questing';
   health: number;
   morale: number;
   hunger: number;

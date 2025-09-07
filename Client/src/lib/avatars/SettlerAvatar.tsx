@@ -60,7 +60,7 @@ const SettlerAvatar: React.FC<SettlerAvatarProps> = ({
     : rng.choice(maleHairColors);
 
   // Activity-specific props
-  const isWorking = settler.status === 'working' || settler.status === 'crafting';
+  const isWorking = settler.status === 'working' || settler.status === 'crafting' || settler.status === 'questing';
   const isSleeping = settler.status === 'resting';
   const isExploring = settler.status === 'exploring';
 
