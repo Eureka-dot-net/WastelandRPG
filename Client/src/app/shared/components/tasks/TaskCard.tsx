@@ -42,7 +42,7 @@ export interface TaskCardProps {
   icon?: React.ReactNode;
 
   // Task status
-  status: 'available' | 'blocked' | 'in-progress' | 'completed';
+  status: 'available' | 'blocked' | 'in-progress' | 'completed' | 'starting';
 
   // Progress (for in-progress tasks)
   progress?: number;
@@ -103,9 +103,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isBlocked = status === 'blocked';
   const isInProgress = status === 'in-progress';
   const isCompleted = status === 'completed';
+  const isStarting = status === 'starting';
 
   const getCardBorder = () => {
     if (isInProgress) return '2px solid #4caf50';
+    if (isStarting) return '2px solid #ff9800';
     if (isBlocked) return '1px solid #666';
     return '1px solid #333';
   };
@@ -201,6 +203,28 @@ const TaskCard: React.FC<TaskCardProps> = ({
               {blockingReason}
             </Typography>
           </Alert>
+        )}
+
+        {/* Starting message */}
+        {isStarting && (
+          <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Box display="flex" justifyContent="center" alignItems="center" mb={1}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="warning.main"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontStyle: 'italic' }}
+                >
+                  <Timer fontSize="small" /> 
+                  Getting gear...
+                </Typography>
+              </Box>
+            </Box>
+            <LinearProgress
+              color="warning"
+              sx={{ height: compact || isMobile ? 3 : 6, borderRadius: 3 }}
+            />
+          </Box>
         )}
 
         {/* Completion message and unlock */}

@@ -110,6 +110,10 @@ function QuestPage() {
           onSuccess: (updatedAssignment) => {
             // Start the notification timer
             startNotificationTimer(updatedAssignment);
+          },
+          onSettled: () => {
+            // Clear the starting state regardless of success/failure
+            setStartingAssignmentId(null);
           }
         }
       );
@@ -224,12 +228,14 @@ function QuestPage() {
 
           // Determine task status
           const dependencyMet = isDependencyMet(assignment);
-          let status: 'available' | 'blocked' | 'in-progress' | 'completed';
+          let status: 'available' | 'blocked' | 'in-progress' | 'completed' | 'starting';
 
           if (assignment.state === 'completed' || assignment.state === 'informed') {
             status = 'completed';
           } else if (assignment.state === 'in-progress') {
             status = 'in-progress';
+          } else if (startingAssignmentId === assignment._id) {
+            status = 'starting';
           } else if (assignment.state === 'available' && !dependencyMet) {
             status = 'blocked';
           } else {
@@ -259,6 +265,14 @@ function QuestPage() {
               variant: 'outlined' as const,
               disabled: true,
               startIcon: <Lock fontSize="small" />
+            });
+          } else if (status === 'starting') {
+            actions.push({
+              label: "Getting gear...",
+              onClick: () => { },
+              variant: 'outlined' as const,
+              color: 'warning' as const,
+              disabled: true
             });
           } else if (status === 'in-progress') {
             let label = "In Progress...";
