@@ -3,6 +3,7 @@ import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
 import type { Colony } from "../types/colony";
 import type { Settler } from "../types/settler";
+import type { MapResponse } from "../types/mapResponse";
 
 interface UseAssignmentOptions {
     type?: string[];   // e.g. ['quest', 'exploration']
@@ -193,6 +194,7 @@ export function useAssignment(
         prevData: { key: readonly unknown[]; data: Assignment[] | undefined }[];
         settlerId?: string;
         prevColonyData?: Colony;
+        prevMapData?: { key: readonly unknown[]; data: MapResponse | undefined }[];
     };
 
     // Inform assignment (optimistic)
@@ -248,6 +250,73 @@ export function useAssignment(
                 );
             });
 
+            // Find the assignment data to get its location for map grid updates
+            let assignmentLocation: { x: number; y: number } | undefined;
+            queries.forEach((query) => {
+                const data = query.state.data as Assignment[] | undefined;
+                const assignment = data?.find((a) => a._id === assignmentId);
+                if (assignment?.location) {
+                    assignmentLocation = assignment.location;
+                }
+            });
+
+            // Optimistically update assignment state in all map grid caches that might contain this assignment
+            let prevMapData: InformAssignmentContext["prevMapData"] = [];
+            if (assignmentLocation) {
+                const mapQueries = queryClient.getQueryCache().findAll({
+                    queryKey: ["map", colonyId],
+                    exact: false
+                });
+
+                // Store previous map data for rollback
+                prevMapData = mapQueries.map((query) => ({
+                    key: query.queryKey,
+                    data: query.state.data as MapResponse | undefined,
+                }));
+
+                mapQueries.forEach((mapQuery) => {
+                    queryClient.setQueryData<MapResponse>(mapQuery.queryKey, (old) => {
+                        if (!old) return old;
+
+                        // Update the top-level assignments array
+                        const updatedAssignments = old.assignments?.map(a => 
+                            a._id === assignmentId ? { ...a, state: "informed" as const } : a
+                        ) || [];
+
+                        // Update assignments in specific grid tiles that match the location
+                        const updatedGrid = {
+                            ...old.grid,
+                            tiles: old.grid.tiles.map((tileRow) => 
+                                tileRow.map((tile) => {
+                                    // Check if this tile contains the assignment by location match
+                                    const hasTargetAssignment = tile.assignments?.some(a => 
+                                        a._id === assignmentId && 
+                                        a.location?.x === assignmentLocation!.x && 
+                                        a.location?.y === assignmentLocation!.y
+                                    );
+
+                                    if (hasTargetAssignment) {
+                                        return {
+                                            ...tile,
+                                            assignments: tile.assignments?.map(a =>
+                                                a._id === assignmentId ? { ...a, state: "informed" as const } : a
+                                            )
+                                        };
+                                    }
+                                    return tile;
+                                })
+                            )
+                        };
+
+                        return {
+                            ...old,
+                            assignments: updatedAssignments,
+                            grid: updatedGrid
+                        };
+                    });
+                });
+            }
+
             // Optimistically update settler to idle (if found)
             if (settlerId) {
                 queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
@@ -270,11 +339,16 @@ export function useAssignment(
             }
 
 
-            return { prevData, settlerId, prevColonyData };
+            return { prevData, settlerId, prevColonyData, prevMapData };
         },
         onError: (_, __, context) => {
             // Rollback assignment data
             context?.prevData?.forEach(({ key, data }) =>
+                queryClient.setQueryData(key, data)
+            );
+            
+            // Rollback map data
+            context?.prevMapData?.forEach(({ key, data }) =>
                 queryClient.setQueryData(key, data)
             );
             
