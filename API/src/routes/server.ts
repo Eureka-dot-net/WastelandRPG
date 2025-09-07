@@ -22,6 +22,7 @@ router.get('/colonies', authenticate, async (req: Request, res: Response) => {
     const colonies = await Colony.find({ userId }).populate('settlers');
     
     const coloniesViewModels = colonies.map((colony) => ({
+      _id: colony._id,
       userId: colony.userId,
       serverId: colony.serverId,
       serverName: colony.serverName,

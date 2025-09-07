@@ -72,30 +72,11 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
 
   // Initialize timers from current assignments
   useEffect(() => {
-    if (!colonyId) return;
+    if (!assignments) return;
 
     setActiveTimers(prev => {
       const prevIds = prev.map(t => t.assignmentId);
-      
-      // Collect all in-progress assignments from all query caches
-      const allAssignments: Assignment[] = [];
-      const queries = queryClient.getQueryCache().findAll({
-        queryKey: ["assignments", colonyId],
-      });
-      
-      queries.forEach((query) => {
-        const data = query.state.data as Assignment[] | undefined;
-        if (data) {
-          data.forEach(assignment => {
-            // Only add if not already in the list (avoid duplicates)
-            if (!allAssignments.find(a => a._id === assignment._id)) {
-              allAssignments.push(assignment);
-            }
-          });
-        }
-      });
-      
-      const newTimers = allAssignments
+      const newTimers = assignments
         .filter(a => a.state === 'in-progress' && a.completedAt && !prevIds.includes(a._id))
         .map(a => ({
           assignmentId: a._id,
@@ -106,38 +87,19 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
       // Only append new timers
       return [...prev, ...newTimers];
     });
-  }, [assignments, queryClient, colonyId]);
+  }, [assignments]);
 
   // Handle assignment completion
   const handleAssignmentCompletion = useCallback(async (assignmentId: string) => {
     try {
-      // Find assignment from any cached assignment query for this colony
-      let assignment: Assignment | undefined;
-      
-      // Look across all assignment caches for this colony
-      const queries = queryClient.getQueryCache().findAll({
-        queryKey: ["assignments", colonyId],
-      });
-      
-      for (const query of queries) {
-        const data = query.state.data as Assignment[] | undefined;
-        assignment = data?.find(a => a._id === assignmentId);
-        if (assignment) break;
-      }
-      
-      console.log('Handling completion for assignment:', assignmentId, assignment);
+      // Find assignment from useAssignment hook
+      const assignment = assignments?.find(a => a._id === assignmentId);
       if (!assignment) return;
 
-      // Mark as completed manually in all assignment caches
-      const assignmentQueries = queryClient.getQueryCache().findAll({
-        queryKey: ["assignments", colonyId],
-      });
-      
-      assignmentQueries.forEach((query) => {
-        queryClient.setQueryData<Assignment[]>(query.queryKey, old =>
-          old?.map(a => a._id === assignmentId ? { ...a, state: 'completed' } : a) ?? []
-        );
-      });
+      // Mark as completed manually in the cache
+      queryClient.setQueryData<Assignment[]>(['assignments', colonyId], old =>
+        old?.map(a => a._id === assignmentId ? { ...a, state: 'completed' } : a) ?? []
+      );
 
       // Get settler info from the colony cache
       const colony = queryClient.getQueryData<Colony>(['colony', serverId]);
@@ -193,7 +155,7 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
     } catch (error) {
       console.error('Error handling assignment completion:', error);
     }
-  }, [informAssignment, queryClient, colonyId, serverId]);
+  }, [informAssignment, queryClient, colonyId, serverId, assignments]);
 
   // Main timer loop
   useEffect(() => {
