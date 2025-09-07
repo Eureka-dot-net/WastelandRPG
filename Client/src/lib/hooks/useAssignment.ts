@@ -39,20 +39,6 @@ export function useAssignment(
         enabled: !!colonyId,
     });
 
-    /**
-     * Helper: Patch a single updated assignment into *all* cached queries for this colony
-     */
-    const patchAllAssignmentCaches = (updated: Assignment) => {
-        const queries = queryClient.getQueryCache().findAll({
-            queryKey: ["assignments", colonyId],
-        });
-
-        queries.forEach((query) => {
-            queryClient.setQueryData<Assignment[]>(query.queryKey, (old) =>
-                old?.map((a) => (a._id === updated._id ? updated : a)) ?? []
-            );
-        });
-    };
 
     // --- MUTATIONS ---
 
