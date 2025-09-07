@@ -228,9 +228,27 @@ function MapPage() {
               Position: ({worldX}, {worldY})
             </Typography>
             {assignedSettlers.length > 0 && (
-              <Typography variant="body2" color="secondary.main">
-                Exploring: {assignedSettlers.map(s => s.name).join(', ')}
-              </Typography>
+              <>
+                <Typography variant="body2" color="secondary.main">
+                  Exploring: {assignedSettlers.map(s => {
+                    const assignment = assignmentsWithProgress.find(a => a.settlerId === s._id);
+                    const progress = assignment?.progress || 0;
+                    let phase = 'preparing';
+                    if (progress < 33) phase = 'traveling there';
+                    else if (progress < 67) phase = 'exploring';
+                    else phase = 'returning';
+                    return `${s.name} (${phase})`;
+                  }).join(', ')}
+                </Typography>
+                {assignmentsWithProgress.length > 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Progress: {Math.round(assignmentsWithProgress[0]?.progress || 0)}%
+                    {assignmentsWithProgress[0]?.timeRemaining != null && assignmentsWithProgress[0].timeRemaining > 0 && 
+                      ` • ${formatTimeRemaining(assignmentsWithProgress[0].timeRemaining)} remaining`
+                    }
+                  </Typography>
+                )}
+              </>
             )}
             {tile.explored && (
               <>
@@ -371,17 +389,66 @@ function MapPage() {
                 flexWrap: 'wrap',
                 maxWidth: isMobile ? 50 : 70,
               }}>
-                {assignedSettlers.slice(0, 3).map((settler, idx) => (
-                  <Box key={settler._id} sx={{
-                    position: 'relative',
-                    zIndex: assignedSettlers.length - idx,
-                  }}>
-                    <SettlerAvatar 
-                      settler={settler} 
-                      size={isMobile ? 20 : 24}
-                    />
-                  </Box>
-                ))}
+                {assignedSettlers.slice(0, 3).map((settler, idx) => {
+                  // Find the assignment for this settler to get progress
+                  const assignment = assignmentsWithProgress.find(a => a.settlerId === settler._id);
+                  const progress = assignment?.progress || 0;
+                  
+                  // Determine exploration phase
+                  let phase: 'traveling' | 'exploring' | 'returning';
+                  if (progress < 33) {
+                    phase = 'traveling';
+                  } else if (progress < 67) {
+                    phase = 'exploring';
+                  } else {
+                    phase = 'returning';
+                  }
+
+                  // Get phase indicator
+                  const getPhaseIndicator = () => {
+                    switch (phase) {
+                      case 'traveling':
+                        return '→'; // Arrow pointing to destination
+                      case 'exploring':
+                        return '🔍'; // Magnifying glass for exploring
+                      case 'returning':
+                        return '←'; // Arrow pointing back
+                      default:
+                        return '';
+                    }
+                  };
+
+                  return (
+                    <Box key={settler._id} sx={{
+                      position: 'relative',
+                      zIndex: assignedSettlers.length - idx,
+                    }}>
+                      <SettlerAvatar 
+                        settler={settler} 
+                        size={isMobile ? 20 : 24}
+                      />
+                      {/* Phase indicator */}
+                      <Box sx={{
+                        position: 'absolute',
+                        bottom: -2,
+                        right: -2,
+                        width: isMobile ? 12 : 14,
+                        height: isMobile ? 12 : 14,
+                        borderRadius: '50%',
+                        bgcolor: phase === 'exploring' ? 'success.main' : 'primary.main',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: isMobile ? '0.4rem' : '0.5rem',
+                        border: '1px solid white',
+                        boxShadow: 1
+                      }}>
+                        {getPhaseIndicator()}
+                      </Box>
+                    </Box>
+                  );
+                })}
                 {assignedSettlers.length > 3 && (
                   <Box sx={{
                     width: isMobile ? 20 : 24,
