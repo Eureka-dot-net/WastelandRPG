@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { MapResponse } from "../types/mapResponse";
-import type { Assignment } from "../types/assignment";
+import type { Colony } from "../types/colony";
 
 export function useMap(
   serverId: string | null,
@@ -29,15 +29,44 @@ export function useMap(
 
   // --- MUTATION: START EXPLORATION ---
   const startExploration = useMutation<
-    Assignment, // backend returns assignment object
+    { success: true; assignmentId: string; location: { x: number; y: number }; settlerId: string }, // backend returns minimal response
     Error,
     { row: number; col: number; settlerId: string; previewDuration?: number },
-    never // no context needed since we're not doing optimistic updates
+    { prevColony: Colony | undefined } // context for rollback
   >({
     mutationFn: async ({ row, col, settlerId }) => {
       const url = `/colonies/${colonyId}/map/start?settlerId=${settlerId}&x=${col}&y=${row}`;
       const response = await agent.post(url, { row, col, settlerId });
-      return response.data as Assignment;
+      return response.data;
+    },
+    onMutate: async ({ settlerId }) => {
+      // Cancel any outgoing colony queries to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["colony", serverId] });
+      
+      // Snapshot previous colony data for rollback
+      const prevColony = queryClient.getQueryData<Colony>(["colony", serverId]);
+      
+      // Optimistically update settler status to prevent double assignment
+      queryClient.setQueryData<Colony>(["colony", serverId], (oldColony) => {
+        if (!oldColony) return oldColony;
+        
+        return {
+          ...oldColony,
+          settlers: oldColony.settlers.map(settler => 
+            settler._id === settlerId 
+              ? { ...settler, status: "exploring" as const }
+              : settler
+          )
+        };
+      });
+      
+      return { prevColony };
+    },
+    onError: (_, __, context) => {
+      // Rollback colony data if mutation failed
+      if (context?.prevColony) {
+        queryClient.setQueryData<Colony>(["colony", serverId], context.prevColony);
+      }
     },
     onSuccess: () => {
       // Invalidate all relevant queries to refetch fresh data

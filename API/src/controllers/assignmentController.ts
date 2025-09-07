@@ -185,15 +185,13 @@ export const startAssignment = async (req: Request, res: Response) => {
       );
 
       return {
-        assignment: {
-          ...assignment.toObject(),
-          plannedRewards: enrichRewardsWithMetadata(assignment.plannedRewards),
-          adjustments
-        }
+        success: true,
+        assignmentId: assignment._id,
+        settlerId
       };
     });
 
-    res.json(result.assignment);
+    res.json(result);
   } catch (err) {
     const error = err as Error;
     

@@ -40,7 +40,7 @@ function QuestPage() {
   const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['quest'] });
 
   // Use the simplified notification system
-  const { timers, informingAssignments, startAssignment: startNotificationTimer } = useAssignmentNotifications();
+  const { timers, informingAssignments } = useAssignmentNotifications();
 
   // Get available settlers and assignments for batch preview
   const availableSettlers = useMemo(() => {
@@ -107,10 +107,6 @@ function QuestPage() {
       startAssignment.mutate(
         { assignmentId: selectedTask._id, settlerId: settler._id },
         {
-          onSuccess: (updatedAssignment) => {
-            // Start the notification timer
-            startNotificationTimer(updatedAssignment);
-          },
           onSettled: () => {
             // Clear the starting state regardless of success/failure
             setStartingAssignmentId(null);
@@ -273,7 +269,7 @@ function QuestPage() {
             });
           } else if (status === 'starting') {
             actions.push({
-              label: "Getting gear...",
+              label: "Gathering gear...",
               onClick: () => { },
               variant: 'outlined' as const,
               color: 'warning' as const,

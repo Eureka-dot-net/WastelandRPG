@@ -39,7 +39,7 @@ function MapPage() {
   const { map, loadingMap, startExploration } = useMap(serverId, colonyId, centerX, centerY);
 
   // Use the assignment notifications for exploration timers
-  const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
+  const { timers } = useAssignmentNotifications();
 
 
   const availableSettlers = useMemo(() => {
@@ -167,10 +167,6 @@ function MapPage() {
         previewDuration
       },
       {
-        onSuccess: (updatedAssignment) => {
-          // Start the notification timer with the real assignment from server
-          startNotificationTimer(updatedAssignment);
-        },
         onSettled: () => {
           setStartingExplorationKey(null);
         }

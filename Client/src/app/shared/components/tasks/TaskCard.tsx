@@ -219,7 +219,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontStyle: 'italic' }}
                 >
                   <Timer fontSize="small" /> 
-                  Getting gear...
+                  Gathering gear...
                 </Typography>
               </Box>
             </Box>

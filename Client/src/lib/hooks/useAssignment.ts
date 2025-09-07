@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { Assignment } from "../types/assignment";
 import type { Settler } from "../types/settler";
+import type { Colony } from "../types/colony";
 
 interface UseAssignmentOptions {
     type?: string[];   // e.g. ['quest', 'exploration']
@@ -42,19 +43,48 @@ export function useAssignment(
 
 
 
-    // Start assignment (with invalidation instead of optimistic updates)
+    // Start assignment (with optimistic settler status update)
     const startAssignment = useMutation<
-        Assignment, // return type from mutationFn
+        { success: true; assignmentId: string; settlerId: string }, // return type from mutationFn
         Error, // error type
         { assignmentId: string; settlerId: string }, // variables type
-        never // no context needed since we're not doing optimistic updates
+        { prevColony: Colony | undefined } // context for rollback
     >({
         mutationFn: async ({ assignmentId, settlerId }) => {
             const response = await agent.post(
                 `/colonies/${colonyId}/assignments/${assignmentId}/start`,
                 { settlerId }
             );
-            return response.data as Assignment;
+            return response.data;
+        },
+        onMutate: async ({ settlerId }) => {
+            // Cancel any outgoing colony queries to avoid overwriting our optimistic update
+            await queryClient.cancelQueries({ queryKey: ["colony", serverId] });
+            
+            // Snapshot previous colony data for rollback
+            const prevColony = queryClient.getQueryData<Colony>(["colony", serverId]);
+            
+            // Optimistically update settler status to prevent double assignment
+            queryClient.setQueryData<Colony>(["colony", serverId], (oldColony) => {
+                if (!oldColony) return oldColony;
+                
+                return {
+                    ...oldColony,
+                    settlers: oldColony.settlers.map(settler => 
+                        settler._id === settlerId 
+                            ? { ...settler, status: "questing" as const }
+                            : settler
+                    )
+                };
+            });
+            
+            return { prevColony };
+        },
+        onError: (_, __, context) => {
+            // Rollback colony data if mutation failed
+            if (context?.prevColony) {
+                queryClient.setQueryData<Colony>(["colony", serverId], context.prevColony);
+            }
         },
         onSuccess: () => {
             // Invalidate all relevant queries to refetch fresh data
@@ -101,6 +131,15 @@ export function useAssignment(
             });
             queryClient.invalidateQueries({
                 queryKey: ["map", colonyId],
+                exact: false
+            });
+            // Invalidate settler and inventory caches as requested
+            queryClient.invalidateQueries({
+                queryKey: ["settler"],
+                exact: false
+            });
+            queryClient.invalidateQueries({
+                queryKey: ["inventory"],
                 exact: false
             });
         },
