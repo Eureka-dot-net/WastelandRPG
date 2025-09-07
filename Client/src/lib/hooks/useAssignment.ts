@@ -98,7 +98,7 @@ export function useAssignment(
                 );
             });
 
-            // Also mark the settler as busy and optimistically update inventory stacks
+            // Also mark the settler as working and optimistically update inventory stacks
             queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                 if (!old) return old;
                 
@@ -110,10 +110,18 @@ export function useAssignment(
                     optimisticInventoryIncrease = assignment.expectedNewItems;
                 }
                 
+                // Determine status based on assignment type
+                let settlerStatus: 'working' | 'questing' | 'crafting' = 'working';
+                if (assignment?.type === 'quest') {
+                    settlerStatus = 'questing';
+                } else if (assignment?.type === 'crafting') {
+                    settlerStatus = 'crafting';
+                }
+                
                 return {
                     ...old,
                     settlers: old.settlers.map((s) =>
-                        s._id === settlerId ? { ...s, status: "busy" } : s
+                        s._id === settlerId ? { ...s, status: settlerStatus } : s
                     ),
                     currentInventoryStacks: old.currentInventoryStacks + optimisticInventoryIncrease
                 };

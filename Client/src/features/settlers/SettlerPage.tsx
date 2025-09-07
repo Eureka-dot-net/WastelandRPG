@@ -82,8 +82,11 @@ function SettlerPage() {
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'idle': return '#4caf50';
-      case 'busy': return '#ff9800';
+      case 'working': return '#ff9800';
       case 'resting': return '#2196f3';
+      case 'exploring': return '#9c27b0';
+      case 'crafting': return '#f44336';
+      case 'questing': return '#3f51b5';
       default: return '#757575';
     }
   };

@@ -38,6 +38,7 @@ const ExampleUsage: React.FC = () => {
     name: 'John Doe',
     backstory: 'A skilled scavenger with a knack for finding useful items.',
     theme: 'wasteland',
+    isFemale: false,
     stats: { strength: 10, speed: 8, intelligence: 12, resilience: 9 },
     skills: { combat: 2, scavenging: 5, farming: 1, crafting: 3, medical: 1, engineering: 2 },
     interests: ['scavenging', 'crafting'],

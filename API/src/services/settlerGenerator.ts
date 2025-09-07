@@ -90,15 +90,16 @@ function rollSkills(): ISettler['skills'] {
 }
 
 // Generate a random name combining first name and surname
-function generateRandomName(): { name: string, nameId: string } {
-    const firstName = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
+function generateRandomName(): { name: string, nameId: string, isFemale: boolean } {
+    const firstNameEntry = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
     const surname = surnamesCatalogue[Math.floor(Math.random() * surnamesCatalogue.length)];
-    const fullName = `${firstName} ${surname}`;
-    const nameId = `${firstName.toLowerCase()}_${surname.toLowerCase()}`;
+    const fullName = `${firstNameEntry.name} ${surname}`;
+    const nameId = `${firstNameEntry.name.toLowerCase()}_${surname.toLowerCase()}`;
     
     return {
         name: fullName,
-        nameId: nameId
+        nameId: nameId,
+        isFemale: firstNameEntry.isFemale
     };
 }
 
@@ -128,11 +129,11 @@ function getSkillLinkedBackstory(skills: ISettler['skills']): string {
 }
 
 // Generate unique names ensuring no duplicates within a colony
-async function generateUniqueNames(colonyId: string, count: number): Promise<{ name: string, nameId: string }[]> {
+async function generateUniqueNames(colonyId: string, count: number): Promise<{ name: string, nameId: string, isFemale: boolean }[]> {
     const existingSettlers = await Settler.find({ colonyId });
     const usedNameIds = new Set(existingSettlers.map(settler => settler.nameId));
     
-    const generatedNames: { name: string, nameId: string }[] = [];
+    const generatedNames: { name: string, nameId: string, isFemale: boolean }[] = [];
     const attempts = count * 1000; // Prevent infinite loop
     let attemptCount = 0;
     
@@ -174,6 +175,7 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
         name: nameObj.name,
         backstory: backstory,
         theme: 'wasteland', // Default theme since we removed theme from names
+        isFemale: nameObj.isFemale,
         stats,
         skills,
         interests,
