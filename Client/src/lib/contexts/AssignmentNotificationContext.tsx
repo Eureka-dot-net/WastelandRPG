@@ -71,23 +71,42 @@ export const AssignmentNotificationProvider: React.FC<AssignmentNotificationProv
   const { assignments, informAssignment } = useAssignment(serverId, colonyId);
 
   // Initialize timers from current assignments
-useEffect(() => {
-  if (!assignments) return;
+  useEffect(() => {
+    if (!colonyId) return;
 
-  setActiveTimers(prev => {
-    const prevIds = prev.map(t => t.assignmentId);
-    const newTimers = assignments
-      .filter(a => a.state === 'in-progress' && a.completedAt && !prevIds.includes(a._id))
-      .map(a => ({
-        assignmentId: a._id,
-        completionTime: new Date(a.completedAt!),
-        assignmentName: a.name,
-      }));
+    setActiveTimers(prev => {
+      const prevIds = prev.map(t => t.assignmentId);
+      
+      // Collect all in-progress assignments from all query caches
+      const allAssignments: Assignment[] = [];
+      const queries = queryClient.getQueryCache().findAll({
+        queryKey: ["assignments", colonyId],
+      });
+      
+      queries.forEach((query) => {
+        const data = query.state.data as Assignment[] | undefined;
+        if (data) {
+          data.forEach(assignment => {
+            // Only add if not already in the list (avoid duplicates)
+            if (!allAssignments.find(a => a._id === assignment._id)) {
+              allAssignments.push(assignment);
+            }
+          });
+        }
+      });
+      
+      const newTimers = allAssignments
+        .filter(a => a.state === 'in-progress' && a.completedAt && !prevIds.includes(a._id))
+        .map(a => ({
+          assignmentId: a._id,
+          completionTime: new Date(a.completedAt!),
+          assignmentName: a.name,
+        }));
 
-    // Only append new timers
-    return [...prev, ...newTimers];
-  });
-}, [assignments]);
+      // Only append new timers
+      return [...prev, ...newTimers];
+    });
+  }, [assignments, queryClient, colonyId]);
 
   // Handle assignment completion
   const handleAssignmentCompletion = useCallback(async (assignmentId: string) => {
