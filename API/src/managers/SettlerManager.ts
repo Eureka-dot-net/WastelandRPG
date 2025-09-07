@@ -298,9 +298,11 @@ export class SettlerManager {
   /**
    * Add rewards directly to settler inventory (for when they find items during exploration)
    * This is used during the exploration/task to give items to the settler
+   * Logs overflow items to colony logs when items cannot fit in settler's inventory
    */
   async giveRewards(
     rewards: Record<string, number>,
+    colonyId: string,
     session: ClientSession
   ): Promise<{ settlerItems: Record<string, number>; overflow: Record<string, number> }> {
     
@@ -321,6 +323,28 @@ export class SettlerManager {
       const overflow_qty = quantity - result.added;
       if (overflow_qty > 0) {
         overflow[itemId] = overflow_qty;
+      }
+    }
+    
+    // Log overflow items to colony
+    if (Object.keys(overflow).length > 0) {
+      const { Colony } = await import('../models/Player/Colony');
+      const { ColonyManager } = await import('./ColonyManager');
+      
+      const colony = await Colony.findById(colonyId).session(session);
+      if (colony) {
+        const colonyManager = new ColonyManager(colony);
+        
+        const overflowList = Object.entries(overflow)
+          .map(([itemId, qty]) => `${qty}x ${itemId}`)
+          .join(', ');
+          
+        await colonyManager.addLogEntry(
+          session,
+          'inventory_overflow',
+          `${this.settler.name} found items but their inventory was full. Lost items: ${overflowList}`,
+          { settlerId: this.settler._id.toString(), overflow }
+        );
       }
     }
     

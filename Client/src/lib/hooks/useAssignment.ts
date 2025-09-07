@@ -99,20 +99,13 @@ export function useAssignment(
                 );
             });
 
-            // Also mark the settler as working and optimistically update inventory stacks
+            // Also mark the settler as working
             queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                 if (!old) return old;
                 
-                let optimisticInventoryIncrease = 0;
-                
-                // Try to get the assignment data to find expectedNewItems
-                const assignment = assignments?.find(a => a._id === assignmentId);
-                if (assignment && assignment.expectedNewItems) {
-                    optimisticInventoryIncrease = assignment.expectedNewItems;
-                }
-                
                 // Determine status based on assignment type
                 let settlerStatus: 'working' | 'questing' | 'crafting' = 'working';
+                const assignment = assignments?.find(a => a._id === assignmentId);
                 if (assignment?.type === 'quest') {
                     settlerStatus = 'questing';
                 } else if (assignment?.type === 'crafting') {
@@ -123,8 +116,7 @@ export function useAssignment(
                     ...old,
                     settlers: old.settlers.map((s) =>
                         s._id === settlerId ? { ...s, status: settlerStatus } : s
-                    ),
-                    currentInventoryStacks: old.currentInventoryStacks + optimisticInventoryIncrease
+                    )
                 };
             });
 
@@ -137,24 +129,16 @@ export function useAssignment(
                 queryClient.setQueryData(key, data)
             );
             
-            // Rollback settler status to idle and undo inventory update
+            // Rollback settler status to idle
             if (context?.settlerId) {
                 queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
                     if (!old) return old;
-                    
-                    let optimisticInventoryDecrease = 0;
-                    // Try to get the assignment data to find expectedNewItems for rollback
-                    const assignment = assignments?.find(a => a._id.toString().includes(context.settlerId));
-                    if (assignment && assignment.expectedNewItems) {
-                        optimisticInventoryDecrease = assignment.expectedNewItems;
-                    }
                     
                     return {
                         ...old,
                         settlers: old.settlers.map((s) =>
                             s._id === context.settlerId ? { ...s, status: "idle" } : s
-                        ),
-                        currentInventoryStacks: Math.max(0, old.currentInventoryStacks - optimisticInventoryDecrease)
+                        )
                     };
                 });
             }
@@ -162,23 +146,6 @@ export function useAssignment(
         onSuccess: (updatedAssignment) => {
             // Patch all assignment caches with confirmed server data
             patchAllAssignmentCaches(updatedAssignment);
-            
-            // Update colony cache with actual server data
-            if (updatedAssignment.expectedNewItems !== undefined) {
-                queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
-                    if (!old) return old;
-                    
-                    // Find the difference between what we optimistically added and actual server response
-                    const expectedOptimistic = assignments?.find(a => a._id === updatedAssignment._id)?.expectedNewItems || 0;
-                    const actualFromServer = updatedAssignment.expectedNewItems || 0;
-                    const adjustmentNeeded = actualFromServer - expectedOptimistic;
-                    
-                    return {
-                        ...old,
-                        currentInventoryStacks: old.currentInventoryStacks + adjustmentNeeded
-                    };
-                });
-            }
         },
     });
 
@@ -187,6 +154,8 @@ export function useAssignment(
         state: string;
         foundSettler?: Settler;
         unlocks?: string; // e.g. "inventory"
+        actualTransferredItems?: Record<string, number>;
+        actualNewInventoryStacks?: number;
     };
 
     //TODO: I don't really understand why we need readonly here. Investigate

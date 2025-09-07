@@ -123,9 +123,14 @@ export async function completeGameEvent(
   logEntry: string;
   settlerFound: boolean;
   newSettler?: any;
+  actualTransferredItems?: Record<string, number>;
+  actualNewInventoryStacks?: number;
 }> {
   // Mark event as completed
   eventDoc.state = 'completed';
+
+  let actualTransferredItems: Record<string, number> = {};
+  let actualNewInventoryStacks = 0;
 
   // Free up the assigned settler and handle their return with items
   if (eventDoc.settlerId) {
@@ -141,10 +146,23 @@ export async function completeGameEvent(
         const settlerManager = new SettlerManager(assignedSettler);
         
         // Step 1: Give rewards to settler (simulating finding items during exploration)
-        await settlerManager.giveRewards(eventDoc.plannedRewards, session);
+        await settlerManager.giveRewards(eventDoc.plannedRewards, colony._id.toString(), session);
         
         // Step 2: Settler returns home and deposits everything to colony
-        await settlerManager.transferItemsToColony(colony._id.toString(), session);
+        const transferResult = await settlerManager.transferItemsToColony(colony._id.toString(), session);
+        actualTransferredItems = transferResult.transferredItems;
+        
+        // Count new inventory stacks added (items that weren't already in colony inventory)
+        const { Inventory } = await import('../models/Player/Inventory');
+        const currentInventory = await Inventory.findOne({ colonyId: colony._id }).session(session);
+        if (currentInventory) {
+          const existingItemIds = new Set(currentInventory.items.map(item => item.itemId));
+          actualNewInventoryStacks = Object.keys(actualTransferredItems)
+            .filter(itemId => !existingItemIds.has(itemId))
+            .length;
+        } else {
+          actualNewInventoryStacks = Object.keys(actualTransferredItems).length;
+        }
       } else {
         // No rewards - just save the settler status change
         await assignedSettler.save({ session });
@@ -153,7 +171,24 @@ export async function completeGameEvent(
   } else if (eventDoc.plannedRewards) {
     // No settler assigned - add rewards directly to colony inventory
     await addRewardsToColonyInventory(colony._id.toString(), session, eventDoc.plannedRewards);
+    actualTransferredItems = eventDoc.plannedRewards;
+    
+    // Count new inventory stacks for direct rewards
+    const { Inventory } = await import('../models/Player/Inventory');
+    const currentInventory = await Inventory.findOne({ colonyId: colony._id }).session(session);
+    if (currentInventory) {
+      const existingItemIds = new Set(currentInventory.items.map(item => item.itemId));
+      actualNewInventoryStacks = Object.keys(actualTransferredItems)
+        .filter(itemId => !existingItemIds.has(itemId))
+        .length;
+    } else {
+      actualNewInventoryStacks = Object.keys(actualTransferredItems).length;
+    }
   }
+
+  // Store actual results on the event document for later retrieval
+  eventDoc.actualTransferredItems = actualTransferredItems;
+  eventDoc.actualNewInventoryStacks = actualNewInventoryStacks;
 
   // Check for settler discovery
   const foundSettler = await shouldFindSettlerDuringEvent(colony, eventType, eventDoc, eventTypeData);
@@ -212,7 +247,9 @@ export async function completeGameEvent(
   return {
     logEntry,
     settlerFound: foundSettler,
-    newSettler
+    newSettler,
+    actualTransferredItems,
+    actualNewInventoryStacks
   };
 }
 
