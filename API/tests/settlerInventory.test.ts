@@ -16,6 +16,22 @@ jest.mock('../src/services/gameEventsService', () => ({
   addRewardsToColonyInventory: jest.fn()
 }));
 
+// Mock Colony and ColonyManager to avoid errors in overflow logging
+jest.mock('../src/models/Player/Colony', () => ({
+  Colony: {
+    findById: jest.fn().mockResolvedValue({
+      _id: 'test-colony-id',
+      logs: []
+    })
+  }
+}));
+
+jest.mock('../src/managers/ColonyManager', () => ({
+  ColonyManager: jest.fn().mockImplementation(() => ({
+    addLogEntry: jest.fn().mockResolvedValue(undefined)
+  }))
+}));
+
 // Mock settler data for testing
 const createMockSettler = (strength: number = 10, carryItems: ISettlerItem[] = []): ISettler => ({
   colonyId: 'test_colony' as any,
@@ -308,12 +324,13 @@ describe('Settler Inventory System', () => {
       // Mock the settler document
       const mockSettler = {
         ...settler,
+        _id: 'test-settler-id',
         save: jest.fn()
-      };
+      } as any;
       
       const rewards = { berries: 20 }; // 20 * 0.3 = 6 weight, well within capacity
       
-      const result = await giveRewardsToSettler(mockSettler as any, rewards, mockSession);
+      const result = await giveRewardsToSettler(mockSettler as any, rewards, 'test-colony-id', mockSession);
       
       expect(result.settlerItems.berries).toBe(20);
       expect(result.overflow).toEqual({});
@@ -328,12 +345,13 @@ describe('Settler Inventory System', () => {
       
       const mockSettler = {
         ...settler,
+        _id: 'test-settler-id',
         save: jest.fn()
-      };
+      } as any;
       
       const rewards = { wood: 20 }; // 20 * 3 = 60 weight, exceeds 50 capacity
       
-      const result = await giveRewardsToSettler(mockSettler as any, rewards, mockSession);
+      const result = await giveRewardsToSettler(mockSettler as any, rewards, 'test-colony-id', mockSession);
       
       expect(result.settlerItems.wood).toBeLessThan(20);
       expect(result.settlerItems.wood).toBeGreaterThan(0);

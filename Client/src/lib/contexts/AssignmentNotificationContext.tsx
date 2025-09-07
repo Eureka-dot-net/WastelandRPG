@@ -107,36 +107,33 @@ useEffect(() => {
 
       if (!settler) return;
 
-      // Prepare rewards and calculate new inventory stacks
-      const rewards: Record<string, number> = {};
-      let newInventoryStacks = 0;
+      // Call inform endpoint first to get actual transfer results
+      const data = await informAssignment.mutateAsync(assignmentId);
       
-      if (assignment.plannedRewards) {
-        Object.entries(assignment.plannedRewards).forEach(([key, reward]) => {
-          rewards[key] = reward.amount;
-
-          // Update colony resources in cache
+      // Use actual transferred items and inventory stacks from inform response
+      const rewards: Record<string, number> = data?.actualTransferredItems || {};
+      const newInventoryStacks = data?.actualNewInventoryStacks || 0;
+      
+      // Update colony resources with actual transferred items
+      if (Object.keys(rewards).length > 0) {
+        Object.entries(rewards).forEach(([key, amount]) => {
+          // Update colony resources in cache with actual amounts
           queryClient.setQueryData(['colony', serverId], (old: Colony | undefined) => {
-            return updateColonyResource(old, key, reward.type, reward.amount, reward.properties || {});
+            return updateColonyResource(old, key, 'resource', amount, {});
           });
         });
-        
-        // Calculate how many new inventory stacks we expect
-        // This is an approximation - server calculation will be authoritative
-        newInventoryStacks = Object.keys(assignment.plannedRewards).length;
       }
 
-      // Optimistically update inventory stacks
-      queryClient.setQueryData(['colony', serverId], (old: Colony | undefined) => {
-        if (!old) return old;
-        return {
-          ...old,
-          currentInventoryStacks: old.currentInventoryStacks + newInventoryStacks
-        };
-      });
-
-      // Call inform endpoint
-      const data = await informAssignment.mutateAsync(assignmentId);
+      // Update inventory stacks with actual new stacks
+      if (newInventoryStacks > 0) {
+        queryClient.setQueryData(['colony', serverId], (old: Colony | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            currentInventoryStacks: old.currentInventoryStacks + newInventoryStacks
+          };
+        });
+      }
 
       // Add to pending notifications
       setPendingNotifications(prev => [

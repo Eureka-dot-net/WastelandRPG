@@ -200,12 +200,6 @@ export const startExploration = async (req: Request, res: Response) => {
       // Log exploration start
       const colonyManager = new ColonyManager(colony);
       
-      // Calculate expected new items that will be added to colony inventory
-      const expectedNewItems = await colonyManager.calculateExpectedNewItems(
-        assignment.plannedRewards || {},
-        session
-      );
-      
       await colonyManager.addLogEntry(
         session,
         'exploration',
@@ -213,7 +207,7 @@ export const startExploration = async (req: Request, res: Response) => {
         { tileX, tileY, settlerId: validatedSettlerId }
       );
 
-      return { ...assignment.toObject(), expectedNewItems };
+      return assignment.toObject();
     });
 
     res.json({

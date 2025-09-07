@@ -88,8 +88,9 @@ export async function transferSettlerItemsToColony(
 export async function giveRewardsToSettler(
   settler: SettlerDoc,
   rewards: Record<string, number>,
+  colonyId: string,
   session: ClientSession
 ): Promise<{ settlerItems: Record<string, number>; overflow: Record<string, number> }> {
   const manager = new SettlerManager(settler);
-  return manager.giveRewards(rewards, session);
+  return manager.giveRewards(rewards, colonyId, session);
 }

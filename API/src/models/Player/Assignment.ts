@@ -29,6 +29,8 @@ export interface IAssignment {
     y: number;
   };
   plannedRewards?: Record<string, number>;
+  actualTransferredItems?: Record<string, number>;
+  actualNewInventoryStacks?: number;
   adjustments?: {
     adjustedDuration: number;
     effectiveSpeed: number;
@@ -69,6 +71,8 @@ const AssignmentSchema = new Schema(
       default: {}
     },
     adjustments: { type: Schema.Types.Mixed, required: false },
+    actualTransferredItems: { type: Schema.Types.Mixed, required: false },
+    actualNewInventoryStacks: { type: Number, required: false, default: 0 },
   },
   { timestamps: true, versionKey: false },
 
