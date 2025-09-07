@@ -66,7 +66,7 @@ const SettlerAvatar: React.FC<SettlerAvatarProps> = ({
     // Activity states
     const isWorking =  ['working', 'crafting', 'questing'].includes(settler.status);
     const isSleeping = settler.status === 'resting';
-    const isExploring = true; // settler.status === 'exploring';
+    const isExploring = settler.status === 'exploring';
 
     // Generate hair path - EXTREME STYLES!
     const getHairPath = (style: number, isFemale: boolean) => {
@@ -151,6 +151,10 @@ const SettlerAvatar: React.FC<SettlerAvatarProps> = ({
             transform-origin: 30px 60px;
             animation: ${isWorking ? 'tool-work 1.5s ease-in-out infinite alternate' : 'none'};
           }
+          .walking-stick {
+            transform-origin: 32px 65px;
+            animation: ${isExploring ? 'stick-walk 1.2s ease-in-out infinite' : 'none'};
+          }
           .avatar-body {
             animation: ${isExploring ? 'walk-cycle 1.2s ease-in-out infinite' : 'none'};
           }
@@ -165,7 +169,18 @@ const SettlerAvatar: React.FC<SettlerAvatarProps> = ({
           @keyframes sit-up { from { transform: rotate(90deg) translateY(10px); } to { transform: rotate(0deg) translateY(0px); } }
           @keyframes idle-breathe { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-1px); } }
           @keyframes sleep-breathe { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-2px); } }
-          @keyframes tool-work { from { transform: rotate(-15deg) translateX(-2px); } to { transform: rotate(15deg) translateX(2px); } }
+          @keyframes tool-work { 
+            0% { transform: rotate(-30deg) translateY(0px); } 
+            50% { transform: rotate(-30deg) translateY(-8px); } 
+            100% { transform: rotate(-30deg) translateY(0px); } 
+          }
+          @keyframes stick-walk { 
+            0% { transform: rotate(-15deg) translateY(0px); } 
+            25% { transform: rotate(-10deg) translateY(-2px); } 
+            50% { transform: rotate(-5deg) translateY(-1px); } 
+            75% { transform: rotate(-10deg) translateY(-2px); } 
+            100% { transform: rotate(-15deg) translateY(0px); } 
+          }
           @keyframes walk-cycle { 
             0% { transform: translateX(-1px) translateY(0px); } 
             25% { transform: translateX(0px) translateY(-0.5px); } 
@@ -321,10 +336,11 @@ const SettlerAvatar: React.FC<SettlerAvatarProps> = ({
                     </g>
                 )}
                 {isExploring && (
-                    <g>
+                    <g className="walking-stick">
                         {/* Diagonal walking stick */}
-                        <line x1="32" y1="65" x2="38" y2="100" stroke="#8B4513" strokeWidth="10" strokeLinecap="round" />
-                        <circle cx="32" cy="43" r="1" fill="#CD7F32" />
+                        <line x1="32" y1="65" x2="38" y2="100" stroke="#8B4513" strokeWidth="2" strokeLinecap="round" />
+                        {/* Walking stick grip/handle */}
+                        <circle cx="32" cy="65" r="1.5" fill="#CD7F32" />
                     </g>
                 )}
             </g>

@@ -7,6 +7,7 @@ import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerS
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
+import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import { useColony } from "../../lib/hooks/useColony";
@@ -188,6 +189,11 @@ function MapPage() {
     // Get in-progress assignments for this tile
     const inProgressAssignments = tile.assignments?.filter(a => a.state === 'in-progress') || [];
 
+    // Get settlers assigned to this tile from the colony data
+    const assignedSettlers = inProgressAssignments
+      .map(assignment => colony?.settlers?.find(s => s._id === assignment.settlerId))
+      .filter((settler): settler is Settler => settler !== undefined);
+
     // Calculate progress for assignments
     const assignmentsWithProgress = inProgressAssignments.map(assignment => {
       const timeRemaining = timers[assignment._id];
@@ -199,10 +205,14 @@ function MapPage() {
         ));
       }
 
+      // Find the settler for this assignment
+      const assignedSettler = colony?.settlers?.find(s => s._id === assignment.settlerId);
+
       return {
         ...assignment,
         progress,
-        timeRemaining
+        timeRemaining,
+        settler: assignedSettler
       };
     });
 
@@ -217,6 +227,29 @@ function MapPage() {
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
               Position: ({worldX}, {worldY})
             </Typography>
+            {assignedSettlers.length > 0 && (
+              <>
+                <Typography variant="body2" color="secondary.main">
+                  Exploring: {assignedSettlers.map(s => {
+                    const assignment = assignmentsWithProgress.find(a => a.settlerId === s._id);
+                    const progress = assignment?.progress || 0;
+                    let phase = 'preparing';
+                    if (progress < 33) phase = 'traveling there';
+                    else if (progress < 67) phase = 'exploring';
+                    else phase = 'returning';
+                    return `${s.name} (${phase})`;
+                  }).join(', ')}
+                </Typography>
+                {assignmentsWithProgress.length > 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Progress: {Math.round(assignmentsWithProgress[0]?.progress || 0)}%
+                    {assignmentsWithProgress[0]?.timeRemaining != null && assignmentsWithProgress[0].timeRemaining > 0 && 
+                      ` • ${formatTimeRemaining(assignmentsWithProgress[0].timeRemaining)} remaining`
+                    }
+                  </Typography>
+                )}
+              </>
+            )}
             {tile.explored && (
               <>
                 {tile.terrain && (
@@ -341,6 +374,97 @@ function MapPage() {
                   <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
                     +{assignmentsWithProgress.length - 2} more
                   </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Settler avatars for in-progress explorations */}
+            {assignedSettlers.length > 0 && (
+              <Box sx={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                display: 'flex',
+                gap: 0.5,
+                flexWrap: 'wrap',
+                maxWidth: isMobile ? 50 : 70,
+              }}>
+                {assignedSettlers.slice(0, 3).map((settler, idx) => {
+                  // Find the assignment for this settler to get progress
+                  const assignment = assignmentsWithProgress.find(a => a.settlerId === settler._id);
+                  const progress = assignment?.progress || 0;
+                  
+                  // Determine exploration phase
+                  let phase: 'traveling' | 'exploring' | 'returning';
+                  if (progress < 33) {
+                    phase = 'traveling';
+                  } else if (progress < 67) {
+                    phase = 'exploring';
+                  } else {
+                    phase = 'returning';
+                  }
+
+                  // Get phase indicator
+                  const getPhaseIndicator = () => {
+                    switch (phase) {
+                      case 'traveling':
+                        return '→'; // Arrow pointing to destination
+                      case 'exploring':
+                        return '🔍'; // Magnifying glass for exploring
+                      case 'returning':
+                        return '←'; // Arrow pointing back
+                      default:
+                        return '';
+                    }
+                  };
+
+                  return (
+                    <Box key={settler._id} sx={{
+                      position: 'relative',
+                      zIndex: assignedSettlers.length - idx,
+                    }}>
+                      <SettlerAvatar 
+                        settler={settler} 
+                        size={isMobile ? 20 : 24}
+                      />
+                      {/* Phase indicator */}
+                      <Box sx={{
+                        position: 'absolute',
+                        bottom: -2,
+                        right: -2,
+                        width: isMobile ? 12 : 14,
+                        height: isMobile ? 12 : 14,
+                        borderRadius: '50%',
+                        bgcolor: phase === 'exploring' ? 'success.main' : 'primary.main',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: isMobile ? '0.4rem' : '0.5rem',
+                        border: '1px solid white',
+                        boxShadow: 1
+                      }}>
+                        {getPhaseIndicator()}
+                      </Box>
+                    </Box>
+                  );
+                })}
+                {assignedSettlers.length > 3 && (
+                  <Box sx={{
+                    width: isMobile ? 20 : 24,
+                    height: isMobile ? 20 : 24,
+                    borderRadius: '50%',
+                    bgcolor: 'grey.300',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid',
+                    borderColor: 'grey.400'
+                  }}>
+                    <Typography variant="caption" sx={{ fontSize: '0.5rem', fontWeight: 'bold' }}>
+                      +{assignedSettlers.length - 3}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
             )}
