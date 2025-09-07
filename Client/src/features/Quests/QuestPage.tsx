@@ -45,9 +45,9 @@ function QuestPage() {
   // Get available settlers and assignments for batch preview
   const availableSettlers = useMemo(() => {
     return colony?.settlers?.filter(
-      settler => !assignments?.some(a => a.state === "in-progress" && a.settlerId === settler._id)
+      settler => settler.status === "idle"
     ) || [];
-  }, [colony?.settlers, assignments]);
+  }, [colony?.settlers]);
 
   const availableAssignments = useMemo(() => {
     return assignments?.filter(a =>
