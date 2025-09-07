@@ -25,7 +25,7 @@ import { formatTimeRemaining } from "../../lib/utils/timeUtils";
 import { transformAssignmentPreview } from "../../lib/utils/previewTransformers";
 import LatestEventCard from "../../components/events/LatestEventCard";
 
-function AssignmentPage() {
+function QuestPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
@@ -37,7 +37,7 @@ function AssignmentPage() {
   const { colony, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const queryClient = useQueryClient();
-  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['general'] });
+  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['quest'] });
 
   // Use the simplified notification system
   const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
@@ -349,4 +349,4 @@ function AssignmentPage() {
   );
 };
 
-export default AssignmentPage;
+export default QuestPage;

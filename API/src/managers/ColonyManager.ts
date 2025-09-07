@@ -10,7 +10,7 @@ export class ColonyManager {
   async getUnlocks() {
     const assignments = await Assignment.find({
       colonyId: this.colony._id,
-      type: 'general',
+      type: 'quest',
       state: { $in: ['completed', 'informed'] }
     });
 

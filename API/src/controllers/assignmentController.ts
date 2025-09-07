@@ -29,7 +29,7 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
 // GET /api/colonies/:colonyId/assignments
 //GET /api/colonies/123/assignments?type=exploration
 //GET /api/colonies/123/assignments?status=in-progress,completed
-//GET /api/colonies/123/assignments?type=exploration,general&status=in-progress
+//GET /api/colonies/123/assignments?type=exploration,quest&status=in-progress
 export const getAssignments = async (req: Request, res: Response) => {
   const { colonyId } = req.params;
   const { type, status } = req.query;
@@ -51,9 +51,9 @@ export const getAssignments = async (req: Request, res: Response) => {
   while (attempts < MAX_RETRIES) {
     try {
       const result = await withSession(async (session) => {
-        // Ensure general assignments exist if requested
-        if (!typeFilter || typeFilter.includes('general')) {
-          const existingGeneral = await Assignment.find({ colonyId, type: 'general' }).session(session);
+        // Ensure quest assignments exist if requested
+        if (!typeFilter || typeFilter.includes('quest')) {
+          const existingGeneral = await Assignment.find({ colonyId, type: 'quest' }).session(session);
 
           const tasksToCreate = cleaningTasksCatalogue.filter(
             task => !existingGeneral.some(a => a.taskId === task.taskId)
@@ -63,7 +63,7 @@ export const getAssignments = async (req: Request, res: Response) => {
             const newAssignments = tasksToCreate.map(taskTemplate => ({
               colonyId,
               taskId: taskTemplate.taskId,
-              type: 'general',
+              type: 'quest',
               state: 'available',
               name: taskTemplate.name,
               description: taskTemplate.description,
