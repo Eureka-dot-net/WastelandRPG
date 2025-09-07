@@ -162,14 +162,14 @@ const DashboardTopBar: React.FC = () => {
 
   // Calculate dynamic settler stats
   const settlerStats = useMemo(() => {
-    if (!displayColony?.settlers) return { idle: 0, busy: 0, lowMorale: 0, carrying: 0, total: 0 };
+    if (!displayColony?.settlers) return { idle: 0, working: 0, lowMorale: 0, carrying: 0, total: 0 };
 
     const idle = displayColony.settlers.filter(s => s.status === "idle").length;
-    const busy = displayColony.settlers.filter(s => s.status !== "idle").length;
+    const working = displayColony.settlers.filter(s => s.status !== "idle").length;
     const lowMorale = displayColony.settlers.filter(s => (s.morale || 0) < 60).length;
     const carrying = displayColony.settlers.filter(s => s.carry && s.carry.length > 0).length;
 
-    return { idle, busy, lowMorale, carrying, total: displayColony.settlers.length };
+    return { idle, working, lowMorale, carrying, total: displayColony.settlers.length };
   }, [displayColony?.settlers]);
 
   // Get notoriety color
@@ -233,10 +233,10 @@ const DashboardTopBar: React.FC = () => {
       },
       {
         icon: <GiRunningNinja fontSize="inherit" />,
-        label: "Busy",
-        value: settlerStats.busy,
+        label: "Working",
+        value: settlerStats.working,
         color: "success.main",
-        tooltip: settlerStats.busy > 0 ? `${settlerStats.busy} settlers working on tasks` : "No settlers currently working",
+        tooltip: settlerStats.working > 0 ? `${settlerStats.working} settlers working on tasks` : "No settlers currently working",
       },
       {
         icon: <GiHeartBeats fontSize="inherit" />,

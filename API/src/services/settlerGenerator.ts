@@ -90,15 +90,29 @@ function rollSkills(): ISettler['skills'] {
 }
 
 // Generate a random name combining first name and surname
-function generateRandomName(): { name: string, nameId: string } {
+function generateRandomName(): { name: string, nameId: string, isFemale: boolean } {
     const firstName = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
     const surname = surnamesCatalogue[Math.floor(Math.random() * surnamesCatalogue.length)];
     const fullName = `${firstName} ${surname}`;
     const nameId = `${firstName.toLowerCase()}_${surname.toLowerCase()}`;
     
+    // Determine gender based on first name
+    // Common female names from the catalogue
+    const femaleNames = [
+        'Amelia', 'Chloe', 'Claire', 'Cora', 'Dana', 'Elara', 'Eva', 'Gwen', 
+        'Isla', 'Jess', 'Jessa', 'Kaia', 'Kira', 'Lena', 'Lila', 'Lira', 
+        'Lyra', 'Mara', 'Maya', 'Mira', 'Nora', 'Nova', 'Nyssa', 'Olivia', 
+        'Rhea', 'Samantha', 'Sara', 'Sari', 'Sela', 'Selene', 'Seraphina', 
+        'Talia', 'Tess', 'Tessa', 'Vika', 'Zara', 'Luna', 'Iris', 'Jade', 
+        'Hazel', 'Ivy', 'Rose', 'Skye', 'Ember', 'Wren', 'Indigo', 'Zora'
+    ];
+    
+    const isFemale = femaleNames.includes(firstName);
+    
     return {
         name: fullName,
-        nameId: nameId
+        nameId: nameId,
+        isFemale: isFemale
     };
 }
 
@@ -128,11 +142,11 @@ function getSkillLinkedBackstory(skills: ISettler['skills']): string {
 }
 
 // Generate unique names ensuring no duplicates within a colony
-async function generateUniqueNames(colonyId: string, count: number): Promise<{ name: string, nameId: string }[]> {
+async function generateUniqueNames(colonyId: string, count: number): Promise<{ name: string, nameId: string, isFemale: boolean }[]> {
     const existingSettlers = await Settler.find({ colonyId });
     const usedNameIds = new Set(existingSettlers.map(settler => settler.nameId));
     
-    const generatedNames: { name: string, nameId: string }[] = [];
+    const generatedNames: { name: string, nameId: string, isFemale: boolean }[] = [];
     const attempts = count * 1000; // Prevent infinite loop
     let attemptCount = 0;
     
@@ -174,6 +188,7 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
         name: nameObj.name,
         backstory: backstory,
         theme: 'wasteland', // Default theme since we removed theme from names
+        isFemale: nameObj.isFemale,
         stats,
         skills,
         interests,

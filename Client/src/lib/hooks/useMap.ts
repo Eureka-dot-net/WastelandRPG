@@ -121,13 +121,13 @@ export function useMap(
         );
       }
 
-      // Mark the settler as busy in colony data
+      // Mark the settler as exploring in colony data
       queryClient.setQueryData<Colony>(["colony", serverId], (old) =>
         old
           ? {
               ...old,
               settlers: old.settlers.map((s) =>
-                s._id === settlerId ? { ...s, status: "busy" } : s
+                s._id === settlerId ? { ...s, status: "exploring" } : s
               ),
             }
           : old

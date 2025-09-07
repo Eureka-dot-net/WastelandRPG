@@ -193,7 +193,7 @@ export const startExploration = async (req: Request, res: Response) => {
         adjustments: explorationData.adjustments
       });
 
-      await Settler.findByIdAndUpdate(validatedSettlerId, { status: 'busy' }, { session: session });
+      await Settler.findByIdAndUpdate(validatedSettlerId, { status: 'exploring' }, { session: session });
       await assignment.save({ session: session });
 
 

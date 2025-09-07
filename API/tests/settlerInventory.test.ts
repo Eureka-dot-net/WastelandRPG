@@ -23,6 +23,7 @@ const createMockSettler = (strength: number = 10, carryItems: ISettlerItem[] = [
   name: 'Test Settler',
   isActive: true,
   backstory: 'Test backstory',
+  isFemale: false,
   stats: {
     strength,
     speed: 10,

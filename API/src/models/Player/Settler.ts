@@ -32,6 +32,7 @@ export interface ISettler {
   name: string;
   backstory: string;
   theme?: string;
+  isFemale: boolean;
 
   stats: {
     strength: number;
@@ -63,7 +64,7 @@ export interface ISettler {
     icon: string;
   }[];
 
-  status: "idle" | "busy" | "resting";
+  status: 'idle' | 'working' | 'resting' | 'exploring' | 'crafting' | 'questing';
   health: number;
   morale: number;
   hunger: number;
@@ -83,6 +84,7 @@ export const settlerSchema = new Schema({
   isActive: { type: Boolean, default: false },
   backstory: { type: String, required: true },
   theme: { type: String },
+  isFemale: { type: Boolean, required: true },
   stats: {
     strength: { type: Number, required: true, min: 0, max: 20 },
     speed: { type: Number, required: true, min: 0, max: 20 },
@@ -107,7 +109,11 @@ export const settlerSchema = new Schema({
       icon: { type: String, required: true },
     }
   ],
-  status: { type: String, default: "idle" },
+  status: { 
+    type: String, 
+    enum: ['idle', 'working', 'resting', 'exploring', 'crafting', 'questing'],
+    default: "idle" 
+  },
   health: { type: Number, default: 100 },
   morale: { type: Number, default: 90 },
   hunger: { type: Number, default: 0 },

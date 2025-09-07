@@ -150,7 +150,15 @@ export const startAssignment = async (req: Request, res: Response) => {
       // Calculate adjusted duration and loot based on settler stats/skills/traits
       const adjustments = calculateAssignmentAdjustments(assignment, settler);
 
-      await Settler.findByIdAndUpdate(settlerId, { status: 'busy' }, { session });
+      // Set appropriate status based on assignment type
+      let settlerStatus: 'working' | 'questing' | 'crafting' = 'working';
+      if (assignment.type === 'quest') {
+        settlerStatus = 'questing';
+      } else if (assignment.type === 'crafting') {
+        settlerStatus = 'crafting';
+      }
+
+      await Settler.findByIdAndUpdate(settlerId, { status: settlerStatus }, { session });
 
       assignment.state = 'in-progress';
       assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
