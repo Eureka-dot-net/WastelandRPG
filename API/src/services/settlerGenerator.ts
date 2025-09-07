@@ -91,28 +91,15 @@ function rollSkills(): ISettler['skills'] {
 
 // Generate a random name combining first name and surname
 function generateRandomName(): { name: string, nameId: string, isFemale: boolean } {
-    const firstName = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
+    const firstNameEntry = namesCatalogue[Math.floor(Math.random() * namesCatalogue.length)];
     const surname = surnamesCatalogue[Math.floor(Math.random() * surnamesCatalogue.length)];
-    const fullName = `${firstName} ${surname}`;
-    const nameId = `${firstName.toLowerCase()}_${surname.toLowerCase()}`;
-    
-    // Determine gender based on first name
-    // Common female names from the catalogue
-    const femaleNames = [
-        'Amelia', 'Chloe', 'Claire', 'Cora', 'Dana', 'Elara', 'Eva', 'Gwen', 
-        'Isla', 'Jess', 'Jessa', 'Kaia', 'Kira', 'Lena', 'Lila', 'Lira', 
-        'Lyra', 'Mara', 'Maya', 'Mira', 'Nora', 'Nova', 'Nyssa', 'Olivia', 
-        'Rhea', 'Samantha', 'Sara', 'Sari', 'Sela', 'Selene', 'Seraphina', 
-        'Talia', 'Tess', 'Tessa', 'Vika', 'Zara', 'Luna', 'Iris', 'Jade', 
-        'Hazel', 'Ivy', 'Rose', 'Skye', 'Ember', 'Wren', 'Indigo', 'Zora'
-    ];
-    
-    const isFemale = femaleNames.includes(firstName);
+    const fullName = `${firstNameEntry.name} ${surname}`;
+    const nameId = `${firstNameEntry.name.toLowerCase()}_${surname.toLowerCase()}`;
     
     return {
         name: fullName,
         nameId: nameId,
-        isFemale: isFemale
+        isFemale: firstNameEntry.isFemale
     };
 }
 
