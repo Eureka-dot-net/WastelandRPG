@@ -24,6 +24,7 @@ router.get('/colonies', authenticate, async (req: Request, res: Response) => {
     const coloniesViewModels = colonies.map((colony) => ({
       userId: colony.userId,
       serverId: colony.serverId,
+      _id: colony._id,
       serverName: colony.serverName,
       serverType: colony.serverType,
       colonyName: colony.colonyName
