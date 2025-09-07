@@ -303,6 +303,21 @@ export function useAssignment(
 
             return { prevData, settlerId, prevColonyData, prevMapData };
         },
+        onSuccess: (result) => {
+            if (!serverId) return;
+
+            const newStacks = result.actualNewInventoryStacks || 0;
+            if (newStacks <= 0) return; // Nothing to update
+
+            queryClient.setQueryData<Colony>(["colony", serverId], (old) => {
+                if (!old) return old;
+
+                return {
+                    ...old,
+                    currentInventoryStacks: (old.currentInventoryStacks || 0) + newStacks,
+                };
+            });
+        },
         onError: (_, __, context) => {
             // Rollback assignment data
             context?.prevData?.forEach(({ key, data }) =>
