@@ -45,7 +45,7 @@ export const ProtectedRoute = () => {
   // Check unlocks dynamically
   const requiredUnlock = routeUnlockMap[location.pathname];
   if (requiredUnlock && !colony.unlocks[requiredUnlock]) {
-    return <Navigate to="/assignments" replace />;
+    return <Navigate to="/quests" replace />;
   }
 
   return (
