@@ -19,11 +19,6 @@ const createCustomEventPreview = (settler: Settler, eventType: string): UnifiedP
       description: `A special area where ${eventType} events occur`,
       icon: 'GiSparkles'
     },
-    adjustments: {
-      speedEffects: [`${eventType} Speed Bonus: +25%`],
-      lootEffects: [`${eventType} Loot Bonus: +50%`],
-      traitEffects: []
-    },
     alreadyExplored: false
   };
 };
@@ -70,16 +65,8 @@ const ExampleUsage: React.FC = () => {
     baseDuration: 300000, // 5 minutes base
     basePlannedRewards: { scrap: 10, electronics: 2 },
     adjustments: {
-      speedEffects: ['Lucky: Speed stat: 1.25x', 'High speed stat: +20%'],
-      lootEffects: ['Lucky: +25% more loot', 'Scavenging skill: +50% electronics'],
-      traitEffects: ['Lucky: Better quality finds'],
       adjustedDuration: 240000,
-      lootMultiplier: 1.75,
-      effects: {
-        speedEffects: ['Lucky: Speed stat: 1.25x', 'High speed stat: +20%'],
-        lootEffects: ['Lucky: +25% more loot', 'Scavenging skill: +50% electronics'],
-        traitEffects: ['Lucky: Better quality finds']
-      }
+      lootMultiplier: 1.75
     }
   };
   
@@ -104,11 +91,6 @@ const ExampleUsage: React.FC = () => {
       name: 'Industrial Ruins',
       description: 'Collapsed factories and warehouses, likely to contain scrap metal and electronics',
       icon: 'GiFactory'
-    },
-    adjustments: {
-      speedEffects: ['Terrain difficulty: -10% speed'],
-      lootEffects: ['Industrial terrain: +30% electronics', 'Lucky trait: +25% all loot'],
-      traitEffects: ['Lucky: Better quality finds']
     },
     alreadyExplored: false
   };

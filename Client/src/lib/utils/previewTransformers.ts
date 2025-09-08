@@ -18,11 +18,7 @@ export function transformAssignmentPreview(
     basePlannedRewards: apiResponse.basePlannedRewards,
     adjustments: {
       adjustedDuration: apiResponse.adjustments.adjustedDuration,
-      lootMultiplier: apiResponse.adjustments.lootMultiplier,
-      // Note: effects are no longer returned by the API
-      speedEffects: [],
-      lootEffects: [],
-      traitEffects: []
+      lootMultiplier: apiResponse.adjustments.lootMultiplier
     }
   };
 }
@@ -41,12 +37,6 @@ export function transformMapExplorationPreview(
     coordinates: apiResponse.coordinates,
     terrain: apiResponse.terrain,
     estimatedLoot: apiResponse.estimatedLoot,
-    alreadyExplored: apiResponse.alreadyExplored,
-    adjustments: {
-      // Note: effects are no longer returned by the API
-      speedEffects: [],
-      lootEffects: [],
-      traitEffects: []
-    }
+    alreadyExplored: apiResponse.alreadyExplored
   };
 }

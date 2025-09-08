@@ -40,13 +40,6 @@ export interface BatchMapExplorationPreviewResult {
   results: Record<string, Record<string, MapExplorationPreviewResult>>;
 }
 
-// Legacy types kept for backward compatibility during transition
-export interface PreviewAdjustments {
-  speedEffects?: string[];
-  lootEffects?: string[];
-  traitEffects?: string[];
-}
-
 export interface PreviewTerrain {
   type: string;
   name: string;
@@ -54,32 +47,26 @@ export interface PreviewTerrain {
   icon: string;
 }
 
-// Base preview interface that all preview types should extend
-export interface BasePreview {
+// Assignment preview extends base with assignment-specific fields
+export interface AssignmentPreview {
+  type: 'assignment';
   settlerId: string;
   settlerName: string;
   duration: number;
-  adjustments: PreviewAdjustments;
-}
-
-// Assignment preview extends base with assignment-specific fields
-export interface AssignmentPreview extends BasePreview {
-  type: 'assignment';
   baseDuration: number;
   basePlannedRewards: Record<string, number>;
   adjustments: {
-    speedEffects?: string[];
-    lootEffects?: string[];
-    traitEffects?: string[];
     adjustedDuration: number;
     lootMultiplier: number;
-    effects?: PreviewAdjustments;
   };
 }
 
 // Map exploration preview extends base with exploration-specific fields
-export interface MapExplorationPreview extends BasePreview {
+export interface MapExplorationPreview {
   type: 'exploration';
+  settlerId: string;
+  settlerName: string;
+  duration: number;
   coordinates: { x: number; y: number };
   terrain?: PreviewTerrain;
   loot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
