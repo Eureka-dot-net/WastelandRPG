@@ -116,7 +116,7 @@ export async function getMapGrid(
       const tileAssignments = assignmentMap.get(key) || [];
 
       if (knownTile) {
-        if (knownTile.terrain === 'homestead') {
+        if (knownTile.terrain.type === 'homestead') {
           knownTile.canExplore = false;
         }
         knownTile.assignments = tileAssignments;
