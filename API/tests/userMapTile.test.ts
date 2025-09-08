@@ -4,12 +4,19 @@ import mongoose from 'mongoose';
 
 describe('UserMapTile functionality', () => {
   beforeEach(async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      return;
+    }
     // Clear the collections before each test
     await UserMapTile.deleteMany({});
     await MapTile.deleteMany({});
   });
 
   test('should create UserMapTile and enforce unique constraint', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should create UserMapTile and enforce unique constraint');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -60,6 +67,10 @@ describe('UserMapTile functionality', () => {
   });
 
   test('should allow different colonies to explore same tile', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should allow different colonies to explore same tile');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',

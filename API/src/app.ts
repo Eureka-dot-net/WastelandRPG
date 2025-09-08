@@ -48,11 +48,14 @@ app.use((req, res, next) => {
   next();
 });
 
-cron.schedule('0 0 * * *', () => {
-  // Your batch process code here
-  logInfo('Running daily batch process');
-  dailyBatch();
-});
+// Only run cron jobs in non-test environments
+if (process.env.NODE_ENV !== 'test') {
+  cron.schedule('0 0 * * *', () => {
+    // Your batch process code here
+    logInfo('Running daily batch process');
+    dailyBatch();
+  });
+}
 
 
 // Add a basic route for your test

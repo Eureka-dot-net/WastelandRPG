@@ -12,6 +12,11 @@ describe('Player endpoints', () => {
   const colonyName = 'First Colony';
 
   beforeAll(async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent setup for Player endpoints tests');
+      return;
+    }
+
     const result = await createTestUserAndColony({
       userProps: { email: 'playersettler@test.com', password: 'password123' },
       colonyProps: { 
@@ -33,6 +38,10 @@ describe('Player endpoints', () => {
   });
 
   it('should onboard with correct colonyId and JWT', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should onboard with correct colonyId and JWT');
+      return;
+    }
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/settlers/onboard`)
       .set('Authorization', `Bearer ${token}`);
@@ -55,6 +64,11 @@ describe('Player endpoints', () => {
   });
 
   it('should fail onboarding with wrong colonyId', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should fail onboarding with wrong colonyId');
+      return;
+    }
+
     const fakeColonyId = new mongoose.Types.ObjectId().toString();
     const res = await request(app)
       .post(`/api/colonies/${fakeColonyId}/settlers/onboard`)
@@ -63,6 +77,10 @@ describe('Player endpoints', () => {
   });
 
   it('should fail onboarding with missing JWT', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should fail onboarding with missing JWT');
+      return;
+    }
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/settlers/onboard`);
     expect(res.status).toBe(401);

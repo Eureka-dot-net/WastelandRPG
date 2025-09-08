@@ -12,8 +12,8 @@ module.exports = {
   },
   // Force Jest to exit after tests complete
   forceExit: true,
-  // Reduce timeout to prevent hanging
-  testTimeout: 10000,
+  // Increased timeout to allow for database connection
+  testTimeout: 20000,
   // Detect open handles to help debug hanging
   detectOpenHandles: true
 };

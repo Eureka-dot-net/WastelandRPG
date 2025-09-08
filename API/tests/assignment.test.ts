@@ -15,6 +15,11 @@ describe('Player endpoints', () => {
   const colonyName = 'First Colony';
 
   beforeAll(async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent setup for Player endpoints assignment tests');
+      return;
+    }
+
     const result = await createTestUserAndColony({
       userProps: { email: 'playersettler@test.com', password: 'password123' },
       colonyProps: { 
@@ -48,6 +53,11 @@ describe('Player endpoints', () => {
   });
 
   it('should start an assignment successfully', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should start an assignment successfully');
+      return;
+    }
+
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/assignments/${assignment._id}/start`)
       .set('Authorization', `Bearer ${token}`)
@@ -60,6 +70,10 @@ describe('Player endpoints', () => {
   });
 
   it('should return 400 if settlerId is missing', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should return 400 if settlerId is missing');
+      return;
+    }
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/assignments/${assignment._id}/start`)
       .set('Authorization', `Bearer ${token}`)
@@ -70,6 +84,11 @@ describe('Player endpoints', () => {
   });
 
   it('should return 400 if assignment already started', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should return 400 if assignment already started');
+      return;
+    }
+
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/assignments/${assignment._id}/start`)
       .set('Authorization', `Bearer ${token}`)
@@ -80,6 +99,11 @@ describe('Player endpoints', () => {
   });
 
   it('should return 401 if JWT is missing', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should return 401 if JWT is missing');
+      return;
+    }
+
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/assignments/${assignment._id}/start`)
       .send({ settlerId });
@@ -88,6 +112,11 @@ describe('Player endpoints', () => {
   });
 
   it('should return 404 if assignmentId does not exist', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: should return 404 if assignmentId does not exist');
+      return;
+    }
+
     const fakeId = new mongoose.Types.ObjectId().toString();
     const res = await request(app)
       .post(`/api/colonies/${colony._id}/assignments/${fakeId}/start`)

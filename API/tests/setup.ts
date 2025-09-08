@@ -23,15 +23,15 @@ beforeAll(async () => {
   const testConnectionString = 'mongodb://localhost:27017/wasteland_rpg_test';
   try {
     await mongoose.connect(testConnectionString, {
-      serverSelectionTimeoutMS: 1000, // Quick timeout
-      connectTimeoutMS: 1000
+      serverSelectionTimeoutMS: 2000, // Increased timeout
+      connectTimeoutMS: 2000
     });
     isConnected = true;
   } catch (localError) {
     // Silent fail - tests will be skipped
     isConnected = false;
   }
-}, 5000); // Reduced timeout
+}, 15000); // Increased timeout
 
 afterAll(async () => {
   if (!isConnected) return;

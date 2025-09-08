@@ -4,12 +4,19 @@ import { MapTile } from '../src/models/Server/MapTile';
 
 describe('MapUtils UserMapTile functions', () => {
   beforeEach(async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      return;
+    }
     // Clear the collections before each test
     await UserMapTile.deleteMany({});
     await MapTile.deleteMany({});
   });
 
   test('createOrUpdateUserMapTile should create a new UserMapTile', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: createOrUpdateUserMapTile should create a new UserMapTile');
+      return;
+    }
     // Create a test MapTile first
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -39,6 +46,10 @@ describe('MapUtils UserMapTile functions', () => {
   });
 
   test('hasColonyExploredTile should return correct exploration status', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: hasColonyExploredTile should return correct exploration status');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -87,6 +98,10 @@ describe('MapUtils UserMapTile functions', () => {
   });
 
   test('createOrUpdateUserMapTile should properly handle re-exploration', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: createOrUpdateUserMapTile should properly handle re-exploration');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -146,6 +161,10 @@ describe('MapUtils UserMapTile functions', () => {
   });
 
   test('createOrUpdateUserMapTile should prevent starting exploration when already in progress', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: createOrUpdateUserMapTile should prevent starting exploration when already in progress');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',
@@ -176,6 +195,10 @@ describe('MapUtils UserMapTile functions', () => {
   });
 
   test('markUserMapTileExplored should properly mark tile as explored', async () => {
+    if ((global as any).skipIfNoMongoDB?.()) {
+      console.log('Skipping MongoDB-dependent test: markUserMapTileExplored should properly mark tile as explored');
+      return;
+    }
     // Create a test MapTile
     const mapTile = await MapTile.create({
       serverId: 'test-server',
