@@ -580,7 +580,8 @@ export class SettlerManager {
       },
       foodSatiationRate: this.foodSatiationRate,
       carryingCapacity: this.carryingCapacity,
-      currentCarriedWeight: this.currentCarriedWeight
+      currentCarriedWeight: this.currentCarriedWeight,
+      energyDeltaPerHour: this.getEnergyDeltaForStatus(this.settler.status)
     };
   }
 
