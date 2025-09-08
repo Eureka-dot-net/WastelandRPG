@@ -8,11 +8,11 @@ import { ColonyManager } from '../managers/ColonyManager';
 import { logError, logWarn } from '../utils/logger';
 import { withSession } from '../utils/sessionUtils';
 import {
-  calculateSettlerAdjustments,
   generateRewards,
   enrichRewardsWithMetadata,
   GameAdjustments
 } from '../utils/gameUtils';
+import { SettlerManager } from '../managers/SettlerManager';
 
 // Use the shared type from gameUtils
 interface AssignmentAdjustments extends GameAdjustments { }
@@ -21,7 +21,30 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
   const baseDuration = assignment.duration || 300000; // 5 minutes default
   const baseRewards = assignment.plannedRewards || {};
 
-  return calculateSettlerAdjustments(baseDuration, baseRewards, settler);
+  // Use SettlerManager for adjustments
+  const settlerManager = new SettlerManager(settler);
+  const timeMultiplier = settlerManager.adjustedTimeMultiplier(assignment.type);
+  const lootMultiplier = settlerManager.adjustedLootMultiplier(assignment.type);
+  
+  const adjustedDuration = Math.round(baseDuration / timeMultiplier);
+  
+  // Apply loot multiplier to planned rewards
+  const adjustedPlannedRewards: Record<string, number> = {};
+  Object.entries(baseRewards).forEach(([key, amount]) => {
+    adjustedPlannedRewards[key] = Math.max(1, Math.round(amount * lootMultiplier));
+  });
+
+  return {
+    adjustedDuration,
+    effectiveSpeed: 1 / timeMultiplier,
+    lootMultiplier,
+    adjustedPlannedRewards,
+    effects: {
+      speedEffects: [], // Simplified - no longer showing detailed effects
+      lootEffects: [],
+      traitEffects: []
+    }
+  };
 }
 
 // Remove the duplicate functions - now using shared utilities from gameUtils

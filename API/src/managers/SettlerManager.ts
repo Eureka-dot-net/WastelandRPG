@@ -1,5 +1,6 @@
 import type { SettlerDoc } from '../models/Player/Settler';
 import itemsCatalogue from '../data/itemsCatalogue.json';
+import traitsCatalogue from '../data/traitsCatalogue.json';
 import { addRewardsToColonyInventory } from '../services/gameEventsService';
 import { ClientSession } from 'mongoose';
 
@@ -65,6 +66,107 @@ export class SettlerManager {
     }
     
     return totalWeight;
+  }
+
+  /**
+   * Parse a modifier string like "+20%", "-3", "+10% yield" into a numeric value
+   */
+  private parseModifier(modifier: string): { value: number; isPercentage: boolean } {
+    const cleanModifier = modifier.trim();
+    const isPercentage = cleanModifier.includes('%');
+    const numericPart = cleanModifier.replace(/[^-+0-9.]/g, '');
+    const value = parseFloat(numericPart) || 0;
+    
+    return { value, isPercentage };
+  }
+
+  /**
+   * Calculate time multiplier for a given activity type based on settler stats, traits, and skills
+   * Lower values mean faster completion times
+   */
+  adjustedTimeMultiplier(activityType?: string): number {
+    let timeMultiplier = 1.0;
+    
+    // Speed stat effect (0-20 scale, normalized to 0.5-1.5x)
+    // Higher speed = lower time multiplier (faster)
+    const speedMultiplier = 2.0 - (0.5 + (this.settler.stats.speed / 20) * 1.0);
+    timeMultiplier *= speedMultiplier;
+
+    // Apply trait effects
+    if (this.settler.traits && Array.isArray(this.settler.traits)) {
+      for (const settlerTrait of this.settler.traits) {
+        const traitData = traitsCatalogue.find(t => t.traitId === settlerTrait.traitId);
+        if (!traitData?.effects) continue;
+
+        for (const effect of traitData.effects) {
+          // Check if this effect applies to tasks/activities
+          if (effect.target === 'task') {
+            // Check if it applies to all tasks or specific activity type
+            const appliesToActivity = 
+              effect.key === 'all' || 
+              (activityType && effect.key.split(',').includes(activityType));
+            
+            if (appliesToActivity) {
+              const { value, isPercentage } = this.parseModifier(effect.modifier);
+              
+              if (isPercentage) {
+                // For time effects, positive percentage = longer time, negative = shorter time
+                timeMultiplier *= (1 + value / 100);
+              }
+              // Non-percentage modifiers for time don't make sense, skip them
+            }
+          }
+        }
+      }
+    }
+
+    return Math.max(0.1, timeMultiplier); // Ensure positive multiplier
+  }
+
+  /**
+   * Calculate loot multiplier for a given activity type based on settler stats, traits, and skills  
+   * Higher values mean better loot yields
+   */
+  adjustedLootMultiplier(activityType?: string): number {
+    let lootMultiplier = 1.0;
+
+    // Scavenging skill effect (0-20 scale, normalized to 0.8-1.4x multiplier)
+    const scavengingMultiplier = 0.8 + (this.settler.skills.scavenging / 20) * 0.6;
+    lootMultiplier *= scavengingMultiplier;
+
+    // Intelligence affects loot quality/variety (0-20 scale, normalized to 0.9-1.2x)
+    const intelligenceMultiplier = 0.9 + (this.settler.stats.intelligence / 20) * 0.3;
+    lootMultiplier *= intelligenceMultiplier;
+
+    // Apply trait effects
+    if (this.settler.traits && Array.isArray(this.settler.traits)) {
+      for (const settlerTrait of this.settler.traits) {
+        const traitData = traitsCatalogue.find(t => t.traitId === settlerTrait.traitId);
+        if (!traitData?.effects) continue;
+
+        for (const effect of traitData.effects) {
+          // Check if this effect applies to tasks/activities and mentions yield/loot
+          if (effect.target === 'task' && (effect.modifier.includes('yield') || effect.modifier.includes('loot'))) {
+            // Check if it applies to all tasks or specific activity type
+            const appliesToActivity = 
+              effect.key === 'all' || 
+              (activityType && effect.key.split(',').includes(activityType));
+            
+            if (appliesToActivity) {
+              const { value, isPercentage } = this.parseModifier(effect.modifier);
+              
+              if (isPercentage) {
+                // For loot effects, positive percentage = more loot, negative = less loot
+                lootMultiplier *= (1 + value / 100);
+              }
+              // Non-percentage modifiers for loot don't make sense, skip them
+            }
+          }
+        }
+      }
+    }
+
+    return Math.max(0.1, lootMultiplier); // Ensure positive multiplier
   }
 
   /**
