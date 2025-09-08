@@ -226,7 +226,9 @@ export function useSmartBatchPreviewMapExploration(
       // Convert back to nested structure expected by components
       const results: Record<string, Record<string, MapExplorationPreviewResult>> = {};
       Object.entries(combinedData).forEach(([key, result]) => {
-        const [settlerId, coordStr] = key.split(':');
+        const parts = key.split(':');
+        const settlerId = parts[0];
+        const coordStr = parts.slice(1).join(':'); // Rejoin all parts after the first one
         if (!results[settlerId]) results[settlerId] = {};
         results[settlerId][coordStr] = result;
       });
