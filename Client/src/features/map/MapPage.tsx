@@ -26,12 +26,13 @@ function MapPage() {
   const { colony } = useColony(serverId);
   const { map, loadingMap, startExploration } = useMap(serverId, colony?._id, centerX, centerY);
 
-  // Get explorable coordinates for useAssignmentPage
+  // Get explorable coordinates for useAssignmentPage - memoize more carefully
+  const mapTiles = map?.grid?.tiles;
   const explorableCoordinates = useMemo(() => {
-    if (!map?.grid?.tiles) return [];
+    if (!mapTiles) return [];
 
     const coords: { x: number; y: number }[] = [];
-    map.grid.tiles.forEach((row, rowIndex) => {
+    mapTiles.forEach((row, rowIndex) => {
       row.forEach((tile, colIndex) => {
         if (tile.canExplore) {
           const worldX = centerX - 2 + colIndex;
@@ -41,7 +42,7 @@ function MapPage() {
       });
     });
     return coords;
-  }, [map?.grid?.tiles, centerX, centerY]);
+  }, [mapTiles, centerX, centerY]);
 
   // Create a wrapper for the mutation to match StartAssignmentMutation interface
   const startExplorationWrapper = useMemo(() => ({
@@ -58,26 +59,40 @@ function MapPage() {
       );
     },
     isPending: startExploration.isPending,
-  }), [startExploration]);
+  }), [startExploration.mutate, startExploration.isPending]);
 
   // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
   const config = useMemo(() => createMapExplorationConfig(startExplorationWrapper), [startExplorationWrapper]);
 
+  // TEMPORARY: Disable useAssignmentPage to test if it's causing the infinite loop
   // Use the common assignment page hook
-  const {
-    colony: assignmentPageColony,
-    colonyLoading,
-    availableSettlers,
-    handleTargetSelect: handleTileClick,
-    handleSettlerSelect: handleSettlerSelectFromDialog,
-    handleDialogClose,
-    settlerDialogOpen,
-    settlerPreviews,
-    previewsLoading,
-    previewsError,
-    isTargetStarting,
-    getTargetTimeRemaining,
-  } = useAssignmentPage(serverId || '', explorableCoordinates, config);
+  // const {
+  //   colony: assignmentPageColony,
+  //   colonyLoading,
+  //   availableSettlers,
+  //   handleTargetSelect: handleTileClick,
+  //   handleSettlerSelect: handleSettlerSelectFromDialog,
+  //   handleDialogClose,
+  //   settlerDialogOpen,
+  //   settlerPreviews,
+  //   previewsLoading,
+  //   previewsError,
+  //   isTargetStarting,
+  //   getTargetTimeRemaining,
+  // } = useAssignmentPage(serverId || '', explorableCoordinates, config);
+
+  // Temporary mock values
+  const assignmentPageColony = colony;
+  const availableSettlers: any[] = [];
+  const handleTileClick = () => {};
+  const handleSettlerSelectFromDialog = () => {};
+  const handleDialogClose = () => {};
+  const settlerDialogOpen = false;
+  const settlerPreviews = {};
+  const previewsLoading = false;
+  const previewsError = null;
+  const isTargetStarting = () => false;
+  const getTargetTimeRemaining = () => undefined;
 
   // Use both colony sources for display - prefer assignmentPageColony for consistency
   const displayColony = assignmentPageColony || colony;
