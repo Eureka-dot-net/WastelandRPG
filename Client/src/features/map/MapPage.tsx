@@ -148,7 +148,7 @@ function MapPage() {
     // Get preview duration for this settler if available
     const settlerPreview = settlerPreviews[settler._id];
     let previewDuration: number | undefined;
-    
+
     if (settlerPreview) {
       if (settlerPreview.type === 'exploration') {
         // MapExplorationPreview has estimatedDuration
@@ -239,7 +239,7 @@ function MapPage() {
                 {assignmentsWithProgress.length > 0 && (
                   <Typography variant="body2" color="text.secondary">
                     Progress: {Math.round(assignmentsWithProgress[0]?.progress || 0)}%
-                    {assignmentsWithProgress[0]?.timeRemaining != null && assignmentsWithProgress[0].timeRemaining > 0 && 
+                    {assignmentsWithProgress[0]?.timeRemaining != null && assignmentsWithProgress[0].timeRemaining > 0 &&
                       ` • ${formatTimeRemaining(assignmentsWithProgress[0].timeRemaining)} remaining`
                     }
                   </Typography>
@@ -343,7 +343,11 @@ function MapPage() {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {tile.terrain?.icon && <DynamicIcon name={tile.terrain.icon} size={isMobile ? "1.5rem" : "2rem"} />}
+                {tile.terrain?.icon && (
+                  (isMobile && assignedSettlers.length <= 1) ||
+                  (!isMobile && assignedSettlers.length <= 1)
+                ) &&
+                  <DynamicIcon name={tile.terrain.icon} size={isMobile ? "1.5rem" : "2rem"} />}
                 <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center' }}>
                   {tile.terrain?.type || 'Unknown'}
                 </Typography>
@@ -361,18 +365,34 @@ function MapPage() {
                 pb: 0.5
               }}>
                 {assignmentsWithProgress.slice(0, 2).map((assignment, idx) => (
-                  <Box key={assignment._id} sx={{ mb: idx < assignmentsWithProgress.length - 1 ? 0.25 : 0 }}>
+                  <Box
+                    key={assignment._id}
+                    sx={{
+                      mb: idx < assignmentsWithProgress.length - 1 ? 0.25 : 0,
+                      display: 'flex',
+                      alignItems: 'center', // vertically center the time with the bar
+                      gap: 0.5 // optional: space between time and bar
+                    }}
+                  >
                     <LinearProgress
                       variant="determinate"
                       value={assignment.progress}
                       sx={{
+                        flex: 1, // make the bar take remaining space
                         height: 4,
                         borderRadius: 2,
                         bgcolor: theme.palette.grey[300]
                       }}
                     />
                     {!isMobile && assignment.timeRemaining != null && assignment.timeRemaining > 0 && (
-                      <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6rem',
+                          color: 'text.secondary',
+                          whiteSpace: 'nowrap' // prevent wrapping
+                        }}
+                      >
                         {formatTimeRemaining(assignment.timeRemaining)}
                       </Typography>
                     )}
@@ -401,7 +421,7 @@ function MapPage() {
                   // Find the assignment for this settler to get progress
                   const assignment = assignmentsWithProgress.find(a => a.settlerId === settler._id);
                   const progress = assignment?.progress || 0;
-                  
+
                   // Determine exploration phase
                   let phase: 'traveling' | 'exploring' | 'returning';
                   if (progress < 33) {
@@ -430,27 +450,25 @@ function MapPage() {
                     <Box key={settler._id} sx={{
                       position: 'relative',
                       zIndex: assignedSettlers.length - idx,
+
                     }}>
-                      <SettlerAvatar 
-                        settler={settler} 
-                        size={isMobile ? 20 : 24}
+                      <SettlerAvatar
+                        settler={settler}
+                        size={isMobile ? 20 : 30}
                       />
                       {/* Phase indicator */}
                       <Box sx={{
                         position: 'absolute',
-                        bottom: -2,
+                        bottom: -5,
                         right: -2,
-                        width: isMobile ? 12 : 14,
-                        height: isMobile ? 12 : 14,
+                        width: isMobile ? 10 : 12,
+                        height: isMobile ? 10 : 12,
                         borderRadius: '50%',
                         bgcolor: phase === 'exploring' ? 'success.main' : 'primary.main',
-                        color: 'white',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: isMobile ? '0.4rem' : '0.5rem',
-                        border: '1px solid white',
-                        boxShadow: 1
                       }}>
                         {getPhaseIndicator()}
                       </Box>
