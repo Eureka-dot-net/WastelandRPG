@@ -84,6 +84,11 @@ AssignmentSchema.index(
 );
 AssignmentSchema.index({ state: 1 });
 
+AssignmentSchema.index( 
+  { colonyId: 1, taskId: 1 },
+  { unique: true, partialFilterExpression: { taskId: { $exists: true } } }
+);
+
 export type AssignmentDoc = HydratedDocument<IAssignment>;
 
 export const Assignment = model<AssignmentDoc>('Assignment', AssignmentSchema);
