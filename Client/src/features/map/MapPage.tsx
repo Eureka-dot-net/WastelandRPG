@@ -1,7 +1,6 @@
 import { Explore, KeyboardArrowUp, KeyboardArrowLeft, ZoomOut, KeyboardArrowRight, KeyboardArrowDown, Lock, Timer } from "@mui/icons-material";
 import { useMediaQuery, Tooltip, Box, Typography, Card, CardContent, LinearProgress, Container, Paper, IconButton, Grid, useTheme } from "@mui/material";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import DynamicIcon from "../../app/shared/components/DynamicIcon";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -9,17 +8,12 @@ import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
 import { useServerContext } from "../../lib/contexts/ServerContext";
-import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
-import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
-import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
-import type { MapResponse, MapTileAPI } from "../../lib/types/mapResponse";
+import { useAssignmentPage, createMapExplorationConfig } from "../../lib/hooks/useAssignmentPage";
+import type { MapTileAPI } from "../../lib/types/mapResponse";
 import type { Settler } from "../../lib/types/settler";
-import type { UnifiedPreview } from "../../lib/types/preview";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
-import { transformMapExplorationPreview } from "../../lib/utils/previewTransformers";
-import { agent } from "../../lib/api/agent";
 
 
 function MapPage() {
@@ -27,160 +21,79 @@ function MapPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
   const { centerX, centerY, moveUp, moveDown, moveLeft, moveRight, zoomOut } = useMapContext();
-  const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
-  const [selectedTile, setSelectedTile] = useState<MapTileAPI | null>(null);
-  const [startingExplorationKey, setStartingExplorationKey] = useState<string | null>(null);
-  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, UnifiedPreview>>({});
 
-  const { colony, colonyLoading } = useColony(serverId);
-  const colonyId = colony?._id;
-  const queryClient = useQueryClient();
+  const { map, loadingMap, startExploration } = useMap(serverId, undefined, centerX, centerY);
 
-  const { map, loadingMap, startExploration } = useMap(serverId, colonyId, centerX, centerY);
-
-  // Use the assignment notifications for exploration timers
-  const { timers } = useAssignmentNotifications();
-
-
-  const availableSettlers = useMemo(() => {
-    if (!colony?.settlers) return [];
-    return colony.settlers.filter(settler => settler.status === "idle");
-  }, [colony?.settlers]);
-
-  // Get current explorable coordinates for batch preview
-  const getExplorableCoordinates = useMemo(() => {
+  // Get explorable coordinates for useAssignmentPage
+  const explorableCoordinates = useMemo(() => {
     if (!map?.grid?.tiles) return [];
 
-    const explorableCoords: { x: number; y: number }[] = [];
+    const coords: { x: number; y: number }[] = [];
     map.grid.tiles.forEach((row, rowIndex) => {
       row.forEach((tile, colIndex) => {
         if (tile.canExplore) {
           const worldX = centerX - 2 + colIndex;
           const worldY = centerY + 2 - rowIndex;
-          explorableCoords.push({ x: worldX, y: worldY });
+          coords.push({ x: worldX, y: worldY });
         }
       });
     });
-    return explorableCoords;
+    return coords;
   }, [map?.grid?.tiles, centerX, centerY]);
 
-  const explorableCoordinates = getExplorableCoordinates;
-  const selectedCoordinates = useMemo(() => {
-    return selectedTile ? [{
-      x: centerX - 2 + selectedTile.position.col,
-      y: centerY + 2 - selectedTile.position.row
-    }] : [];
-  }, [selectedTile, centerX, centerY]);
-
-  // Use smart batch preview hook for all explorable coordinates (prefetch all)
-  const settlerIds = availableSettlers.map(s => s._id);
-  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewMapExploration(
-    colonyId || '',
-    settlerIds,
-    explorableCoordinates,
-    !!(colonyId && settlerIds.length > 0 && explorableCoordinates.length > 0)
-  );
-
-  // Build unified preview data when batch data is available
-  useEffect(() => {
-    if (!batchPreviewData || selectedCoordinates.length === 0) return;
-
-    const previews: Record<string, UnifiedPreview> = {};
-    const coordinate = selectedCoordinates[0];
-    const coordKey = `${coordinate.x}:${coordinate.y}`;
-
-    // Build preview for each available settler with the selected coordinates
-    availableSettlers.forEach(settler => {
-      const settlerPreview = batchPreviewData.results[settler._id]?.[coordKey];
-      if (settlerPreview) {
-        previews[settler._id] = transformMapExplorationPreview(settlerPreview);
-      }
-    });
-
-    setSettlerPreviews(previews);
-  }, [batchPreviewData, selectedCoordinates, availableSettlers]);
-
-  // Map grid prefetching - prefetch adjacent map grids for navigation
-  useEffect(() => {
-    if (!colonyId || !serverId) return;
-
-    const adjacentPositions = [
-      { x: centerX, y: centerY + 1 }, // Up
-      { x: centerX, y: centerY - 1 }, // Down
-      { x: centerX - 1, y: centerY }, // Left
-      { x: centerX + 1, y: centerY }  // Right
-    ];
-
-    adjacentPositions.forEach(({ x, y }) => {
-      queryClient.prefetchQuery({
-        queryKey: ["map", colonyId, x, y],
-        queryFn: async () => {
-          const url = `/colonies/${colonyId}/map?x=${x}&y=${y}`;
-          const response = await agent.get(url);
-          return response.data as MapResponse;
+  // Create a wrapper for the mutation to match StartAssignmentMutation interface
+  const startExplorationWrapper = {
+    mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
+      const { row, col, settlerId, previewDuration } = params;
+      startExploration.mutate(
+        {
+          row: row as number,
+          col: col as number,
+          settlerId: settlerId as string,
+          previewDuration: previewDuration as number | undefined
         },
-        staleTime: 10 * 60 * 1000, // 10 minutes - longer since maps change less frequently
-      }).catch(err => {
-        console.warn(`Failed to prefetch map at (${x}, ${y}):`, err);
-      });
-    });
-
-    console.log(`Preloading 4 adjacent map grids around position (${centerX}, ${centerY})`);
-  }, [colonyId, serverId, centerX, centerY, queryClient]);
-
-  const handleTileClick = (tile: MapTileAPI) => {
-    if (!tile.canExplore || !availableSettlers.length) return;
-
-    setSelectedTile(tile);
-    setSettlerDialogOpen(true);
+        options
+      );
+    },
+    isPending: startExploration.isPending,
   };
 
-  const handleSettlerSelect = (settler: Settler) => {
-    if (!selectedTile) return;
+  // Create configuration for useAssignmentPage hook
+  const config = createMapExplorationConfig(startExplorationWrapper);
+
+  // Use the common assignment page hook
+  const {
+    colony,
+    colonyLoading,
+    availableSettlers,
+    handleTargetSelect: handleTileClick,
+    handleSettlerSelect: handleSettlerSelectFromDialog,
+    handleDialogClose,
+    settlerDialogOpen,
+    settlerPreviews,
+    previewsLoading,
+    previewsError,
+    isTargetStarting,
+    getTargetTimeRemaining,
+  } = useAssignmentPage(serverId || '', undefined, explorableCoordinates, config);
+
+  // Custom handler that converts tile to coordinate and calls hook handler
+  const handleTileClickCustom = (tile: MapTileAPI) => {
+    if (!tile.canExplore || !availableSettlers.length) return;
 
     // Calculate world coordinates from grid position
-    const worldX = centerX - 2 + selectedTile.position.col;
-    const worldY = centerY + 2 - selectedTile.position.row;
+    const worldX = centerX - 2 + tile.position.col;
+    const worldY = centerY + 2 - tile.position.row;
 
-    const explorationKey = `${worldX},${worldY}`;
-    setStartingExplorationKey(explorationKey);
-
-    // Get preview duration for this settler if available
-    const settlerPreview = settlerPreviews[settler._id];
-    let previewDuration: number | undefined;
-
-    if (settlerPreview) {
-      if (settlerPreview.type === 'exploration') {
-        // MapExplorationPreview has estimatedDuration
-        previewDuration = settlerPreview.estimatedDuration;
-      } else {
-        // AssignmentPreview only has duration
-        previewDuration = settlerPreview.duration;
-      }
-    }
-
-    startExploration.mutate(
-      {
-        row: worldY,
-        col: worldX,
-        settlerId: settler._id,
-        previewDuration
-      },
-      {
-        onSettled: () => {
-          setStartingExplorationKey(null);
-        }
-      }
-    );
-
-    setSettlerDialogOpen(false);
-    setSelectedTile(null);
+    // Create coordinate object that matches our target type
+    const coordinate = { x: worldX, y: worldY };
+    handleTileClick(coordinate);
   };
 
   const renderTile = (tile: MapTileAPI, rowIndex: number, colIndex: number) => {
     const worldX = centerX - 2 + colIndex;
     const worldY = centerY + 2 - rowIndex;
-    const tileKey = `${worldX},${worldY}`;
+    const coordinate = { x: worldX, y: worldY };
 
     // Get in-progress assignments for this tile
     const inProgressAssignments = tile.assignments?.filter(a => a.state === 'in-progress') || [];
@@ -192,7 +105,7 @@ function MapPage() {
 
     // Calculate progress for assignments
     const assignmentsWithProgress = inProgressAssignments.map(assignment => {
-      const timeRemaining = timers[assignment._id];
+      const timeRemaining = getTargetTimeRemaining(assignment._id);
       let progress = 0;
 
       if (assignment.adjustments?.adjustedDuration && timeRemaining != null) {
@@ -212,7 +125,7 @@ function MapPage() {
       };
     });
 
-    const isStarting = startingExplorationKey === tileKey;
+    const isStarting = isTargetStarting(coordinate);
     const canClick = tile.canExplore && availableSettlers.length > 0 && !isStarting;
 
     return (
@@ -304,7 +217,7 @@ function MapPage() {
               boxShadow: theme.shadows[4]
             } : {}
           }}
-          onClick={() => handleTileClick(tile)}
+          onClick={() => handleTileClickCustom(tile)}
         >
           <CardContent sx={{
             p: 1,
@@ -614,8 +527,8 @@ function MapPage() {
       {/* Settler Selection Dialog */}
       <SettlerSelectorDialog
         open={settlerDialogOpen}
-        onClose={() => setSettlerDialogOpen(false)}
-        onSelect={handleSettlerSelect}
+        onClose={handleDialogClose}
+        onSelect={handleSettlerSelectFromDialog}
         settlers={availableSettlers}
         title={`Assign Settler to Explore`}
         emptyStateMessage="No available settlers"
