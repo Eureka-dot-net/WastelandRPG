@@ -38,11 +38,6 @@ export function useAssignment(
         enabled: !!colonyId,
     });
 
-
-    // --- MUTATIONS ---
-
-
-
     // Start assignment (with optimistic settler status update)
     const startAssignment = useMutation<
         { success: true; assignmentId: string; settlerId: string }, // return type from mutationFn
@@ -86,9 +81,9 @@ export function useAssignment(
                 queryClient.setQueryData<Colony>(["colony", serverId], context.prevColony);
             }
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             // Invalidate all relevant queries to refetch fresh data
-            queryClient.invalidateQueries({
+            await queryClient.invalidateQueries({
                 queryKey: ["assignments", colonyId],
                 exact: false
             });
@@ -120,9 +115,9 @@ export function useAssignment(
             );
             return response.data;
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             // Invalidate all relevant queries to refetch fresh data
-            queryClient.invalidateQueries({
+            await queryClient.invalidateQueries({
                 queryKey: ["assignments", colonyId],
                 exact: false
             });

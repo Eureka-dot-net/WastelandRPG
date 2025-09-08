@@ -326,7 +326,7 @@ function MapPage() {
               }}>
                 <Timer color="warning" />
                 <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center', color: 'warning.main' }}>
-                  Starting...
+                  Gathering gear...
                 </Typography>
               </Box>
             ) : !tile.explored ? (
@@ -491,7 +491,7 @@ function MapPage() {
                 justifyContent: 'center',
                 color: 'white'
               }}>
-                <Typography variant="caption">Starting...</Typography>
+                <Typography variant="caption">Gathering gear...</Typography>
               </Box>
             )}
           </CardContent>

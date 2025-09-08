@@ -155,7 +155,7 @@ function QuestPage() {
     return linkMap[unlocks] || `/${unlocks}`;
   };
 
-  if (colonyLoading || loadingAssignment || startAssignment.isPending || informingAssignments.size > 0 || !serverId) {
+  if (colonyLoading || loadingAssignment || !serverId) {
     return (
       <LoadingDisplay
         showContainer={true}

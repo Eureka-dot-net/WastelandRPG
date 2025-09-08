@@ -68,13 +68,13 @@ export function useMap(
         queryClient.setQueryData<Colony>(["colony", serverId], context.prevColony);
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate all relevant queries to refetch fresh data
       queryClient.invalidateQueries({
         queryKey: ["map", colonyId],
         exact: false
       });
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ["assignments", colonyId],
         exact: false
       });
