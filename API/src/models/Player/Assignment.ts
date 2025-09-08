@@ -36,7 +36,7 @@ export interface IAssignment {
     effectiveSpeed: number;
     lootMultiplier: number;
     adjustedPlannedRewards: Record<string, number>;
-    effects: {
+    effects?: {
       speedEffects: string[];
       lootEffects: string[];
       traitEffects: string[];
