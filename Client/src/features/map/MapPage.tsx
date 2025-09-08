@@ -13,7 +13,7 @@ import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotific
 import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
-import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/useSmartBatchPreview";
+import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
 import type { MapResponse, MapTileAPI } from "../../lib/types/mapResponse";
 import type { Settler } from "../../lib/types/settler";
 import type { UnifiedPreview } from "../../lib/types/preview";

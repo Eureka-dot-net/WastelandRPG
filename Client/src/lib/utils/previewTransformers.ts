@@ -1,14 +1,13 @@
 // Utility functions to transform API responses to unified preview format
 
-import type { PreviewAssignmentResult } from '../hooks/usePreviewAssignment';
-import type { MapExplorationPreviewResult } from '../hooks/usePreviewMapExploration';
+import type { AssignmentPreviewResult, MapExplorationPreviewResult } from '../types/preview';
 import type { AssignmentPreview, MapExplorationPreview } from '../types/preview';
 
 /**
  * Transform assignment preview API response to unified format
  */
 export function transformAssignmentPreview(
-  apiResponse: PreviewAssignmentResult
+  apiResponse: AssignmentPreviewResult
 ): AssignmentPreview {
   return {
     type: 'assignment',
@@ -18,12 +17,8 @@ export function transformAssignmentPreview(
     baseDuration: apiResponse.baseDuration,
     basePlannedRewards: apiResponse.basePlannedRewards,
     adjustments: {
-      speedEffects: apiResponse.adjustments.effects.speedEffects,
-      lootEffects: apiResponse.adjustments.effects.lootEffects,
-      traitEffects: apiResponse.adjustments.effects.traitEffects,
       adjustedDuration: apiResponse.adjustments.adjustedDuration,
-      lootMultiplier: apiResponse.adjustments.lootMultiplier,
-      effects: apiResponse.adjustments.effects
+      lootMultiplier: apiResponse.adjustments.lootMultiplier
     }
   };
 }
@@ -36,19 +31,12 @@ export function transformMapExplorationPreview(
 ): MapExplorationPreview {
   return {
     type: 'exploration',
-    settlerId: apiResponse.settler.id,
-    settlerName: apiResponse.settler.name,
-    duration: apiResponse.preview.duration || apiResponse.preview.estimatedDuration || 300000,
+    settlerId: apiResponse.settlerId,
+    settlerName: apiResponse.settlerName,
+    duration: apiResponse.adjustments.adjustedDuration,
     coordinates: apiResponse.coordinates,
-    terrain: apiResponse.preview.terrain,
-    loot: apiResponse.preview.loot,
-    adjustedLoot: apiResponse.preview.adjustedLoot,
-    estimatedLoot: apiResponse.preview.estimatedLoot,
-    adjustedEstimatedLoot: apiResponse.preview.adjustedEstimatedLoot,
-    threat: apiResponse.preview.threat,
-    event: apiResponse.preview.event,
-    estimatedDuration: apiResponse.preview.estimatedDuration,
-    alreadyExplored: apiResponse.preview.alreadyExplored,
-    adjustments: apiResponse.preview.adjustments
+    terrain: apiResponse.terrain,
+    estimatedLoot: apiResponse.estimatedLoot,
+    alreadyExplored: apiResponse.alreadyExplored
   };
 }

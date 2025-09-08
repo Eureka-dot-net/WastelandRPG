@@ -38,12 +38,7 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
     adjustedDuration,
     effectiveSpeed: 1 / timeMultiplier,
     lootMultiplier,
-    adjustedPlannedRewards,
-    effects: {
-      speedEffects: [],
-      lootEffects: [],
-      traitEffects: []
-    }
+    adjustedPlannedRewards
   };
 }
 

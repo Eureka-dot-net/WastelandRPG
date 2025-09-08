@@ -93,35 +93,39 @@ export const previewExplorationBatch = async (req: Request, res: Response) => {
         // Determine if tile is already explored based on userMapTile
         const isAlreadyExplored = !!result.preview.userMapTile?.exploredAt;
         
-        // Transform the preview data to match MapExplorationPreviewResult format
+        // Transform the preview data to match Assignment format with additional map fields
         transformedResults[result.settlerId][coordKey] = {
+          settlerId: result.settlerId,
+          settlerName: result.preview.settler.name,
+          baseDuration: result.preview.duration,
+          // Map-specific additional fields
           coordinates: result.preview.coordinates,
-          settler: result.preview.settler,
-          preview: {
-            duration: result.preview.duration,
-            adjustments: result.preview.adjustments?.effects || {
-              speedEffects: [],
-              lootEffects: [],
-              traitEffects: []
-            },
-            alreadyExplored: isAlreadyExplored,
-            // Only include loot info as estimated rewards (not revealing actual unexplored tile details)
-            ...(result.preview.rewards && Object.keys(result.preview.rewards).length > 0 && {
-              estimatedLoot: Object.entries(result.preview.rewards).reduce((acc, [key, amount]) => {
-                acc[key] = { amount, itemId: key, name: key, type: 'resource' };
-                return acc;
-              }, {} as Record<string, any>)
-            }),
-            // Only include terrain info if already explored (privacy protection)
-            ...(isAlreadyExplored && result.preview.mapTile && {
-              terrain: {
-                type: result.preview.mapTile.terrain,
-                name: result.preview.mapTile.terrain,
-                description: `${result.preview.mapTile.terrain} terrain`,
-                icon: result.preview.mapTile.icon
-              }
-            })
-          }
+          // Use estimatedLoot as basePlannedRewards equivalent for maps
+          basePlannedRewards: result.preview.rewards || {},
+          adjustments: {
+            adjustedDuration: result.preview.duration,
+            effectiveSpeed: 1, // Default value, will be calculated properly later
+            lootMultiplier: 1, // Default value, will be calculated properly later
+            adjustedPlannedRewards: result.preview.rewards || {}
+          },
+          // Map-specific preview data
+          alreadyExplored: isAlreadyExplored,
+          // Only include loot info as estimated rewards (not revealing actual unexplored tile details)
+          ...(result.preview.rewards && Object.keys(result.preview.rewards).length > 0 && {
+            estimatedLoot: Object.entries(result.preview.rewards).reduce((acc, [key, amount]) => {
+              acc[key] = { amount, itemId: key, name: key, type: 'resource' };
+              return acc;
+            }, {} as Record<string, any>)
+          }),
+          // Only include terrain info if already explored (privacy protection)
+          ...(isAlreadyExplored && result.preview.mapTile && {
+            terrain: {
+              type: result.preview.mapTile.terrain,
+              name: result.preview.mapTile.terrain,
+              description: `${result.preview.mapTile.terrain} terrain`,
+              icon: result.preview.mapTile.icon
+            }
+          })
         };
       }
     });

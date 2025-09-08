@@ -298,6 +298,111 @@ export async function createUserMapTile(
 }
 
 
+/**
+ * Create or update a UserMapTile for a colony exploring a map location
+ * Used for starting exploration - sets isExplored to false initially
+ */
+export async function createOrUpdateUserMapTile(
+  serverTileId: string,
+  colonyId: string,
+  distanceFromHomestead: number,
+  explorationTime: number,
+  lootMultiplier: number,
+  discoveredLoot?: Array<{ item: string; amount: number }>,
+  session?: ClientSession
+): Promise<UserMapTileDoc> {
+  // First get the MapTile to get coordinates and terrain
+  const mapTile = await (session 
+    ? MapTile.findById(serverTileId).session(session)
+    : MapTile.findById(serverTileId));
+  
+  if (!mapTile) {
+    throw new Error('MapTile not found');
+  }
+
+  // Check if UserMapTile already exists
+  const existingUserTile = await (session
+    ? UserMapTile.findOne({ serverTile: serverTileId, colonyId }).session(session)
+    : UserMapTile.findOne({ serverTile: serverTileId, colonyId }));
+
+  if (existingUserTile) {
+    // If already being explored (not yet completed), prevent starting new exploration
+    if (!existingUserTile.isExplored) {
+      throw new Error('Cannot start exploration - tile is already being explored');
+    }
+    
+    // If previously completed, allow re-exploration with updated parameters
+    existingUserTile.distanceFromHomestead = distanceFromHomestead;
+    existingUserTile.explorationTime = explorationTime;
+    existingUserTile.lootMultiplier = lootMultiplier;
+    existingUserTile.isExplored = false; // Reset for new exploration
+    existingUserTile.exploredAt = new Date();
+    // Note: discoveredLoot is not part of UserMapTile schema in current implementation
+    
+    return await (session 
+      ? existingUserTile.save({ session })
+      : existingUserTile.save());
+  }
+
+  // Create new UserMapTile
+  const userTileData = {
+    serverTile: serverTileId,
+    x: mapTile.x,
+    y: mapTile.y,
+    terrain: mapTile.terrain,
+    icon: mapTile.icon,
+    colonyId,
+    distanceFromHomestead,
+    explorationTime,
+    lootMultiplier,
+    isExplored: false,
+    exploredAt: new Date()
+  };
+
+  const userTile = new UserMapTile(userTileData);
+  return await (session 
+    ? userTile.save({ session })
+    : userTile.save());
+}
+
+/**
+ * Check if a colony has fully explored a specific tile
+ */
+export async function hasColonyExploredTile(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<boolean> {
+  const userTile = await (session
+    ? UserMapTile.findOne({ serverTile: serverTileId, colonyId }).session(session)
+    : UserMapTile.findOne({ serverTile: serverTileId, colonyId }));
+  
+  return userTile ? userTile.isExplored : false;
+}
+
+/**
+ * Mark a UserMapTile as fully explored (exploration completed)
+ */
+export async function markUserMapTileExplored(
+  serverTileId: string,
+  colonyId: string,
+  session?: ClientSession
+): Promise<UserMapTileDoc | null> {
+  const userTile = await (session
+    ? UserMapTile.findOneAndUpdate(
+        { serverTile: serverTileId, colonyId },
+        { isExplored: true, exploredAt: new Date() },
+        { new: true, session }
+      )
+    : UserMapTile.findOneAndUpdate(
+        { serverTile: serverTileId, colonyId },
+        { isExplored: true, exploredAt: new Date() },
+        { new: true }
+      ));
+  
+  return userTile;
+}
+
 export function getTerrainInfo(
   userTile: UserMapTileDoc
 ) {

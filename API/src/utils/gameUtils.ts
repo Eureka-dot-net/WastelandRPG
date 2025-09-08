@@ -14,7 +14,6 @@ export interface GameAdjustments {
   effectiveSpeed: number;
   lootMultiplier: number;
   adjustedPlannedRewards: Record<string, number>;
-  effects: AdjustmentEffects;
 }
 
 /**

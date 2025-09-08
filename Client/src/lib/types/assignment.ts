@@ -24,11 +24,6 @@ export interface AssignmentAdjustments {
   effectiveSpeed: number;
   lootMultiplier: number;
   adjustedPlannedRewards: Record<string, number>;
-  effects: {
-    speedEffects: string[];
-    lootEffects: string[];
-    traitEffects: string[];
-  };
 }
 
 export interface Assignment {

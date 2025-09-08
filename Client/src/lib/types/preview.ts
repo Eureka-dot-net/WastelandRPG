@@ -1,9 +1,43 @@
-// Unified preview data types for SettlerPreviewCard
+// Unified preview data types for standardized API responses
 
-export interface PreviewAdjustments {
-  speedEffects: string[];
-  lootEffects: string[];
-  traitEffects: string[];
+// Base preview result that both assignment and exploration previews share
+export interface BasePreviewResult {
+  settlerId: string;
+  settlerName: string;
+  baseDuration: number;
+  basePlannedRewards: Record<string, number>;
+  adjustments: {
+    adjustedDuration: number;
+    effectiveSpeed: number;
+    lootMultiplier: number;
+    adjustedPlannedRewards: Record<string, number>;
+  };
+}
+
+// Assignment-specific preview result (extends base with no additional required fields)
+export type AssignmentPreviewResult = BasePreviewResult;
+
+// Map exploration-specific preview result  
+export interface MapExplorationPreviewResult extends BasePreviewResult {
+  // Map-specific fields
+  coordinates: { x: number; y: number };
+  alreadyExplored: boolean;
+  estimatedLoot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
+  terrain?: {
+    type: string;
+    name: string;
+    description: string;
+    icon: string;
+  };
+}
+
+// Batch results
+export interface BatchAssignmentPreviewResult {
+  results: Record<string, Record<string, AssignmentPreviewResult>>;
+}
+
+export interface BatchMapExplorationPreviewResult {
+  results: Record<string, Record<string, MapExplorationPreviewResult>>;
 }
 
 export interface PreviewTerrain {
@@ -13,32 +47,26 @@ export interface PreviewTerrain {
   icon: string;
 }
 
-// Base preview interface that all preview types should extend
-export interface BasePreview {
+// Assignment preview extends base with assignment-specific fields
+export interface AssignmentPreview {
+  type: 'assignment';
   settlerId: string;
   settlerName: string;
   duration: number;
-  adjustments: PreviewAdjustments;
-}
-
-// Assignment preview extends base with assignment-specific fields
-export interface AssignmentPreview extends BasePreview {
-  type: 'assignment';
   baseDuration: number;
   basePlannedRewards: Record<string, number>;
   adjustments: {
-    speedEffects: string[];
-    lootEffects: string[];
-    traitEffects: string[];
     adjustedDuration: number;
     lootMultiplier: number;
-    effects: PreviewAdjustments;
   };
 }
 
 // Map exploration preview extends base with exploration-specific fields
-export interface MapExplorationPreview extends BasePreview {
+export interface MapExplorationPreview {
   type: 'exploration';
+  settlerId: string;
+  settlerName: string;
+  duration: number;
   coordinates: { x: number; y: number };
   terrain?: PreviewTerrain;
   loot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
@@ -51,7 +79,7 @@ export interface MapExplorationPreview extends BasePreview {
   alreadyExplored: boolean;
 }
 
-// Union type for all preview types
+// Union type for all preview types  
 export type UnifiedPreview = AssignmentPreview | MapExplorationPreview;
 
 // Type guards
