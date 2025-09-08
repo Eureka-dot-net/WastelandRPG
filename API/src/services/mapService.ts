@@ -202,7 +202,7 @@ function calculateCoordsInLayer(layer: number, positionInLayer: number): {
     return { x, y, direction: 0 };
 }
 
-// Helper function to get colony location (for backward compatibility)
+// Helper function to get colony location
 export async function getNextColonyLocation(serverId: string, steps: number = 1, session?: ClientSession) {
     const latestColony = await Colony.findOne({ serverId }).sort({ spiralIndex: -1 }).lean({ session });
 

@@ -40,7 +40,7 @@ function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any)
     lootMultiplier,
     adjustedPlannedRewards,
     effects: {
-      speedEffects: [], // Simplified - no longer showing detailed effects
+      speedEffects: [],
       lootEffects: [],
       traitEffects: []
     }

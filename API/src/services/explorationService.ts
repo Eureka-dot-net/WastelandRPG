@@ -110,14 +110,13 @@ export const calculateExplorationDetails = async (
     adjustedPlannedRewards[key] = Math.max(1, Math.round(amount * lootMultiplier_adjusted));
   });
 
-  // Create compatibility object for existing code that expects adjustments
   const adjustments = {
     adjustedDuration,
     effectiveSpeed: 1 / timeMultiplier,
     lootMultiplier: lootMultiplier_adjusted,
     adjustedPlannedRewards,
     effects: {
-      speedEffects: [], // Simplified - no longer showing detailed effects
+      speedEffects: [],
       lootEffects: [],
       traitEffects: []
     }

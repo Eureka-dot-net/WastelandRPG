@@ -488,7 +488,7 @@ Session behavior is validated through:
 4. **Mobile-First Design**: All design decisions must consider mobile user experience
 5. **API Authority**: The API is the version of truth - client is only for display and user interaction
 6. **Session Consistency**: Always use MongoDB sessions for multi-collection write operations
-7. **NO BACKWARD COMPATIBILITY**: This project is in active development/prototyping phase. Do NOT maintain backward compatibility with deprecated functions or data structures. Always remove old code and update all references to use the current implementation. Clean, maintainable code is prioritized over backward compatibility.
+7. **NO BACKWARD COMPATIBILITY - ZERO TOLERANCE**: This project is in active development/alpha phase. **NEVER** maintain backward compatibility with deprecated functions, data structures, or legacy patterns. **ALWAYS** completely remove old/deprecated code and update ALL references to use the current implementation. **DO NOT** create wrapper functions, compatibility layers, transition code, or keep deprecated functions "just in case". **IMMEDIATELY** delete old implementations when creating new ones. Clean, maintainable code is the only priority - backward compatibility is strictly forbidden during this prototyping phase.
 
 ## Trust These Instructions
 
