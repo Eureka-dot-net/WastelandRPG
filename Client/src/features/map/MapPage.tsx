@@ -364,7 +364,7 @@ function MapPage() {
                 px: 0.5,
                 pb: 0.5
               }}>
-                {assignmentsWithProgress.slice(0, 2).map((assignment, idx) => (
+                {assignmentsWithProgress.filter(a => a.progress > 0 && a.progress < 100).slice(0, 2).map((assignment, idx) => (
                   <Box
                     key={assignment._id}
                     sx={{
