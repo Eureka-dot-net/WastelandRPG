@@ -10,7 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
-import { useBatchPreviewAssignment } from "../../lib/hooks/usePreview";
+import { useSmartBatchPreviewAssignment } from "../../lib/hooks/usePreview";
 import type { Settler } from "../../lib/types/settler";
 import type { Assignment } from "../../lib/types/assignment";
 import type { UnifiedPreview } from "../../lib/types/preview";
@@ -62,7 +62,7 @@ function QuestPage() {
   const settlerIds = availableSettlers.map(s => s._id);
   const assignmentIds = availableAssignments.map(a => a._id);
   
-  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useBatchPreviewAssignment(
+  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewAssignment(
     colonyId || '',
     settlerIds,
     assignmentIds,

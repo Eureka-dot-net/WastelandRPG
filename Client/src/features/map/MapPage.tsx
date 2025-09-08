@@ -13,7 +13,7 @@ import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotific
 import { useColony } from "../../lib/hooks/useColony";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
-import { useBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
+import { useSmartBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
 import type { MapResponse, MapTileAPI } from "../../lib/types/mapResponse";
 import type { Settler } from "../../lib/types/settler";
 import type { UnifiedPreview } from "../../lib/types/preview";
@@ -74,7 +74,7 @@ function MapPage() {
 
   // Use smart batch preview hook for all explorable coordinates (prefetch all)
   const settlerIds = availableSettlers.map(s => s._id);
-  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useBatchPreviewMapExploration(
+  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewMapExploration(
     colonyId || '',
     settlerIds,
     explorableCoordinates,
