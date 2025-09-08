@@ -40,7 +40,7 @@ function QuestPage() {
   const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['quest'] });
 
   // Use the simplified notification system
-  const { timers, startAssignment: startNotificationTimer } = useAssignmentNotifications();
+  const { timers, informingAssignments } = useAssignmentNotifications();
 
   // Get available settlers and assignments for batch preview
   const availableSettlers = useMemo(() => {
@@ -107,9 +107,9 @@ function QuestPage() {
       startAssignment.mutate(
         { assignmentId: selectedTask._id, settlerId: settler._id },
         {
-          onSuccess: (updatedAssignment) => {
-            // Start the notification timer
-            startNotificationTimer(updatedAssignment);
+          onSettled: () => {
+            // Clear the starting state regardless of success/failure
+            setStartingAssignmentId(null);
           }
         }
       );
@@ -155,7 +155,7 @@ function QuestPage() {
     return linkMap[unlocks] || `/${unlocks}`;
   };
 
-  if (colonyLoading || loadingAssignment || !serverId) {
+  if (colonyLoading || loadingAssignment || startAssignment.isPending || informingAssignments.size > 0 || !serverId) {
     return (
       <LoadingDisplay
         showContainer={true}
@@ -224,12 +224,19 @@ function QuestPage() {
 
           // Determine task status
           const dependencyMet = isDependencyMet(assignment);
-          let status: 'available' | 'blocked' | 'in-progress' | 'completed';
+          let status: 'available' | 'blocked' | 'in-progress' | 'completed' | 'starting' | 'unloading';
 
           if (assignment.state === 'completed' || assignment.state === 'informed') {
             status = 'completed';
           } else if (assignment.state === 'in-progress') {
-            status = 'in-progress';
+            // Check if this assignment is being informed (unloading)
+            if (informingAssignments.has(assignment._id)) {
+              status = 'unloading';
+            } else {
+              status = 'in-progress';
+            }
+          } else if (startingAssignmentId === assignment._id) {
+            status = 'starting';
           } else if (assignment.state === 'available' && !dependencyMet) {
             status = 'blocked';
           } else {
@@ -259,6 +266,22 @@ function QuestPage() {
               variant: 'outlined' as const,
               disabled: true,
               startIcon: <Lock fontSize="small" />
+            });
+          } else if (status === 'starting') {
+            actions.push({
+              label: "Gathering gear...",
+              onClick: () => { },
+              variant: 'outlined' as const,
+              color: 'warning' as const,
+              disabled: true
+            });
+          } else if (status === 'unloading') {
+            actions.push({
+              label: "Unloading inventory...",
+              onClick: () => { },
+              variant: 'outlined' as const,
+              color: 'info' as const,
+              disabled: true
             });
           } else if (status === 'in-progress') {
             let label = "In Progress...";

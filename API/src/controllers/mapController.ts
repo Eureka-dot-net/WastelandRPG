@@ -4,7 +4,6 @@ import { ColonyManager } from '../managers/ColonyManager';
 import { logError } from '../utils/logger';
 import { withSession, withSessionReadOnly } from '../utils/sessionUtils';
 import {
-  enrichRewardsWithMetadata,
   calculateDistance,
   calculateDistanceModifiers
 } from '../utils/gameUtils';
@@ -207,13 +206,15 @@ export const startExploration = async (req: Request, res: Response) => {
         { tileX, tileY, settlerId: validatedSettlerId }
       );
 
-      return assignment.toObject();
+      return {
+        success: true,
+        assignmentId: assignment._id,
+        location: { x: tileX, y: tileY },
+        settlerId: validatedSettlerId
+      };
     });
 
-    res.json({
-      ...result,
-      plannedRewards: enrichRewardsWithMetadata(result.plannedRewards)
-    });
+    res.json(result);
   } catch (err) {
     logError('Error starting exploration', err, { colonyId: req.colonyId, x, y, settlerId });
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to start exploration' });
