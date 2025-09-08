@@ -312,9 +312,11 @@ npm run dev  # Starts Vite dev server
 **SettlerManager Pattern**:
 - Encapsulates settler-specific logic and computed properties
 - Provides weight-based inventory management for settlers
-- Methods: `canCarryItems()`, `addItems()`, `giveRewards()`, `transferItemsToColony()`
+- Methods: `canCarryItems()`, `addItems()`, `giveRewards()`, `transferItemsToColony()`, `adjustedTimeMultiplier()`, `adjustedLootMultiplier()`
 - Computed properties: `carryingCapacity`, `currentCarriedWeight`, `effectiveSpeed`, `foodSatiationRate`
-- Used for settler inventory operations instead of utility functions
+- Dynamic trait effects: Uses traitsCatalogue.json for data-driven trait processing instead of hardcoded values
+- Activity-specific adjustments: Time and loot multipliers can be calculated per activity type (exploration, cleanup, etc.)
+- Used for settler inventory operations and game balance calculations instead of utility functions
 
 **Mobile-First Considerations**:
 - All UI components must work on mobile devices  
@@ -370,7 +372,10 @@ npm run dev  # Starts Vite dev server
 - Assignment completion timing handled by middleware
 - Inventory limits not yet enforced (TODO items in codebase)
 - **NO UNUSED IMPORTS**: All unused imports and variables must be removed - linting now fails on warnings. . FIX ALL ISSUES even if they are not related to the check in
-- **SettlerManager Usage**: Use `SettlerManager` instance methods for settler inventory operations instead of utility functions. Create manager with `new SettlerManager(settler)` and use methods like `giveRewards()`, `transferItemsToColony()`, `addItems()`, `canCarryItems()`
+- **SettlerManager Usage**: Use `SettlerManager` instance methods for settler operations instead of utility functions. Create manager with `new SettlerManager(settler)` and use methods like:
+  - Inventory: `giveRewards()`, `transferItemsToColony()`, `addItems()`, `canCarryItems()`
+  - Game Balance: `adjustedTimeMultiplier(activityType)`, `adjustedLootMultiplier(activityType)` 
+  - Computed Properties: `carryingCapacity`, `currentCarriedWeight`, `effectiveSpeed`, `foodSatiationRate`
 
 ## MongoDB Session Management Guidelines
 
