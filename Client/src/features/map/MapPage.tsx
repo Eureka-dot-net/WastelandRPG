@@ -11,6 +11,7 @@ import { useServerContext } from "../../lib/contexts/ServerContext";
 import { useMap } from "../../lib/hooks/useMap";
 import { useMapContext } from "../../lib/hooks/useMapContext";
 import { useAssignmentPage, createMapExplorationConfig } from "../../lib/hooks/useAssignmentPage";
+import { useColony } from "../../lib/hooks/useColony";
 import type { MapTileAPI } from "../../lib/types/mapResponse";
 import type { Settler } from "../../lib/types/settler";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
@@ -22,7 +23,8 @@ function MapPage() {
   const { currentServerId: serverId } = useServerContext();
   const { centerX, centerY, moveUp, moveDown, moveLeft, moveRight, zoomOut } = useMapContext();
 
-  const { map, loadingMap, startExploration } = useMap(serverId, undefined, centerX, centerY);
+  const { colony } = useColony(serverId);
+  const { map, loadingMap, startExploration } = useMap(serverId, colony?._id, centerX, centerY);
 
   // Get explorable coordinates for useAssignmentPage
   const explorableCoordinates = useMemo(() => {
@@ -63,7 +65,7 @@ function MapPage() {
 
   // Use the common assignment page hook
   const {
-    colony,
+    colony: assignmentPageColony,
     colonyLoading,
     availableSettlers,
     handleTargetSelect: handleTileClick,
@@ -75,7 +77,10 @@ function MapPage() {
     previewsError,
     isTargetStarting,
     getTargetTimeRemaining,
-  } = useAssignmentPage(serverId || '', undefined, explorableCoordinates, config);
+  } = useAssignmentPage(serverId || '', explorableCoordinates, config);
+
+  // Use both colony sources for display - prefer assignmentPageColony for consistency
+  const displayColony = assignmentPageColony || colony;
 
   // Custom handler that converts tile to coordinate and calls hook handler
   const handleTileClickCustom = (tile: MapTileAPI) => {
@@ -100,7 +105,7 @@ function MapPage() {
 
     // Get settlers assigned to this tile from the colony data
     const assignedSettlers = inProgressAssignments
-      .map(assignment => colony?.settlers?.find(s => s._id === assignment.settlerId))
+      .map(assignment => displayColony?.settlers?.find(s => s._id === assignment.settlerId))
       .filter((settler): settler is Settler => settler !== undefined);
 
     // Calculate progress for assignments
@@ -115,7 +120,7 @@ function MapPage() {
       }
 
       // Find the settler for this assignment
-      const assignedSettler = colony?.settlers?.find(s => s._id === assignment.settlerId);
+      const assignedSettler = displayColony?.settlers?.find(s => s._id === assignment.settlerId);
 
       return {
         ...assignment,
@@ -441,7 +446,7 @@ function MapPage() {
     );
   }
 
-  if (!map || !colony) {
+  if (!map || !displayColony) {
     return (
       <ErrorDisplay
         error="Failed to load map data"

@@ -9,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentPage, createQuestPageConfig } from "../../lib/hooks/useAssignmentPage";
+import { useColony } from "../../lib/hooks/useColony";
 import type { Assignment } from "../../lib/types/assignment";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import TaskCard from "../../app/shared/components/tasks/TaskCard";
@@ -23,9 +24,11 @@ function QuestPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
+  
+  const { colony } = useColony(serverId);
 
-  // Get assignments - without colony id since the hook will get it
-  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, null, { type: ['quest'] });
+  // Get assignments with colony id from colony
+  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colony?._id, { type: ['quest'] });
 
   // Create a wrapper for the mutation to match StartAssignmentMutation interface
   const startAssignmentWrapper = useMemo(() => ({
@@ -44,7 +47,7 @@ function QuestPage() {
 
   // Use the common assignment page hook
   const {
-    colony,
+    colony: assignmentPageColony,
     colonyLoading,
     availableSettlers,
     handleTargetSelect: handleAssignClick,
@@ -58,7 +61,10 @@ function QuestPage() {
     isTargetStarting,
     getTargetTimeRemaining,
     isTargetInforming,
-  } = useAssignmentPage(serverId || '', undefined, assignments || [], config);
+  } = useAssignmentPage(serverId || '', assignments || [], config);
+
+  // Use both colony sources for display - prefer assignmentPageColony for consistency
+  const displayColony = assignmentPageColony || colony;
 
 
   const getRewardIcon = (type: string) => {
@@ -107,7 +113,7 @@ function QuestPage() {
     );
   }
 
-  if (!assignments || !colony) {
+  if (!assignments || !displayColony) {
     return (
       <ErrorDisplay
         error="Failed to load assignment data"
@@ -120,8 +126,8 @@ function QuestPage() {
   const availableSettlersForDisplay = getAvailableSettlers();
 
   // Get the latest event for display
-  const latestEvent = colony.logs && colony.logs.length > 0
-    ? [...colony.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
+  const latestEvent = displayColony.logs && displayColony.logs.length > 0
+    ? [...displayColony.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0]
     : null;
 
   return (
@@ -161,7 +167,7 @@ function QuestPage() {
               : 0;
 
           const assignedSettler = assignment.settlerId
-            ? colony?.settlers?.find(s => s._id === assignment.settlerId)
+            ? displayColony?.settlers?.find(s => s._id === assignment.settlerId)
             : null;
 
           // Determine task status

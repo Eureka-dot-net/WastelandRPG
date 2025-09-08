@@ -32,7 +32,6 @@ export interface AssignmentPageConfig<T extends GenericTarget> {
 
 export function useAssignmentPage<T extends GenericTarget>(
   serverId: string,
-  colonyId: string | undefined,
   allTargets: T[],
   config: AssignmentPageConfig<T>
 ) {
@@ -44,6 +43,9 @@ export function useAssignmentPage<T extends GenericTarget>(
   const { colony, colonyLoading } = useColony(serverId);
   const queryClient = useQueryClient();
   const { timers, informingAssignments } = useAssignmentNotifications();
+
+  // Extract colonyId from the colony data
+  const colonyId = colony?._id;
 
   // Get available settlers
   const availableSettlers = useMemo<Settler[]>(() => {
