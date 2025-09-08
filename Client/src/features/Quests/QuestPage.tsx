@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
 import {
   Nature, Build, Restaurant, Science, LocalHospital, Lock
 } from "@mui/icons-material";
@@ -7,14 +6,9 @@ import {
 } from "@mui/material";
 import "react-toastify/dist/ReactToastify.css";
 
-import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
-import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
-import { useSmartBatchPreviewAssignment } from "../../lib/hooks/usePreview";
-import type { Settler } from "../../lib/types/settler";
+import { useAssignmentPage, createQuestPageConfig } from "../../lib/hooks/useAssignmentPage";
 import type { Assignment } from "../../lib/types/assignment";
-import type { UnifiedPreview } from "../../lib/types/preview";
-import { useQueryClient } from "@tanstack/react-query";
 import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import TaskCard from "../../app/shared/components/tasks/TaskCard";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -22,101 +16,48 @@ import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import { formatTimeRemaining } from "../../lib/utils/timeUtils";
-import { transformAssignmentPreview } from "../../lib/utils/previewTransformers";
 import LatestEventCard from "../../components/events/LatestEventCard";
 
 function QuestPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
-  const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Assignment | null>(null);
-  const [startingAssignmentId, setStartingAssignmentId] = useState<string | null>(null);
-  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, UnifiedPreview>>({});
 
-  const { colony, colonyLoading } = useColony(serverId);
-  const colonyId = colony?._id;
-  const queryClient = useQueryClient();
-  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, colonyId, { type: ['quest'] });
+  // Get assignments - without colony id since the hook will get it
+  const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, null, { type: ['quest'] });
 
-  // Use the simplified notification system
-  const { timers, informingAssignments } = useAssignmentNotifications();
-
-  // Get available settlers and assignments for batch preview
-  const availableSettlers = useMemo(() => {
-    return colony?.settlers?.filter(
-      settler => settler.status === "idle"
-    ) || [];
-  }, [colony?.settlers]);
-
-  const availableAssignments = useMemo(() => {
-    return assignments?.filter(a =>
-      a.state === "available" &&
-      (!a.dependsOn || ["informed", "completed"].includes(
-        assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
-      ))
-    ) || [];
-  }, [assignments]);
-
-  // Use smart batch preview hook - always prefetch all available assignments
-  const settlerIds = availableSettlers.map(s => s._id);
-  const assignmentIds = availableAssignments.map(a => a._id);
-  
-  const { data: batchPreviewData, isLoading: previewsLoading, error: previewsError } = useSmartBatchPreviewAssignment(
-    colonyId || '',
-    settlerIds,
-    assignmentIds,
-    !!(colonyId && settlerIds.length > 0 && assignmentIds.length > 0)
-  );
-
-  // Build unified preview data when batch data is available
-  useEffect(() => {
-    if (!batchPreviewData || !selectedTask) return;
-    
-    const previews: Record<string, UnifiedPreview> = {};
-    const assignmentId = selectedTask._id;
-    
-    // Build preview for each available settler with the selected task
-    availableSettlers.forEach(settler => {
-      const settlerPreview = batchPreviewData.results[settler._id]?.[assignmentId];
-      if (settlerPreview) {
-        previews[settler._id] = transformAssignmentPreview(settlerPreview);
-      }
-    });
-    
-    setSettlerPreviews(previews);
-  }, [batchPreviewData, selectedTask, availableSettlers]);
-
-  useEffect(() => { //This can stay. If a colony changes then we do want to invalidate the queries
-    if (colonyId) {
-      queryClient.invalidateQueries({ queryKey: ["assignments", colonyId] });
-    }
-  }, [colonyId, queryClient]);
-
-  const handleAssignClick = (taskId: string) => {
-    const task = assignments?.find(a => a._id === taskId);
-    if (task) {
-      setSelectedTask(task);
-      setSettlerDialogOpen(true);
-    }
-  };
-
-  const handleSettlerSelect = (settler: Settler) => {
-    if (selectedTask) {
-      setStartingAssignmentId(selectedTask._id);
+  // Create a wrapper for the mutation to match StartAssignmentMutation interface
+  const startAssignmentWrapper = {
+    mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
+      const { assignmentId, settlerId } = params;
       startAssignment.mutate(
-        { assignmentId: selectedTask._id, settlerId: settler._id },
-        {
-          onSettled: () => {
-            // Clear the starting state regardless of success/failure
-            setStartingAssignmentId(null);
-          }
-        }
+        { assignmentId: assignmentId as string, settlerId: settlerId as string },
+        options
       );
-    }
-    setSettlerDialogOpen(false);
-    setSelectedTask(null);
+    },
+    isPending: startAssignment.isPending,
   };
+
+  // Create configuration for useAssignmentPage hook  
+  const config = createQuestPageConfig(startAssignmentWrapper);
+
+  // Use the common assignment page hook
+  const {
+    colony,
+    colonyLoading,
+    availableSettlers,
+    handleTargetSelect: handleAssignClick,
+    handleSettlerSelect,
+    handleDialogClose,
+    settlerDialogOpen,
+    selectedTarget: selectedTask,
+    settlerPreviews,
+    previewsLoading,
+    previewsError,
+    isTargetStarting,
+    getTargetTimeRemaining,
+    isTargetInforming,
+  } = useAssignmentPage(serverId || '', undefined, assignments || [], config);
 
 
   const getRewardIcon = (type: string) => {
@@ -204,7 +145,7 @@ function QuestPage() {
           // Determine time remaining
           let timeRemaining: number | undefined;
           if (assignment.state === 'in-progress') {
-            timeRemaining = timers[assignment._id];
+            timeRemaining = getTargetTimeRemaining(assignment._id);
           } else if (assignment.state === 'completed' || assignment.state === 'informed') {
             timeRemaining = 0;
           } else {
@@ -219,7 +160,7 @@ function QuestPage() {
               : 0;
 
           const assignedSettler = assignment.settlerId
-            ? colony.settlers.find(s => s._id === assignment.settlerId)
+            ? colony?.settlers?.find(s => s._id === assignment.settlerId)
             : null;
 
           // Determine task status
@@ -230,12 +171,12 @@ function QuestPage() {
             status = 'completed';
           } else if (assignment.state === 'in-progress') {
             // Check if this assignment is being informed (unloading)
-            if (informingAssignments.has(assignment._id)) {
+            if (isTargetInforming(assignment._id)) {
               status = 'unloading';
             } else {
               status = 'in-progress';
             }
-          } else if (startingAssignmentId === assignment._id) {
+          } else if (isTargetStarting(assignment)) {
             status = 'starting';
           } else if (assignment.state === 'available' && !dependencyMet) {
             status = 'blocked';
@@ -248,9 +189,9 @@ function QuestPage() {
           if (status === 'available' && dependencyMet && availableSettlersForDisplay.length > 0) {
             actions.push({
               label: "Assign Settler",
-              onClick: () => handleAssignClick(assignment._id),
+              onClick: () => handleAssignClick(assignment),
               variant: 'contained' as const,
-              disabled: startingAssignmentId === assignment._id
+              disabled: isTargetStarting(assignment)
             });
           } else if (status === 'available' && dependencyMet && availableSettlersForDisplay.length === 0) {
             actions.push({
@@ -346,10 +287,10 @@ function QuestPage() {
       {/* Enhanced Settler Selection Dialog with Assignment Effects */}
       <SettlerSelectorDialog
         open={settlerDialogOpen}
-        onClose={() => setSettlerDialogOpen(false)}
+        onClose={handleDialogClose}
         onSelect={handleSettlerSelect}
-        settlers={availableSettlersForDisplay}
-        title={`Assign Settler to: ${selectedTask?.name || ''}`}
+        settlers={availableSettlers}
+        title={`Assign Settler to: ${(selectedTask as Assignment)?.name || ''}`}
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks."
         showSkills={true}
