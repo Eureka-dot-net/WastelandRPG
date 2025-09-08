@@ -4,6 +4,7 @@ import {
 import {
   Container, Paper, Typography, Grid, useTheme, useMediaQuery
 } from "@mui/material";
+import { useMemo } from "react";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useAssignment } from "../../lib/hooks/useAssignment";
@@ -27,7 +28,7 @@ function QuestPage() {
   const { assignments, loadingAssignment, startAssignment } = useAssignment(serverId, null, { type: ['quest'] });
 
   // Create a wrapper for the mutation to match StartAssignmentMutation interface
-  const startAssignmentWrapper = {
+  const startAssignmentWrapper = useMemo(() => ({
     mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
       const { assignmentId, settlerId } = params;
       startAssignment.mutate(
@@ -36,10 +37,10 @@ function QuestPage() {
       );
     },
     isPending: startAssignment.isPending,
-  };
+  }), [startAssignment]);
 
-  // Create configuration for useAssignmentPage hook  
-  const config = createQuestPageConfig(startAssignmentWrapper);
+  // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
+  const config = useMemo(() => createQuestPageConfig(startAssignmentWrapper), [startAssignmentWrapper]);
 
   // Use the common assignment page hook
   const {

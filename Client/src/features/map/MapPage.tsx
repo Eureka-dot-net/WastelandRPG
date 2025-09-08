@@ -42,7 +42,7 @@ function MapPage() {
   }, [map?.grid?.tiles, centerX, centerY]);
 
   // Create a wrapper for the mutation to match StartAssignmentMutation interface
-  const startExplorationWrapper = {
+  const startExplorationWrapper = useMemo(() => ({
     mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
       const { row, col, settlerId, previewDuration } = params;
       startExploration.mutate(
@@ -56,10 +56,10 @@ function MapPage() {
       );
     },
     isPending: startExploration.isPending,
-  };
+  }), [startExploration]);
 
-  // Create configuration for useAssignmentPage hook
-  const config = createMapExplorationConfig(startExplorationWrapper);
+  // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
+  const config = useMemo(() => createMapExplorationConfig(startExplorationWrapper), [startExplorationWrapper]);
 
   // Use the common assignment page hook
   const {
