@@ -1,0 +1,44 @@
+[
+  {
+    "statusId": "idle",
+    "name": "Idle",
+    "description": "Settler is not assigned to any tasks and is resting at the colony",
+    "energyDeltaPerHour": 1,
+    "icon": "GiHouse"
+  },
+  {
+    "statusId": "resting",
+    "name": "Resting", 
+    "description": "Settler is actively resting and recovering energy",
+    "energyDeltaPerHour": 10,
+    "icon": "GiSleeping"
+  },
+  {
+    "statusId": "working",
+    "name": "Working",
+    "description": "Settler is performing general work assignments",
+    "energyDeltaPerHour": -8,
+    "icon": "GiHammer"
+  },
+  {
+    "statusId": "exploring",
+    "name": "Exploring",
+    "description": "Settler is exploring new territories and searching for resources",
+    "energyDeltaPerHour": -8,
+    "icon": "GiMagnifyingGlass"
+  },
+  {
+    "statusId": "questing",
+    "name": "Questing",
+    "description": "Settler is undertaking special quest assignments",
+    "energyDeltaPerHour": -8,
+    "icon": "GiScrollQuill"
+  },
+  {
+    "statusId": "crafting",
+    "name": "Crafting",
+    "description": "Settler is crafting items and equipment",
+    "energyDeltaPerHour": -8,
+    "icon": "GiAnvil"
+  }
+]

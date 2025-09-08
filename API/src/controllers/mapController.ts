@@ -285,7 +285,14 @@ export const startExploration = async (req: Request, res: Response) => {
         adjustments: explorationData.adjustments
       });
 
-      await Settler.findByIdAndUpdate(validatedSettlerId, { status: 'exploring' }, { session: session });
+      // Update settler status using SettlerManager to properly handle energy
+      const settler = await Settler.findById(validatedSettlerId).session(session);
+      if (!settler) {
+        throw new Error('Settler not found');
+      }
+      const settlerManager = new SettlerManager(settler);
+      await settlerManager.changeStatus('exploring', session);
+      
       await assignment.save({ session: session });
 
 

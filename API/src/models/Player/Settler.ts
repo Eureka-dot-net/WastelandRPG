@@ -69,6 +69,7 @@ export interface ISettler {
   morale: number;
   hunger: number;
   energy: number;
+  energyLastUpdated: Date;
   carry: ISettlerItem[];
   equipment: IEquipment;
   foodConsumption: number;
@@ -118,6 +119,7 @@ export const settlerSchema = new Schema({
   morale: { type: Number, default: 90 },
   hunger: { type: Number, default: 0 },
   energy: { type: Number, default: 100 },
+  energyLastUpdated: { type: Date, default: Date.now },
   foodConsumption: { type: Number, default: 1 },
   carry: [settlerItemSchema],
   equipment: equipmentSchema,
