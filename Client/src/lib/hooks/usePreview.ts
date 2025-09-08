@@ -1,4 +1,4 @@
-// Simple preview hooks without complex caching
+// Simplified batch-only preview hooks
 
 import { useQuery } from "@tanstack/react-query";
 import { agent } from "../api/agent";
@@ -7,49 +7,6 @@ import type { AssignmentPreviewResult, MapExplorationPreviewResult } from "../ty
 export interface Coordinate {
   x: number;
   y: number;
-}
-
-/**
- * Individual assignment preview hook
- */
-export function usePreviewAssignment(
-  colonyId: string,
-  assignmentId: string,
-  settlerId: string,
-  enabled = true
-) {
-  return useQuery<AssignmentPreviewResult, Error>({
-    queryKey: ["assignmentPreview", colonyId, assignmentId, settlerId],
-    queryFn: async () => {
-      const url = `/colonies/${colonyId}/assignments/${assignmentId}/preview?settlerId=${settlerId}`;
-      const response = await agent.get(url);
-      return response.data as AssignmentPreviewResult;
-    },
-    enabled: enabled && !!assignmentId && !!settlerId && !!colonyId,
-    staleTime: 5 * 60 * 1000, // cache for 5 min
-  });
-}
-
-/**
- * Individual map exploration preview hook
- */
-export function usePreviewMapExploration(
-  colonyId: string,
-  x: number,
-  y: number,
-  settlerId: string,
-  enabled = true
-) {
-  return useQuery<MapExplorationPreviewResult, Error>({
-    queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settlerId],
-    queryFn: async () => {
-      const url = `/colonies/${colonyId}/map/preview?x=${x}&y=${y}&settlerId=${settlerId}`;
-      const response = await agent.get(url);
-      return response.data as MapExplorationPreviewResult;
-    },
-    enabled: enabled && !!colonyId && !!settlerId && !isNaN(x) && !isNaN(y),
-    staleTime: 5 * 60 * 1000, // cache for 5 min
-  });
 }
 
 /**
