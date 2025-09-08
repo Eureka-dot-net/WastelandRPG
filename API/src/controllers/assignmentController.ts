@@ -318,49 +318,6 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
   }
 };
 
-// GET /colonies/:colonyId/assignments/:assignmentId/preview?settlerId=...
-export const previewAssignment = async (req: Request, res: Response) => {
-  const { assignmentId } = req.params;
-  const { settlerId } = req.query as { settlerId?: string };
-
-  if (!settlerId) {
-    return res.status(400).json({ error: 'settlerId is required' });
-  }
-
-  if (!Types.ObjectId.isValid(assignmentId) || !Types.ObjectId.isValid(settlerId)) {
-    return res.status(400).json({ error: 'Invalid IDs' });
-  }
-
-  try {
-    const assignment = await Assignment.findById(assignmentId);
-    if (!assignment) {
-      return res.status(404).json({ error: 'Assignment not found' });
-    }
-
-    const settler = await Settler.findById(settlerId);
-    if (!settler) {
-      return res.status(404).json({ error: 'Settler not found' });
-    }
-
-    // Calculate what the adjustments would be without starting the assignment
-    const adjustments = calculateAssignmentAdjustments(assignment, settler);
-
-    res.json({
-      settlerId: settler._id,
-      settlerName: settler.name,
-      baseDuration: assignment.duration,
-      basePlannedRewards: assignment.plannedRewards,
-      adjustments
-    });
-  } catch (err) {
-    logError('Failed to preview assignment', err, { 
-      colonyId: req.colonyId, 
-      assignmentId: req.params.assignmentId,
-      settlerId: req.query.settlerId 
-    });
-    res.status(500).json({ error: 'Failed to preview assignment' });
-  }
-};
 
 export const informAssignment = async (req: Request, res: Response) => {
   const { assignmentId } = req.params;
