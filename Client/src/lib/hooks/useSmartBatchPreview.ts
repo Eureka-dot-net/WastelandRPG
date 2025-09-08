@@ -1,5 +1,5 @@
-// Smart batch preview with intelligent caching for individual combinations
-// Only fetches missing settler+assignment/coordinate combinations
+// Generic smart batch preview with intelligent caching
+// Supports any settler + target combination (assignments, coordinates, etc.)
 
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useRef } from 'react';
@@ -16,10 +16,8 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-// Generic smart cache hook for tracking individual combinations
-function useSmartCache<T>(
-  staleTime: number = 5 * 60 * 1000 // 5 minutes
-) {
+// Generic smart cache hook
+function useSmartCache<T>(staleTime: number = 5 * 60 * 1000) {
   const cacheRef = useRef<Map<string, CacheEntry<T>>>(new Map());
 
   const getCachedCombinations = useCallback((keys: string[]) => {
@@ -57,8 +55,102 @@ function useSmartCache<T>(
   return { getCachedCombinations, getMissingKeys, setCachedData };
 }
 
+// Generic batch preview hook
+function useSmartBatchPreview<T>(
+  colonyId: string,
+  settlerIds: string[],
+  targets: unknown[],
+  config: {
+    queryKeyPrefix: string;
+    endpointPath: string;
+    targetToString: (target: unknown) => string;
+    targetToParam: (targets: string[]) => string;
+    paramName: string;
+  },
+  enabled = true
+) {
+  const { getCachedCombinations, getMissingKeys, setCachedData } = useSmartCache<T>();
+
+  return useQuery<{ results: Record<string, Record<string, T>> }, Error>({
+    queryKey: [config.queryKeyPrefix, colonyId, settlerIds.sort(), targets],
+    queryFn: async () => {
+      if (settlerIds.length === 0 || targets.length === 0) {
+        return { results: {} };
+      }
+
+      // Generate all possible combination keys
+      const allCombinations: Array<{settlerId: string, targetStr: string, key: string}> = [];
+      settlerIds.forEach(settlerId => {
+        targets.forEach(target => {
+          const targetStr = config.targetToString(target);
+          allCombinations.push({
+            settlerId,
+            targetStr,
+            key: `${settlerId}:${targetStr}`
+          });
+        });
+      });
+
+      const allKeys = allCombinations.map(c => c.key);
+      
+      // Get cached data
+      const cachedData = getCachedCombinations(allKeys);
+      
+      // Find missing combinations
+      const missingKeys = getMissingKeys(allKeys);
+      const missingCombinations = allCombinations.filter(c => missingKeys.includes(c.key));
+      
+      let freshData: Record<string, T> = {};
+      
+      // Fetch missing data if needed
+      if (missingCombinations.length > 0) {
+        console.log(`Fetching ${missingCombinations.length} missing ${config.queryKeyPrefix} combinations`);
+        
+        const missingSettlerIds = [...new Set(missingCombinations.map(c => c.settlerId))];
+        const missingTargetStrs = [...new Set(missingCombinations.map(c => c.targetStr))];
+        
+        const settlerIdsParam = missingSettlerIds.join(',');
+        const targetsParam = config.targetToParam(missingTargetStrs);
+        const url = `/colonies/${colonyId}/${config.endpointPath}?settlerIds=${settlerIdsParam}&${config.paramName}=${targetsParam}`;
+        
+        const response = await agent.get(url);
+        const batchData = response.data as { results: Record<string, Record<string, T>> };
+        
+        // Flatten batch response
+        const fetchedData: Record<string, T> = {};
+        Object.entries(batchData.results).forEach(([settlerId, targetResults]) => {
+          Object.entries(targetResults).forEach(([targetStr, result]) => {
+            const key = `${settlerId}:${targetStr}`;
+            fetchedData[key] = result;
+          });
+        });
+        
+        freshData = fetchedData;
+        setCachedData(freshData);
+      }
+      
+      // Combine cached and fresh data
+      const combinedData = { ...cachedData, ...freshData };
+      
+      // Convert back to nested structure
+      const results: Record<string, Record<string, T>> = {};
+      Object.entries(combinedData).forEach(([key, result]) => {
+        const [settlerId, targetStr] = key.split(':');
+        if (!results[settlerId]) results[settlerId] = {};
+        results[settlerId][targetStr] = result;
+      });
+      
+      console.log(`${config.queryKeyPrefix}: ${Object.keys(cachedData).length} from cache, ${Object.keys(freshData).length} newly fetched`);
+      
+      return { results };
+    },
+    enabled: enabled && !!colonyId && settlerIds.length > 0 && targets.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 /**
- * Smart batch assignment preview that only fetches missing combinations
+ * Smart batch assignment preview
  */
 export function useSmartBatchPreviewAssignment(
   colonyId: string,
@@ -66,90 +158,23 @@ export function useSmartBatchPreviewAssignment(
   assignmentIds: string[],
   enabled = true
 ) {
-  const { getCachedCombinations, getMissingKeys, setCachedData } = useSmartCache<AssignmentPreviewResult>();
-
-  return useQuery<{ results: Record<string, Record<string, AssignmentPreviewResult>> }, Error>({
-    queryKey: ["smartAssignmentPreviewBatch", colonyId, settlerIds.sort(), assignmentIds.sort()],
-    queryFn: async () => {
-      if (settlerIds.length === 0 || assignmentIds.length === 0) {
-        return { results: {} };
-      }
-
-      // Generate all possible combination keys
-      const allCombinations: Array<{settlerId: string, assignmentId: string, key: string}> = [];
-      settlerIds.forEach(settlerId => {
-        assignmentIds.forEach(assignmentId => {
-          allCombinations.push({
-            settlerId,
-            assignmentId, 
-            key: `${settlerId}:${assignmentId}`
-          });
-        });
-      });
-
-      const allKeys = allCombinations.map(c => c.key);
-      
-      // Get cached data
-      const cachedData = getCachedCombinations(allKeys);
-      
-      // Find missing combinations that need to be fetched
-      const missingKeys = getMissingKeys(allKeys);
-      const missingCombinations = allCombinations.filter(c => missingKeys.includes(c.key));
-      
-      let freshData: Record<string, AssignmentPreviewResult> = {};
-      
-      // Fetch missing data if needed
-      if (missingCombinations.length > 0) {
-        console.log(`Fetching ${missingCombinations.length} missing assignment preview combinations`);
-        
-        // Extract unique settler and assignment IDs from missing combinations
-        const missingSettlerIds = [...new Set(missingCombinations.map(c => c.settlerId))];
-        const missingAssignmentIds = [...new Set(missingCombinations.map(c => c.assignmentId))];
-        
-        const settlerIdsParam = missingSettlerIds.join(',');
-        const assignmentIdsParam = missingAssignmentIds.join(',');
-        const url = `/colonies/${colonyId}/assignments/preview-batch?settlerIds=${settlerIdsParam}&assignmentIds=${assignmentIdsParam}`;
-        
-        const response = await agent.get(url);
-        const batchData = response.data as { results: Record<string, Record<string, AssignmentPreviewResult>> };
-        
-        // Flatten the batch response into our flat key format  
-        const fetchedData: Record<string, AssignmentPreviewResult> = {};
-        Object.entries(batchData.results).forEach(([settlerId, assignmentResults]) => {
-          Object.entries(assignmentResults).forEach(([assignmentId, result]) => {
-            const key = `${settlerId}:${assignmentId}`;
-            fetchedData[key] = result;
-          });
-        });
-        
-        freshData = fetchedData;
-        
-        // Cache the fresh data
-        setCachedData(freshData);
-      }
-      
-      // Combine cached and fresh data
-      const combinedData = { ...cachedData, ...freshData };
-      
-      // Convert back to nested structure expected by components
-      const results: Record<string, Record<string, AssignmentPreviewResult>> = {};
-      Object.entries(combinedData).forEach(([key, result]) => {
-        const [settlerId, assignmentId] = key.split(':');
-        if (!results[settlerId]) results[settlerId] = {};
-        results[settlerId][assignmentId] = result;
-      });
-      
-      console.log(`Assignment previews: ${Object.keys(cachedData).length} from cache, ${Object.keys(freshData).length} newly fetched`);
-      
-      return { results };
+  return useSmartBatchPreview<AssignmentPreviewResult>(
+    colonyId,
+    settlerIds,
+    assignmentIds,
+    {
+      queryKeyPrefix: "smartAssignmentPreviewBatch",
+      endpointPath: "assignments/preview-batch",
+      targetToString: (target: unknown) => target as string,
+      targetToParam: (assignmentIds: string[]) => assignmentIds.join(','),
+      paramName: "assignmentIds"
     },
-    enabled: enabled && !!colonyId && settlerIds.length > 0 && assignmentIds.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+    enabled
+  );
 }
 
 /**
- * Smart batch map exploration preview that only fetches missing combinations  
+ * Smart batch map exploration preview
  */
 export function useSmartBatchPreviewMapExploration(
   colonyId: string,
@@ -157,85 +182,20 @@ export function useSmartBatchPreviewMapExploration(
   coordinates: Coordinate[],
   enabled = true
 ) {
-  const { getCachedCombinations, getMissingKeys, setCachedData } = useSmartCache<MapExplorationPreviewResult>();
-
-  return useQuery<{ results: Record<string, Record<string, MapExplorationPreviewResult>> }, Error>({
-    queryKey: ["smartMapExplorationPreviewBatch", colonyId, settlerIds.sort(), coordinates],
-    queryFn: async () => {
-      if (settlerIds.length === 0 || coordinates.length === 0) {
-        return { results: {} };
-      }
-
-      // Generate all possible combination keys
-      const allCombinations: Array<{settlerId: string, coordStr: string, key: string}> = [];
-      settlerIds.forEach(settlerId => {
-        coordinates.forEach(coord => {
-          const coordStr = `${coord.x}:${coord.y}`;
-          allCombinations.push({
-            settlerId,
-            coordStr,
-            key: `${settlerId}:${coordStr}`
-          });
-        });
-      });
-
-      const allKeys = allCombinations.map(c => c.key);
-      
-      // Get cached data
-      const cachedData = getCachedCombinations(allKeys);
-      
-      // Find missing combinations that need to be fetched
-      const missingKeys = getMissingKeys(allKeys);
-      const missingCombinations = allCombinations.filter(c => missingKeys.includes(c.key));
-      
-      let freshData: Record<string, MapExplorationPreviewResult> = {};
-      
-      // Fetch missing data if needed
-      if (missingCombinations.length > 0) {
-        console.log(`Fetching ${missingCombinations.length} missing map exploration preview combinations`);
-        
-        // Extract unique settler IDs and coordinate strings from missing combinations
-        const missingSettlerIds = [...new Set(missingCombinations.map(c => c.settlerId))];
-        const missingCoordStrs = [...new Set(missingCombinations.map(c => c.coordStr))];
-        
-        const settlerIdsParam = missingSettlerIds.join(',');
-        const coordinatesParam = missingCoordStrs.join(',');
-        const url = `/colonies/${colonyId}/map/preview-batch?settlerIds=${settlerIdsParam}&coordinates=${coordinatesParam}`;
-        
-        const response = await agent.get(url);
-        const batchData = response.data as { results: Record<string, Record<string, MapExplorationPreviewResult>> };
-        
-        // Flatten the batch response into our flat key format
-        const fetchedData: Record<string, MapExplorationPreviewResult> = {};
-        Object.entries(batchData.results).forEach(([settlerId, coordResults]) => {
-          Object.entries(coordResults).forEach(([coordStr, result]) => {
-            const key = `${settlerId}:${coordStr}`;
-            fetchedData[key] = result;
-          });
-        });
-        
-        freshData = fetchedData;
-        
-        // Cache the fresh data
-        setCachedData(freshData);
-      }
-      
-      // Combine cached and fresh data
-      const combinedData = { ...cachedData, ...freshData };
-      
-      // Convert back to nested structure expected by components
-      const results: Record<string, Record<string, MapExplorationPreviewResult>> = {};
-      Object.entries(combinedData).forEach(([key, result]) => {
-        const [settlerId, coordStr] = key.split(':');
-        if (!results[settlerId]) results[settlerId] = {};
-        results[settlerId][coordStr] = result;
-      });
-      
-      console.log(`Map exploration previews: ${Object.keys(cachedData).length} from cache, ${Object.keys(freshData).length} newly fetched`);
-      
-      return { results };
+  return useSmartBatchPreview<MapExplorationPreviewResult>(
+    colonyId,
+    settlerIds,
+    coordinates,
+    {
+      queryKeyPrefix: "smartMapExplorationPreviewBatch",
+      endpointPath: "map/preview-batch",
+      targetToString: (target: unknown) => {
+        const coord = target as Coordinate;
+        return `${coord.x}:${coord.y}`;
+      },
+      targetToParam: (coordStrs: string[]) => coordStrs.join(','),
+      paramName: "coordinates"
     },
-    enabled: enabled && !!colonyId && settlerIds.length > 0 && coordinates.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+    enabled
+  );
 }
