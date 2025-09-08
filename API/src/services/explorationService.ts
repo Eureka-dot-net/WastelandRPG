@@ -4,7 +4,8 @@ import { ClientSession } from "mongoose";
 import { completeGameEventsForColony } from './gameEventsService';
 import { Settler } from "../models/Player/Settler";
 import { UserMapTileDoc, UserMapTile } from "../models/Player/UserMapTile";
-import { calculateDistance, calculateDistanceModifiers, calculateSettlerAdjustments } from "../utils/gameUtils";
+import { calculateDistance, calculateDistanceModifiers } from "../utils/gameUtils";
+import { SettlerManager } from "../managers/SettlerManager";
 import { createOrUpdateMapTile, canExploreLocation } from "../utils/mapUtils"; 
 
 interface ExplorationCalculationResult {
@@ -96,7 +97,30 @@ export const calculateExplorationDetails = async (
     });
   }
 
-  const adjustments = calculateSettlerAdjustments(explorationTime, baseRewards, settler);
+  // Use SettlerManager for adjustments instead of calculateSettlerAdjustments
+  const settlerManager = new SettlerManager(settler);
+  const timeMultiplier = settlerManager.adjustedTimeMultiplier('exploration');
+  const lootMultiplier_adjusted = settlerManager.adjustedLootMultiplier('exploration');
+  
+  const adjustedDuration = Math.round(explorationTime / timeMultiplier);
+  
+  // Apply loot multiplier to planned rewards
+  const adjustedPlannedRewards: Record<string, number> = {};
+  Object.entries(baseRewards).forEach(([key, amount]) => {
+    adjustedPlannedRewards[key] = Math.max(1, Math.round(amount * lootMultiplier_adjusted));
+  });
+
+  const adjustments = {
+    adjustedDuration,
+    effectiveSpeed: 1 / timeMultiplier,
+    lootMultiplier: lootMultiplier_adjusted,
+    adjustedPlannedRewards,
+    effects: {
+      speedEffects: [],
+      lootEffects: [],
+      traitEffects: []
+    }
+  };
 
   return {
     coordinates: { x: tileX, y: tileY },
