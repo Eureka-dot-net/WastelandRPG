@@ -2,16 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { agent } from "../api/agent";
-import type { MapExplorationPreviewResult } from "./usePreviewMapExploration";
-
-export interface BatchMapExplorationPreviewResult {
-  results: Record<string, Record<string, MapExplorationPreviewResult>>;
-}
-
-export interface Coordinate {
-  x: number;
-  y: number;
-}
+import type { BatchMapExplorationPreviewResult, Coordinate } from "./useSmartBatchPreview";
 
 /**
  * Hook to get preview data for multiple explorations and settlers in a single request

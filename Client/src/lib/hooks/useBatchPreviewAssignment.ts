@@ -2,11 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { agent } from "../api/agent";
-import type { PreviewAssignmentResult } from "./usePreviewAssignment";
-
-export interface BatchAssignmentPreviewResult {
-  results: Record<string, Record<string, PreviewAssignmentResult>>;
-}
+import type { BatchAssignmentPreviewResult } from "./useSmartBatchPreview";
 
 /**
  * Hook to get preview data for multiple assignments and settlers in a single request

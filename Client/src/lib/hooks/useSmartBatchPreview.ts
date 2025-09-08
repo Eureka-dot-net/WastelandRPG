@@ -1,12 +1,12 @@
 // Enhanced batch preview hooks with smart caching
 
 import { useQuery } from "@tanstack/react-query";
-import type { PreviewAssignmentResult } from "./usePreviewAssignment";
-import type { MapExplorationPreviewResult } from "./usePreviewMapExploration";
+import { agent } from "../api/agent";
+import type { AssignmentPreviewResult, MapExplorationPreviewResult } from "../types/preview";
 import { useSmartBatchCache } from "./useSmartBatchCache";
 
 export interface BatchAssignmentPreviewResult {
-  results: Record<string, Record<string, PreviewAssignmentResult>>;
+  results: Record<string, Record<string, AssignmentPreviewResult>>;
 }
 
 export interface BatchMapExplorationPreviewResult {
@@ -18,6 +18,52 @@ export interface Coordinate {
   y: number;
 }
 
+// Re-export the individual result types for backward compatibility
+export type { AssignmentPreviewResult as PreviewAssignmentResult, MapExplorationPreviewResult };
+
+/**
+ * Individual assignment preview hook - calls API directly
+ */
+export function usePreviewAssignment(
+  colonyId: string,
+  assignmentId: string,
+  settlerId: string,
+  enabled = true
+) {
+  return useQuery<AssignmentPreviewResult, Error>({
+    queryKey: ["assignmentPreview", colonyId, assignmentId, settlerId],
+    queryFn: async () => {
+      const url = `/colonies/${colonyId}/assignments/${assignmentId}/preview?settlerId=${settlerId}`;
+      const response = await agent.get(url);
+      return response.data as AssignmentPreviewResult;
+    },
+    enabled: enabled && !!assignmentId && !!settlerId,
+    staleTime: 5 * 60 * 1000, // cache for 5 min
+  });
+}
+
+/**
+ * Individual map exploration preview hook - calls API directly
+ */
+export function usePreviewMapExploration(
+  colonyId: string,
+  x: number,
+  y: number,
+  settlerId: string,
+  enabled = true
+) {
+  return useQuery<MapExplorationPreviewResult, Error>({
+    queryKey: ["mapExplorationPreview", colonyId, x.toString(), y.toString(), settlerId],
+    queryFn: async () => {
+      const url = `/colonies/${colonyId}/map/preview?x=${x}&y=${y}&settlerId=${settlerId}`;
+      const response = await agent.get(url);
+      return response.data as MapExplorationPreviewResult;
+    },
+    enabled: enabled && !!colonyId && !!settlerId && !isNaN(x) && !isNaN(y),
+    staleTime: 5 * 60 * 1000, // cache for 5 min
+  });
+}
+
 /**
  * Enhanced batch assignment preview hook with smart caching
  */
@@ -27,7 +73,7 @@ export function useSmartBatchPreviewAssignment(
   assignmentIds: string[],
   enabled = true
 ) {
-  const { getSmartBatchData } = useSmartBatchCache<PreviewAssignmentResult>(
+  const { getSmartBatchData } = useSmartBatchCache<AssignmentPreviewResult>(
     (colonyId) => `/colonies/${colonyId}/assignments/preview-batch`,
     (settlerId, assignmentId) => `${settlerId}:${assignmentId}`
   );

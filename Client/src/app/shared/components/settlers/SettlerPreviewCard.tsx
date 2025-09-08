@@ -18,14 +18,6 @@ import type { UnifiedPreview } from '../../../../lib/types/preview';
 import { isAssignmentPreview, isMapExplorationPreview } from '../../../../lib/types/preview';
 import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
 
-const getSpeedChipColor = (multiplier: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
-  if (multiplier < 0.25) return "error";
-  if (multiplier < 0.66) return "warning";
-  if (multiplier < 1.0) return "secondary";
-  if (multiplier < 1.25) return "primary";
-  if (multiplier < 1.5) return "info";
-  return "success";
-};
 const getStatChipColor = (percent: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
   if (percent <= -66) return "error";
   if (percent < -33) return "warning";
@@ -82,39 +74,6 @@ const EfficiencyBar = ({ percent, type }: { percent: number; type: 'duration' | 
         />
       </Box>
     </Box>
-  );
-};
-
-const EffectChip = ({ effect }: { effect: string }) => {
-  if (effect.includes('Speed stat:')) {
-    const multiplierMatch = effect.match(/Speed stat:\s*([\d.]+)x/);
-    let multiplier = 1.0;
-    if (multiplierMatch) multiplier = parseFloat(multiplierMatch[1]);
-    let sxColor = {};
-    if (multiplier < 1.0) sxColor = { backgroundColor: '#FFD600', color: '#333' };
-    else if (multiplier >= 1.0 && multiplier < 1.25) sxColor = { backgroundColor: '#9C27B0', color: '#fff' };
-    return (
-      <Chip
-        size="small"
-        label={effect}
-        color={getSpeedChipColor(multiplier)}
-        sx={{ fontSize: '0.65rem', ...sxColor }}
-      />
-    );
-  }
-  const percentMatch = effect.match(/([+-]?\d+)%/);
-  let percent = 0;
-  if (percentMatch) percent = parseInt(percentMatch[1], 10);
-  let sxColor = {};
-  if (percent < 0 && percent >= -33) sxColor = { backgroundColor: '#FFD600', color: '#333' };
-  else if (percent >= 0 && percent < 33) sxColor = { backgroundColor: '#9C27B0', color: '#fff' };
-  return (
-    <Chip
-      size="small"
-      label={effect}
-      color={getStatChipColor(percent)}
-      sx={{ fontSize: '0.65rem', ...sxColor }}
-    />
   );
 };
 
@@ -275,35 +234,6 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                       type="loot"
                     />
                   </Box>
-                  {/* Active Effects */}
-                  {(preview.adjustments.speedEffects.length > 0 ||
-                    preview.adjustments.lootEffects.length > 0 ||
-                    preview.adjustments.traitEffects.length > 0) && (
-                      <Box>
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary" 
-                          sx={{ 
-                            mb: 0.4, 
-                            display: 'block',
-                            fontSize: isMobile ? '0.65rem' : '0.7rem'
-                          }}
-                        >
-                          Active Effects:
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.4}>
-                          {preview.adjustments.speedEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`speed-${i}`} effect={effect} />
-                          ))}
-                          {preview.adjustments.lootEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`loot-${i}`} effect={effect} />
-                          ))}
-                          {preview.adjustments.traitEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`trait-${i}`} effect={effect} />
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
                 </>
               ) : isMapExplorationPreview(preview) ? (
                 <>
@@ -339,35 +269,6 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                       </Typography>
                     </Box>
                   )}
-                  {/* Active Effects */}
-                  {(preview.adjustments.speedEffects.length > 0 ||
-                    preview.adjustments.lootEffects.length > 0 ||
-                    preview.adjustments.traitEffects.length > 0) && (
-                      <Box>
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary" 
-                          sx={{ 
-                            mb: 0.4, 
-                            display: 'block',
-                            fontSize: isMobile ? '0.65rem' : '0.7rem'
-                          }}
-                        >
-                          Active Effects:
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.4}>
-                          {preview.adjustments.speedEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`speed-${i}`} effect={effect} />
-                          ))}
-                          {preview.adjustments.lootEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`loot-${i}`} effect={effect} />
-                          ))}
-                          {preview.adjustments.traitEffects.map((effect: string, i: number) => (
-                            <EffectChip key={`trait-${i}`} effect={effect} />
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
                 </>
               ) : null}
             </Box>

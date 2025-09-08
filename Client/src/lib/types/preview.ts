@@ -1,9 +1,50 @@
-// Unified preview data types for SettlerPreviewCard
+// Unified preview data types for standardized API responses
 
+// Base preview result that both assignment and exploration previews share
+export interface BasePreviewResult {
+  settlerId: string;
+  settlerName: string;
+  baseDuration: number;
+  basePlannedRewards: Record<string, number>;
+  adjustments: {
+    adjustedDuration: number;
+    effectiveSpeed: number;
+    lootMultiplier: number;
+    adjustedPlannedRewards: Record<string, number>;
+  };
+}
+
+// Assignment-specific preview result (extends base with no additional required fields)
+export type AssignmentPreviewResult = BasePreviewResult;
+
+// Map exploration-specific preview result  
+export interface MapExplorationPreviewResult extends BasePreviewResult {
+  // Map-specific fields
+  coordinates: { x: number; y: number };
+  alreadyExplored: boolean;
+  estimatedLoot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
+  terrain?: {
+    type: string;
+    name: string;
+    description: string;
+    icon: string;
+  };
+}
+
+// Batch results
+export interface BatchAssignmentPreviewResult {
+  results: Record<string, Record<string, AssignmentPreviewResult>>;
+}
+
+export interface BatchMapExplorationPreviewResult {
+  results: Record<string, Record<string, MapExplorationPreviewResult>>;
+}
+
+// Legacy types kept for backward compatibility during transition
 export interface PreviewAdjustments {
-  speedEffects: string[];
-  lootEffects: string[];
-  traitEffects: string[];
+  speedEffects?: string[];
+  lootEffects?: string[];
+  traitEffects?: string[];
 }
 
 export interface PreviewTerrain {
@@ -27,12 +68,12 @@ export interface AssignmentPreview extends BasePreview {
   baseDuration: number;
   basePlannedRewards: Record<string, number>;
   adjustments: {
-    speedEffects: string[];
-    lootEffects: string[];
-    traitEffects: string[];
+    speedEffects?: string[];
+    lootEffects?: string[];
+    traitEffects?: string[];
     adjustedDuration: number;
     lootMultiplier: number;
-    effects: PreviewAdjustments;
+    effects?: PreviewAdjustments;
   };
 }
 
@@ -51,7 +92,7 @@ export interface MapExplorationPreview extends BasePreview {
   alreadyExplored: boolean;
 }
 
-// Union type for all preview types
+// Union type for all preview types  
 export type UnifiedPreview = AssignmentPreview | MapExplorationPreview;
 
 // Type guards
