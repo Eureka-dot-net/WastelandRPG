@@ -16,13 +16,21 @@ describe('UserMapTile functionality', () => {
       x: 0,
       y: 0,
       terrain: 'center',
+      icon: 'GiHut', // Required field
       exploredAt: new Date()
     });
 
     // Create a UserMapTile
     const userMapTile = await UserMapTile.create({
       serverTile: mapTile._id,
+      x: mapTile.x, // Required field
+      y: mapTile.y, // Required field
+      terrain: mapTile.terrain, // Required field
+      icon: mapTile.icon, // Required field
       colonyId: 'test-colony-123',
+      distanceFromHomestead: 0, // Required field
+      explorationTime: 0, // Required field
+      lootMultiplier: 1.0, // Required field
       exploredAt: new Date()
     });
 
@@ -39,7 +47,14 @@ describe('UserMapTile functionality', () => {
     // Test unique constraint
     await expect(UserMapTile.create({
       serverTile: mapTile._id,
+      x: mapTile.x,
+      y: mapTile.y,
+      terrain: mapTile.terrain,
+      icon: mapTile.icon,
       colonyId: 'test-colony-123',
+      distanceFromHomestead: 0,
+      explorationTime: 0,
+      lootMultiplier: 1.0,
       exploredAt: new Date()
     })).rejects.toThrow();
   });
@@ -51,19 +66,34 @@ describe('UserMapTile functionality', () => {
       x: 0,
       y: 0,
       terrain: 'center',
+      icon: 'GiHut',
       exploredAt: new Date()
     });
 
     // Create UserMapTiles for two different colonies
     const userMapTile1 = await UserMapTile.create({
       serverTile: mapTile._id,
+      x: mapTile.x,
+      y: mapTile.y,
+      terrain: mapTile.terrain,
+      icon: mapTile.icon,
       colonyId: 'colony-1',
+      distanceFromHomestead: 0,
+      explorationTime: 0,
+      lootMultiplier: 1.0,
       exploredAt: new Date()
     });
 
     const userMapTile2 = await UserMapTile.create({
       serverTile: mapTile._id,
+      x: mapTile.x,
+      y: mapTile.y,
+      terrain: mapTile.terrain,
+      icon: mapTile.icon,
       colonyId: 'colony-2',
+      distanceFromHomestead: 0,
+      explorationTime: 0,
+      lootMultiplier: 1.0,
       exploredAt: new Date()
     });
 

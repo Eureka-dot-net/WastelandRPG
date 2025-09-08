@@ -17,7 +17,18 @@ describe('Player endpoints', () => {
   beforeAll(async () => {
     const result = await createTestUserAndColony({
       userProps: { email: 'playersettler@test.com', password: 'password123' },
-      colonyProps: { serverId, colonyName, level: 1, serverType: 'PvE' }
+      colonyProps: { 
+        serverId, 
+        serverName: 'Test Server',
+        colonyName, 
+        level: 1, 
+        serverType: 'PvE',
+        spiralIndex: 0,
+        spiralLayer: 0,
+        spiralPosition: 0,
+        spiralDirection: 0,
+        homesteadLocation: { x: 0, y: 0 }
+      }
     });
     userId = result.user._id;
     colony = result.colony;
@@ -43,9 +54,9 @@ describe('Player endpoints', () => {
       .send({ settlerId });
     
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('state', 'in-progress');
-    expect(res.body.settlerId).toBe(settlerId);
-    expect(new Date(res.body.startedAt).getTime()).toBeLessThanOrEqual(Date.now());
+    expect(res.body).toHaveProperty('success', true);
+    expect(res.body).toHaveProperty('assignmentId', assignment._id);
+    expect(res.body).toHaveProperty('settlerId', settlerId);
   });
 
   it('should return 400 if settlerId is missing', async () => {

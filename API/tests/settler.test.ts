@@ -14,7 +14,18 @@ describe('Player endpoints', () => {
   beforeAll(async () => {
     const result = await createTestUserAndColony({
       userProps: { email: 'playersettler@test.com', password: 'password123' },
-      colonyProps: { serverId, colonyName, level: 1, serverType: 'PvE' }
+      colonyProps: { 
+        serverId, 
+        serverName: 'Test Server',
+        colonyName, 
+        level: 1, 
+        serverType: 'PvE',
+        spiralIndex: 0,
+        spiralLayer: 0,
+        spiralPosition: 0,
+        spiralDirection: 0,
+        homesteadLocation: { x: 0, y: 0 }
+      }
     });
     userId = result.user._id;
     colony = result.colony;

@@ -22,18 +22,8 @@ export function supportsTransactions(): boolean {
     return true;
   }
   
-  // For tests, check if we have a connected replica set
-  if (process.env.NODE_ENV === 'test') {
-    try {
-      // Simple heuristic: if we can access topology and it's not single, assume replica set
-      return mongoose.connection?.readyState === 1 && 
-             mongoose.connection?.db?.admin !== undefined;
-    } catch {
-      return false;
-    }
-  }
-  
-  // Default to false for development unless explicitly configured
+  // For test and development environments, be conservative and don't use transactions
+  // unless explicitly configured as replica set
   return false;
 }
 

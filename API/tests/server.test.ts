@@ -15,7 +15,18 @@ describe('Server API', () => {
   beforeAll(async () => {
     const result = await createTestUserAndColony({
       userProps: { email: 'player@test.com', password: 'password123' },
-      colonyProps: { serverId, serverType: 'PvE', colonyName, level: 1 }
+      colonyProps: { 
+        serverId, 
+        serverName: 'Test Server',
+        serverType: 'PvE', 
+        colonyName, 
+        level: 1,
+        spiralIndex: 0,
+        spiralLayer: 0,
+        spiralPosition: 0,
+        spiralDirection: 0,
+        homesteadLocation: { x: 0, y: 0 }
+      }
     });
     userId = result.user._id;
     colony = result.colony  ;
