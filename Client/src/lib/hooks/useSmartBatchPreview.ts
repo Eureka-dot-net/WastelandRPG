@@ -23,14 +23,14 @@ function useSmartCache<T>(staleTime: number = 5 * 60 * 1000) {
   const getCachedCombinations = useCallback((keys: string[]) => {
     const now = Date.now();
     const cached: Record<string, T> = {};
-    
+
     keys.forEach(key => {
       const entry = cacheRef.current.get(key);
       if (entry && (now - entry.timestamp) < staleTime) {
         cached[key] = entry.data;
       }
     });
-    
+
     return cached;
   }, [staleTime]);
 
@@ -79,7 +79,7 @@ function useSmartBatchPreview<T>(
       }
 
       // Generate all possible combination keys
-      const allCombinations: Array<{settlerId: string, targetStr: string, key: string}> = [];
+      const allCombinations: Array<{ settlerId: string, targetStr: string, key: string }> = [];
       settlerIds.forEach(settlerId => {
         targets.forEach(target => {
           const targetStr = config.targetToString(target);
@@ -92,30 +92,30 @@ function useSmartBatchPreview<T>(
       });
 
       const allKeys = allCombinations.map(c => c.key);
-      
+
       // Get cached data
       const cachedData = getCachedCombinations(allKeys);
-      
+
       // Find missing combinations
       const missingKeys = getMissingKeys(allKeys);
       const missingCombinations = allCombinations.filter(c => missingKeys.includes(c.key));
-      
+
       let freshData: Record<string, T> = {};
-      
+
       // Fetch missing data if needed
       if (missingCombinations.length > 0) {
         console.log(`Fetching ${missingCombinations.length} missing ${config.queryKeyPrefix} combinations`);
-        
+
         const missingSettlerIds = [...new Set(missingCombinations.map(c => c.settlerId))];
         const missingTargetStrs = [...new Set(missingCombinations.map(c => c.targetStr))];
-        
+
         const settlerIdsParam = missingSettlerIds.join(',');
         const targetsParam = config.targetToParam(missingTargetStrs);
         const url = `/colonies/${colonyId}/${config.endpointPath}?settlerIds=${settlerIdsParam}&${config.paramName}=${targetsParam}`;
-        
+
         const response = await agent.get(url);
         const batchData = response.data as { results: Record<string, Record<string, T>> };
-        
+
         // Flatten batch response
         const fetchedData: Record<string, T> = {};
         Object.entries(batchData.results).forEach(([settlerId, targetResults]) => {
@@ -124,24 +124,26 @@ function useSmartBatchPreview<T>(
             fetchedData[key] = result;
           });
         });
-        
+
         freshData = fetchedData;
         setCachedData(freshData);
       }
-      
+
       // Combine cached and fresh data
       const combinedData = { ...cachedData, ...freshData };
-      
+
       // Convert back to nested structure
       const results: Record<string, Record<string, T>> = {};
       Object.entries(combinedData).forEach(([key, result]) => {
-        const [settlerId, targetStr] = key.split(':');
+        const index = key.indexOf(':');
+        const settlerId = key.substring(0, index);
+        const targetStr = key.substring(index + 1);
         if (!results[settlerId]) results[settlerId] = {};
         results[settlerId][targetStr] = result;
       });
-      
+
       console.log(`${config.queryKeyPrefix}: ${Object.keys(cachedData).length} from cache, ${Object.keys(freshData).length} newly fetched`);
-      
+
       return { results };
     },
     enabled: enabled && !!colonyId && settlerIds.length > 0 && targets.length > 0,
