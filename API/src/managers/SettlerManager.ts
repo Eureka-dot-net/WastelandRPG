@@ -1,6 +1,7 @@
 import type { SettlerDoc } from '../models/Player/Settler';
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import traitsCatalogue from '../data/traitsCatalogue.json';
+import statusCatalogue from '../data/statusCatalogue.json';
 import { addRewardsToColonyInventory } from '../services/gameEventsService';
 import { ClientSession } from 'mongoose';
 
@@ -489,6 +490,85 @@ export class SettlerManager {
       success: true,
       message: `Dropped ${droppedQuantity} ${itemId} from settler inventory`
     };
+  }
+
+  /**
+   * Get the energy delta per hour for a specific status from the status catalogue
+   * @param status - The settler status to get energy delta for
+   * @returns Energy change per hour for the given status
+   */
+  getEnergyDeltaForStatus(status: string): number {
+    const statusEntry = statusCatalogue.find(s => s.statusId === status);
+    return statusEntry?.energyDeltaPerHour || 0;
+  }
+
+  /**
+   * Calculate and update settler's current energy based on time passed since last update
+   * This should be called before any status changes to ensure energy is up to date
+   * @returns The updated energy value
+   */
+  updateEnergy(): number {
+    const now = new Date();
+    const lastUpdated = this.settler.energyLastUpdated || this.settler.createdAt || now;
+    
+    // Calculate hours passed since last energy update
+    const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursPassed > 0) {
+      // Get energy delta for current status
+      const energyDelta = this.getEnergyDeltaForStatus(this.settler.status);
+      
+      // Calculate energy change
+      const energyChange = energyDelta * hoursPassed;
+      
+      // Update energy (clamped between 0 and 100)
+      this.settler.energy = Math.max(0, Math.min(100, this.settler.energy + energyChange));
+      
+      // Update the last updated timestamp
+      this.settler.energyLastUpdated = now;
+    }
+    
+    return this.settler.energy;
+  }
+
+  /**
+   * Change settler status with proper energy calculation
+   * This should be used instead of directly setting settler.status
+   * @param newStatus - The new status to set
+   * @param session - MongoDB session for transaction
+   */
+  async changeStatus(newStatus: string, session: ClientSession): Promise<void> {
+    // First update energy based on time in current status
+    this.updateEnergy();
+    
+    // Change the status
+    this.settler.status = newStatus as any;
+    
+    // Save the changes
+    await this.settler.save({ session });
+  }
+
+  /**
+   * Check if settler has enough energy to complete a task of given duration
+   * @param status - The status/activity type for the task
+   * @param durationHours - Duration of the task in hours
+   * @returns Whether the settler can complete the task
+   */
+  canCompleteTask(status: string, durationHours: number): boolean {
+    // First ensure energy is up to date
+    this.updateEnergy();
+    
+    // Calculate energy that will be consumed during the task
+    const energyDelta = this.getEnergyDeltaForStatus(status);
+    const energyRequired = Math.abs(energyDelta * durationHours);
+    
+    // For energy-consuming tasks (negative delta), check if we have enough energy
+    if (energyDelta < 0) {
+      return this.settler.energy >= energyRequired;
+    }
+    
+    // For energy-gaining tasks (positive delta), always allow
+    return true;
   }
 
   toViewModel() {//return the full object to use in controllers.

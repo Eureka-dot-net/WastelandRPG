@@ -76,18 +76,33 @@ export const calculateExplorationDetails = async (
     throw new Error('Failed to load map tile');
   }
 
-  // Calculate exploration details (same logic)
-  let lootMultiplier = userMapTile ? userMapTile.lootMultiplier : 1;
-  let explorationTime = userMapTile ? userMapTile.explorationTime : 0;
-  let distance = userMapTile?.distanceFromHomestead || 0;
-
-  if (!userMapTile) {
+  // Check if settler has enough energy for exploration
+  const settlerManager = new SettlerManager(settler);
+  
+  // Calculate exploration duration first to check energy requirements
+  let explorationTime: number;
+  let distance: number;
+  
+  if (userMapTile) {
+    explorationTime = userMapTile.explorationTime;
+    distance = userMapTile.distanceFromHomestead;
+  } else {
     distance = calculateDistance(colony.homesteadLocation.x, colony.homesteadLocation.y, tileX, tileY);
     const distanceModifiers = calculateDistanceModifiers(distance);
     const baseDuration = 300000; // 5 minutes
     explorationTime = baseDuration * distanceModifiers.durationMultiplier;
-    lootMultiplier = distanceModifiers.lootMultiplier;
   }
+  
+  // Convert exploration time to hours for energy calculation
+  const explorationHours = explorationTime / (1000 * 60 * 60);
+  
+  // Check if settler has enough energy for exploration
+  if (!settlerManager.canCompleteTask('exploring', explorationHours)) {
+    throw new Error('Settler does not have enough energy to complete this exploration');
+  }
+
+  // Calculate exploration details (same logic)
+  let lootMultiplier = userMapTile ? userMapTile.lootMultiplier : calculateDistanceModifiers(distance).lootMultiplier;
 
   // Calculate rewards without settler adjustments
   const baseRewards: Record<string, number> = {};
@@ -98,7 +113,6 @@ export const calculateExplorationDetails = async (
   }
 
   // Use SettlerManager for adjustments instead of calculateSettlerAdjustments
-  const settlerManager = new SettlerManager(settler);
   const timeMultiplier = settlerManager.adjustedTimeMultiplier('exploration');
   const lootMultiplier_adjusted = settlerManager.adjustedLootMultiplier('exploration');
   

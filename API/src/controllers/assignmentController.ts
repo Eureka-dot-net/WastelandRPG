@@ -181,7 +181,15 @@ export const startAssignment = async (req: Request, res: Response) => {
         settlerStatus = 'crafting';
       }
 
-      await Settler.findByIdAndUpdate(settlerId, { status: settlerStatus }, { session });
+      // Check if settler has enough energy for the task
+      const settlerManager = new SettlerManager(settler);
+      const taskDurationHours = adjustments.adjustedDuration / (1000 * 60 * 60);
+      if (!settlerManager.canCompleteTask(settlerStatus, taskDurationHours)) {
+        throw new Error('Settler does not have enough energy to complete this assignment');
+      }
+
+      // Update settler status using SettlerManager to properly handle energy
+      await settlerManager.changeStatus(settlerStatus, session);
 
       assignment.state = 'in-progress';
       assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
