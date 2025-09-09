@@ -5,7 +5,6 @@ import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { ClientSession } from "mongoose";
 import { Settler } from "../models/Player/Settler";
 import { generateSettler } from "../services/settlerGenerator";
-import { UserMapTile } from "../models/Player/UserMapTile";
 import { SettlerManager } from "./SettlerManager";
 import { UserMapTileManager } from "./UserMapTileManager";
 
