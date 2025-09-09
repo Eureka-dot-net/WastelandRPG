@@ -49,7 +49,7 @@ export function useColony(serverId?: string | null) {
             });
             
             lastUpdateRef.current = now;
-        }, 5000);
+        }, 60000);
 
         return () => clearInterval(interval);
     }, [colony?.settlers]);

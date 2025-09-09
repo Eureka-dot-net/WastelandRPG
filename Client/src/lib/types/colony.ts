@@ -22,6 +22,7 @@ export interface Colony {
   settlerCount: number;
   currentInventoryStacks: number;
   maxInventory: number;
+  maxSettlers: number;
   unlocks: Record<string, boolean>;
   daysFood: number;
   scrapMetal: number;

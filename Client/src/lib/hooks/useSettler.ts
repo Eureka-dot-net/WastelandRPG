@@ -61,6 +61,7 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
         name: "New Settler", // Placeholder - will be replaced by server response
         backstory: "A new settler joining the colony",
         theme: "default",
+        energyDeltaPerHour: 0,
         isFemale: false,
         stats: {
           strength: 1,

@@ -32,7 +32,7 @@ function SettlerPage() {
   const [viewMode, setViewMode] = useState<'overview' | 'detail'>('overview');
   const [droppingItems, setDroppingItems] = useState<Set<string>>(new Set());
 
-  const { colony, colonyLoading } = useColony(serverId);
+  const { colony, colonyWithCurrentEnergy, getSettlerCurrentEnergy, colonyLoading } = useColony(serverId);
   const colonyId = colony?._id;
   const { rejectSettler, dropSettlerItem } = useSettler(serverId, colonyId);
 
@@ -120,7 +120,7 @@ function SettlerPage() {
 
   const handleDropSettlerItem = async (settlerId: string, itemId: string) => {
     setDroppingItems(prev => new Set(prev).add(`${settlerId}-${itemId}`));
-    
+
     try {
       await dropSettlerItem.mutateAsync({ settlerId, itemId });
     } catch (error) {
@@ -153,7 +153,7 @@ function SettlerPage() {
     );
   }
 
-  const settlers = colony.settlers || [];
+  const settlers = colonyWithCurrentEnergy?.settlers || [];
   const totalSettlers = settlers.length;
 
   if (totalSettlers === 0) {
@@ -200,7 +200,7 @@ function SettlerPage() {
           alertSeverity="info"
           progressLabel="Colony Population"
           currentValue={totalSettlers}
-          totalValue={Math.max(totalSettlers, 10)} // Show growth potential
+          totalValue={Math.max(totalSettlers, colony.maxSettlers)} // Show growth potential
         />
 
         <SettlerStatusGrid
@@ -214,7 +214,6 @@ function SettlerPage() {
 
   // Detail mode - show selected settler details
   const settler = selectedSettler!;
-
   return (
     <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
       {/* Header with back button */}
@@ -325,12 +324,12 @@ function SettlerPage() {
                       </Box>
                       <LinearProgress
                         variant="determinate"
-                        value={settler.energy || 100}
-                        color={getQuickStatColor(settler.energy || 100)}
+                        value={getSettlerCurrentEnergy(settlers.indexOf(settler)) || 100}
+                        color={getQuickStatColor(getSettlerCurrentEnergy(settlers.indexOf(settler)) || 100)}
                         sx={{ height: 6, borderRadius: 3 }}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        {settler.energy || 100}%
+                        {Math.round(getSettlerCurrentEnergy(settlers.indexOf(settler)))}%
                       </Typography>
                     </Grid>
                   </Grid>
@@ -553,8 +552,8 @@ function SettlerPage() {
                                   size="small"
                                   onClick={() => handleDropSettlerItem(settler._id, item.itemId)}
                                   disabled={isDropping}
-                                  sx={{ 
-                                    p: 0.25, 
+                                  sx={{
+                                    p: 0.25,
                                     mt: 0.25,
                                     color: 'error.main',
                                     '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },

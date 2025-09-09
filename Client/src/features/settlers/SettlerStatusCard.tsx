@@ -160,7 +160,7 @@ const SettlerStatusCard: React.FC<SettlerStatusCardProps> = ({
             <BatteryFull color="info" fontSize="small" />
             <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Energy</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
-              {settler.energy || 100}%
+              {Math.round(settler.energy || 100)}%
             </Typography>
           </Box>
           <LinearProgress
