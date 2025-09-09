@@ -121,11 +121,12 @@ export function useAssignmentPage<T extends GenericTarget>(
     });
 
     setSettlerPreviews(previews);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     batchPreviewData,
     selectedTarget,
     availableSettlers,
-    config,
+    // Intentionally omitting 'config' to prevent infinite loop - config is memoized in components
   ]);
 
   // Invalidate queries when colony changes

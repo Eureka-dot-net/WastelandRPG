@@ -59,40 +59,26 @@ function MapPage() {
       );
     },
     isPending: startExploration.isPending,
-  }), [startExploration.mutate, startExploration.isPending]);
+  }), [startExploration]);
 
   // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
   const config = useMemo(() => createMapExplorationConfig(startExplorationWrapper), [startExplorationWrapper]);
 
-  // TEMPORARY: Disable useAssignmentPage to test if it's causing the infinite loop
   // Use the common assignment page hook
-  // const {
-  //   colony: assignmentPageColony,
-  //   colonyLoading,
-  //   availableSettlers,
-  //   handleTargetSelect: handleTileClick,
-  //   handleSettlerSelect: handleSettlerSelectFromDialog,
-  //   handleDialogClose,
-  //   settlerDialogOpen,
-  //   settlerPreviews,
-  //   previewsLoading,
-  //   previewsError,
-  //   isTargetStarting,
-  //   getTargetTimeRemaining,
-  // } = useAssignmentPage(serverId || '', explorableCoordinates, config);
-
-  // Temporary mock values
-  const assignmentPageColony = colony;
-  const availableSettlers: any[] = [];
-  const handleTileClick = () => {};
-  const handleSettlerSelectFromDialog = () => {};
-  const handleDialogClose = () => {};
-  const settlerDialogOpen = false;
-  const settlerPreviews = {};
-  const previewsLoading = false;
-  const previewsError = null;
-  const isTargetStarting = () => false;
-  const getTargetTimeRemaining = () => undefined;
+  const {
+    colony: assignmentPageColony,
+    colonyLoading,
+    availableSettlers,
+    handleTargetSelect: handleTileClick,
+    handleSettlerSelect: handleSettlerSelectFromDialog,
+    handleDialogClose,
+    settlerDialogOpen,
+    settlerPreviews,
+    previewsLoading,
+    previewsError,
+    isTargetStarting,
+    getTargetTimeRemaining,
+  } = useAssignmentPage(serverId || '', explorableCoordinates, config);
 
   // Use both colony sources for display - prefer assignmentPageColony for consistency
   const displayColony = assignmentPageColony || colony;
