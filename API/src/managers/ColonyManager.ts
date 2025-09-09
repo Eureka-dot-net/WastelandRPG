@@ -1,7 +1,7 @@
 import { ClientSession, FilterQuery } from 'mongoose';
 import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 import type { ColonyDoc } from '../models/Player/Colony';
-import { Inventory } from '../models/Player/Inventory';
+import { Inventory, IInventory } from '../models/Player/Inventory';
 import { SettlerManager } from './SettlerManager';
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import { AssignmentManager } from './AssignmentManager';
@@ -109,10 +109,11 @@ export class ColonyManager {
     // Get or create inventory
     let inventory = await Inventory.findOne({ colonyId: this.colony._id }).session(session);
     if (!inventory) {
-      inventory = new Inventory({
+      const inventoryData: IInventory = {
         colonyId: this.colony._id,
         items: [],
-      });
+      };
+      inventory = new Inventory(inventoryData);
     }
 
     // Create a map for faster item lookups

@@ -169,7 +169,7 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
     // Generate skill-linked backstory
     const backstory = getSkillLinkedBackstory(skills);
 
-    const settler = new Settler({
+    const settlerData: ISettler = {
         colonyId: new Types.ObjectId(colonyId),
         nameId: nameObj.nameId,
         name: nameObj.name,
@@ -183,12 +183,19 @@ export async function generateSettler(colonyId: string, session: ClientSession, 
         status: 'idle',
         health: 100,
         morale: 90,
+        hunger: 50,
+        energy: 100,
+        energyLastUpdated: new Date(),
         carry: [],
         equipment: {},
         maxCarrySlots: 8,
+        foodConsumption: 1,
         isActive: options?.isActive ?? false,
         createdAt: new Date(),
-    });
+        traitEffect: { target: 'none' }
+    };
+
+    const settler = new Settler(settlerData);
     return await settler.save({ session });
 }
 
