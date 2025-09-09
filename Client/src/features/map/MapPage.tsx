@@ -207,21 +207,67 @@ function MapPage() {
           sx={{
             height: isMobile ? 80 : 120,
             cursor: canClick ? 'pointer' : 'default',
-            bgcolor: !tile.explored
+            // Enhanced wasteland themed backgrounds
+            background: !tile.explored
               ? tile.canExplore
-                ? theme.palette.action.hover
-                : theme.palette.grey[300]
-              : theme.palette.background.paper,
+                ? `linear-gradient(135deg, 
+                    ${theme.palette.warning.dark}15 0%, 
+                    ${theme.palette.warning.main}25 50%, 
+                    ${theme.palette.warning.dark}15 100%)`
+                : `linear-gradient(135deg, 
+                    ${theme.palette.grey[600]} 0%, 
+                    ${theme.palette.grey[700]} 50%, 
+                    ${theme.palette.grey[800]} 100%)`
+              : tile.terrain?.type === 'ruins' || tile.terrain?.type === 'scrapyard'
+                ? `linear-gradient(135deg, 
+                    ${theme.palette.error.dark}20 0%, 
+                    ${theme.palette.background.paper} 30%, 
+                    ${theme.palette.error.dark}10 100%)`
+                : tile.terrain?.type === 'wasteland' 
+                ? `linear-gradient(135deg, 
+                    ${theme.palette.warning.dark}10 0%, 
+                    ${theme.palette.background.paper} 50%, 
+                    ${theme.palette.grey[100]} 100%)`
+                : `linear-gradient(135deg, 
+                    ${theme.palette.success.dark}10 0%, 
+                    ${theme.palette.background.paper} 50%, 
+                    ${theme.palette.success.dark}05 100%)`,
+            // Enhanced borders with wasteland theme
             border: tile.canExplore && !tile.explored
-              ? `2px solid ${theme.palette.primary.main}`
-              : `1px solid ${theme.palette.divider}`,
-            opacity: !tile.explored && !tile.canExplore ? 0.3 : 1,
+              ? `3px solid ${theme.palette.warning.main}`
+              : tile.explored
+                ? `2px solid ${theme.palette.success.dark}40`
+                : `1px solid ${theme.palette.divider}`,
+            borderRadius: '8px',
+            opacity: !tile.explored && !tile.canExplore ? 0.4 : 1,
             position: 'relative',
+            // Enhanced shadows for depth
+            boxShadow: tile.explored
+              ? `inset 0 2px 4px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.15)`
+              : `inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.1)`,
+            // Enhanced hover effects
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': canClick ? {
-              bgcolor: theme.palette.action.selected,
-              transform: 'translateY(-2px)',
-              boxShadow: theme.shadows[4]
-            } : {}
+              transform: 'translateY(-4px) scale(1.05)',
+              boxShadow: `inset 0 2px 4px rgba(0,0,0,0.2), 0 8px 25px rgba(0,0,0,0.25)`,
+              background: `linear-gradient(135deg, 
+                ${theme.palette.warning.main}35 0%, 
+                ${theme.palette.warning.light}45 50%, 
+                ${theme.palette.warning.main}35 100%)`,
+              borderColor: theme.palette.warning.light,
+            } : {},
+            // Subtle texture overlay
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'url("data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23000" fill-opacity="0.03"%3E%3Cpolygon points="2.5,0 2.5,10 0,10"%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")',
+              borderRadius: 'inherit',
+              pointerEvents: 'none',
+            }
           }}
           onClick={() => handleTileClickCustom(tile)}
         >
@@ -233,7 +279,8 @@ function MapPage() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            position: 'relative'
+            position: 'relative',
+            background: 'transparent',
           }}>
             {/* Fog of War, Starting State, or Content */}
             {isStarting ? (
@@ -241,10 +288,22 @@ function MapPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                opacity: 0.8
+                opacity: 0.9,
+                animation: 'pulse 2s infinite',
+                '@keyframes pulse': {
+                  '0%': { opacity: 0.9 },
+                  '50%': { opacity: 0.6 },
+                  '100%': { opacity: 0.9 },
+                }
               }}>
-                <Timer color="warning" />
-                <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center', color: 'warning.main' }}>
+                <Timer color="warning" sx={{ fontSize: isMobile ? '1.5rem' : '2rem' }} />
+                <Typography variant="caption" sx={{ 
+                  mt: 0.5, 
+                  textAlign: 'center', 
+                  color: 'warning.main',
+                  fontWeight: 600,
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+                }}>
                   Gathering gear...
                 </Typography>
               </Box>
@@ -253,21 +312,82 @@ function MapPage() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                opacity: tile.canExplore ? 0.7 : 0.3
+                opacity: tile.canExplore ? 0.8 : 0.4,
+                filter: tile.canExplore ? 'none' : 'grayscale(100%)',
+                transition: 'all 0.3s ease'
               }}>
-                {tile.canExplore ? <Explore color="primary" /> : <Lock color="disabled" />}
-                <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center' }}>
-                  {tile.canExplore ? 'Explore' : 'Locked'}
-                </Typography>
+                {tile.canExplore ? (
+                  <>
+                    <Explore 
+                      color="warning" 
+                      sx={{ 
+                        fontSize: isMobile ? '1.5rem' : '2rem',
+                        filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+                      }} 
+                    />
+                    <Typography variant="caption" sx={{ 
+                      mt: 0.5, 
+                      textAlign: 'center',
+                      color: 'warning.dark',
+                      fontWeight: 600,
+                      textShadow: '1px 1px 2px rgba(255,255,255,0.5)'
+                    }}>
+                      Explore
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Lock 
+                      color="disabled" 
+                      sx={{ 
+                        fontSize: isMobile ? '1.2rem' : '1.5rem',
+                        filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.2))'
+                      }} 
+                    />
+                    <Typography variant="caption" sx={{ 
+                      mt: 0.5, 
+                      textAlign: 'center',
+                      color: 'text.disabled',
+                      fontSize: '0.7rem'
+                    }}>
+                      Locked
+                    </Typography>
+                  </>
+                )}
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                zIndex: 2
+              }}>
                 {tile.terrain?.icon && (
                   (isMobile && assignedSettlers.length <= 1) ||
                   (!isMobile && assignedSettlers.length <= 1)
                 ) &&
-                  <DynamicIcon name={tile.terrain.icon} size={isMobile ? "1.5rem" : "2rem"} />}
-                <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center' }}>
+                  <Box
+                    component={DynamicIcon}
+                    name={tile.terrain.icon} 
+                    size={isMobile ? "1.5rem" : "2rem"}
+                    sx={{
+                      filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.25))',
+                      color: tile.terrain?.type === 'ruins' ? '#d32f2f' : 
+                             tile.terrain?.type === 'wasteland' ? '#f57c00' :
+                             tile.terrain?.type === 'forest' ? '#388e3c' : 'inherit'
+                    }}
+                  />
+                }
+                <Typography variant="caption" sx={{ 
+                  mt: 0.5, 
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  color: tile.terrain?.type === 'ruins' ? 'error.dark' : 
+                         tile.terrain?.type === 'wasteland' ? 'warning.dark' :
+                         tile.terrain?.type === 'forest' ? 'success.dark' : 'text.primary',
+                  textShadow: '1px 1px 2px rgba(255,255,255,0.7)',
+                  fontSize: isMobile ? '0.7rem' : '0.75rem'
+                }}>
                   {tile.terrain?.type || 'Unknown'}
                 </Typography>
               </Box>
@@ -297,10 +417,33 @@ function MapPage() {
                       variant="determinate"
                       value={assignment.progress}
                       sx={{
-                        flex: 1, // make the bar take remaining space
-                        height: 4,
-                        borderRadius: 2,
-                        bgcolor: theme.palette.grey[300]
+                        flex: 1,
+                        height: 6,
+                        borderRadius: 3,
+                        bgcolor: 'rgba(0,0,0,0.2)',
+                        overflow: 'hidden',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: 3,
+                          background: `linear-gradient(90deg, 
+                            ${theme.palette.warning.main} 0%, 
+                            ${theme.palette.warning.light} 50%, 
+                            ${theme.palette.success.main} 100%)`,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                          '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
+                            animation: 'shimmer 2s infinite',
+                          }
+                        },
+                        '@keyframes shimmer': {
+                          '0%': { transform: 'translateX(-100%)' },
+                          '100%': { transform: 'translateX(100%)' }
+                        }
                       }}
                     />
                     {!isMobile && assignment.timeRemaining != null && assignment.timeRemaining > 0 && (
@@ -366,32 +509,54 @@ function MapPage() {
                   };
 
                   return (
-                    <Box key={settler._id} sx={{
-                      position: 'relative',
-                      zIndex: assignedSettlers.length - idx,
-
-                    }}>
-                      <SettlerAvatar
-                        settler={settler}
-                        size={isMobile ? 20 : 30}
-                      />
-                      {/* Phase indicator */}
-                      <Box sx={{
-                        position: 'absolute',
-                        bottom: -5,
-                        right: -2,
-                        width: isMobile ? 10 : 12,
-                        height: isMobile ? 10 : 12,
-                        borderRadius: '50%',
-                        bgcolor: phase === 'exploring' ? 'success.main' : 'primary.main',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: isMobile ? '0.4rem' : '0.5rem',
+                      <Box key={settler._id} sx={{
+                        position: 'relative',
+                        zIndex: assignedSettlers.length - idx,
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          transition: 'transform 0.2s ease'
+                        }
                       }}>
-                        {getPhaseIndicator()}
+                        <Box
+                          component={SettlerAvatar}
+                          settler={settler}
+                          size={isMobile ? 20 : 30}
+                          sx={{
+                            border: `2px solid ${phase === 'exploring' ? theme.palette.success.main : 
+                                                 phase === 'traveling' ? theme.palette.warning.main : 
+                                                 theme.palette.primary.main}`,
+                            borderRadius: '50%',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                          }}
+                        />
+                        {/* Enhanced phase indicator */}
+                        <Box sx={{
+                          position: 'absolute',
+                          bottom: -3,
+                          right: -3,
+                          width: isMobile ? 12 : 16,
+                          height: isMobile ? 12 : 16,
+                          borderRadius: '50%',
+                          bgcolor: phase === 'exploring' ? 'success.main' : 
+                                   phase === 'traveling' ? 'warning.main' : 'primary.main',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: isMobile ? '0.5rem' : '0.6rem',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          border: `2px solid ${theme.palette.background.paper}`,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                          animation: phase === 'exploring' ? 'pulse 2s infinite' : 'none',
+                          '@keyframes pulse': {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.2)' },
+                            '100%': { transform: 'scale(1)' }
+                          }
+                        }}>
+                          {getPhaseIndicator()}
+                        </Box>
                       </Box>
-                    </Box>
                   );
                 })}
                 {assignedSettlers.length > 3 && (
@@ -474,52 +639,234 @@ function MapPage() {
         progressColor="primary"
       />
 
-      {/* Navigation Controls */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+      {/* Enhanced Navigation Controls */}
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: 2, 
+          mb: 3,
+          background: `linear-gradient(135deg, 
+            ${theme.palette.grey[100]} 0%, 
+            ${theme.palette.grey[50]} 50%, 
+            ${theme.palette.grey[100]} 100%)`,
+          border: `2px solid ${theme.palette.divider}`,
+          borderRadius: '12px',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23000" fill-opacity="0.02"%3E%3Cpath d="M0 0h40v40H0z"%2F%3E%3Cpath d="M0 20h40"%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")',
+            borderRadius: 'inherit',
+            pointerEvents: 'none',
+          }
+        }}
+      >
         <Box sx={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: isMobile ? 1 : 2
+          gap: isMobile ? 2 : 3,
+          position: 'relative',
+          zIndex: 1
         }}>
           {isMobile && (
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              Position: ({centerX}, {centerY})
+            <Typography variant="h6" sx={{ 
+              fontWeight: 'bold',
+              color: 'text.primary',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              🗺️ Position: ({centerX}, {centerY})
             </Typography>
           )}
 
           {!isMobile && (
-            <Typography variant="h6" sx={{ mr: 2 }}>
-              Position: ({centerX}, {centerY})
+            <Typography variant="h5" sx={{ 
+              mr: 3,
+              fontWeight: 'bold', 
+              color: 'text.primary',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              🗺️ Position: ({centerX}, {centerY})
             </Typography>
           )}
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <IconButton onClick={moveUp} color="primary" size={isMobile ? "small" : "medium"}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center',
+            gap: 0.5
+          }}>
+            <IconButton 
+              onClick={moveUp} 
+              color="primary" 
+              size={isMobile ? "medium" : "large"}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  transform: 'translateY(-2px)',
+                  boxShadow: theme.shadows[4]
+                },
+                transition: 'all 0.2s ease',
+                border: `2px solid ${theme.palette.primary.dark}`,
+                boxShadow: theme.shadows[2]
+              }}
+            >
               <KeyboardArrowUp />
             </IconButton>
-            <Box sx={{ display: 'flex', gap: isMobile ? 0.5 : 1 }}>
-              <IconButton onClick={moveLeft} color="primary" size={isMobile ? "small" : "medium"}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 0.5,
+              alignItems: 'center'
+            }}>
+              <IconButton 
+                onClick={moveLeft} 
+                color="primary" 
+                size={isMobile ? "medium" : "large"}
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    transform: 'translateX(-2px)',
+                    boxShadow: theme.shadows[4]
+                  },
+                  transition: 'all 0.2s ease',
+                  border: `2px solid ${theme.palette.primary.dark}`,
+                  boxShadow: theme.shadows[2]
+                }}
+              >
                 <KeyboardArrowLeft />
               </IconButton>
-              <IconButton onClick={zoomOut} color="secondary" disabled size={isMobile ? "small" : "medium"}>
+              <IconButton 
+                onClick={zoomOut} 
+                color="secondary" 
+                disabled 
+                size={isMobile ? "medium" : "large"}
+                sx={{
+                  bgcolor: 'grey.300',
+                  color: 'grey.500',
+                  border: `2px solid ${theme.palette.grey[400]}`,
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+                  mx: 1
+                }}
+              >
                 <ZoomOut />
               </IconButton>
-              <IconButton onClick={moveRight} color="primary" size={isMobile ? "small" : "medium"}>
+              <IconButton 
+                onClick={moveRight} 
+                color="primary" 
+                size={isMobile ? "medium" : "large"}
+                sx={{
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                    transform: 'translateX(2px)',
+                    boxShadow: theme.shadows[4]
+                  },
+                  transition: 'all 0.2s ease',
+                  border: `2px solid ${theme.palette.primary.dark}`,
+                  boxShadow: theme.shadows[2]
+                }}
+              >
                 <KeyboardArrowRight />
               </IconButton>
             </Box>
-            <IconButton onClick={moveDown} color="primary" size={isMobile ? "small" : "medium"}>
+            <IconButton 
+              onClick={moveDown} 
+              color="primary" 
+              size={isMobile ? "medium" : "large"}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  transform: 'translateY(2px)',
+                  boxShadow: theme.shadows[4]
+                },
+                transition: 'all 0.2s ease',
+                border: `2px solid ${theme.palette.primary.dark}`,
+                boxShadow: theme.shadows[2]
+              }}
+            >
               <KeyboardArrowDown />
             </IconButton>
           </Box>
         </Box>
       </Paper>
 
-      {/* Map Grid */}
-      <Paper elevation={2} sx={{ p: isMobile ? 1 : 2, mb: 3 }}>
-        <Grid container spacing={isMobile ? 0.5 : 1}>
+      {/* Enhanced Map Grid */}
+      <Paper 
+        elevation={4} 
+        sx={{ 
+          p: isMobile ? 1.5 : 3, 
+          mb: 3,
+          background: `radial-gradient(circle at center, 
+            ${theme.palette.grey[100]} 0%, 
+            ${theme.palette.grey[200]} 70%, 
+            ${theme.palette.grey[300]} 100%)`,
+          border: `3px solid ${theme.palette.grey[400]}`,
+          borderRadius: '16px',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `
+              radial-gradient(circle at 20% 20%, rgba(255,165,0,0.1) 0%, transparent 30%),
+              radial-gradient(circle at 80% 80%, rgba(139,69,19,0.1) 0%, transparent 30%),
+              url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23000" fill-opacity="0.05"%3E%3Cpath d="M0 0h60v60H0z"%2F%3E%3Cpath d="M30 30m-20 0a20 20 0 1 1 40 0a20 20 0 1 1-40 0"%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+            `,
+            pointerEvents: 'none',
+          },
+          // Add subtle inner shadow
+          boxShadow: `
+            inset 0 2px 8px rgba(0,0,0,0.1),
+            0 4px 16px rgba(0,0,0,0.15)
+          `
+        }}
+      >
+        <Grid 
+          container 
+          spacing={isMobile ? 0.8 : 1.5}
+          sx={{
+            position: 'relative',
+            zIndex: 1,
+            // Add subtle grid pattern overlay
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: `
+                linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)
+              `,
+              backgroundSize: '20px 20px',
+              pointerEvents: 'none',
+              opacity: 0.3
+            }
+          }}
+        >
           {map.grid.tiles.map((row, rowIndex) =>
             row.map((tile, colIndex) => (
               <Grid size={{ xs: 12 / 5 }} key={`${rowIndex}-${colIndex}`}>
@@ -547,13 +894,50 @@ function MapPage() {
         previewsError={previewsError}
       />
 
-      {/* Future Features Placeholder */}
-      <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, opacity: 0.6 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ZoomOut color="secondary" /> Advanced Map Features (Coming Soon)
+      {/* Enhanced Future Features Placeholder */}
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: isMobile ? 2 : 3, 
+          opacity: 0.7,
+          background: `linear-gradient(135deg, 
+            ${theme.palette.grey[100]} 0%, 
+            ${theme.palette.grey[50]} 100%)`,
+          border: `2px dashed ${theme.palette.grey[400]}`,
+          borderRadius: '12px',
+          position: 'relative',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            opacity: 0.9,
+            transform: 'translateY(-2px)',
+            boxShadow: theme.shadows[4]
+          }
+        }}
+      >
+        <Typography 
+          variant="h6" 
+          gutterBottom 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            fontWeight: 'bold',
+            color: 'text.secondary'
+          }}
+        >
+          <ZoomOut color="secondary" /> 
+          🔮 Advanced Map Features (Coming Soon)
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Future features: Zoom levels, waypoint markers, resource overlays, and expedition planning.
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{
+            fontStyle: 'italic',
+            lineHeight: 1.6
+          }}
+        >
+          Future features: Zoom levels, waypoint markers, resource overlays, expedition planning, 
+          and environmental hazard indicators.
         </Typography>
       </Paper>
     </Container>
