@@ -1,7 +1,7 @@
 import { Schema, model, Types, HydratedDocument } from 'mongoose';
 
 // Basic item structure
-interface IInventoryItem {
+export interface IInventoryItem {
   itemId: string;        // unique string for item type (e.g. "wood", "scrap", "weapon.spear")
   name: string;          // display name
   quantity: number;      // count
@@ -10,7 +10,7 @@ interface IInventoryItem {
   icon: string;
 }
 
-interface IInventory {
+export interface IInventory {
   colonyId: Types.ObjectId;
   items: IInventoryItem[];
 }

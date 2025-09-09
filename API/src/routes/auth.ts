@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
+import { User, IUser } from '../models/User';
 import serverCatalogue from '../data/ServerCatalogue.json';
 import { createColonyWithSpiralLocation } from '../services/mapService';
 import { authenticate } from '../middleware/auth';
@@ -35,7 +35,8 @@ router.post('/register', async (req: Request, res: Response) => {
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
-            const user = new User({ email, password: hashedPassword });
+            const userData: IUser = { email, password: hashedPassword } as IUser;
+            const user = new User(userData);
 
             await user.save({ session });
 

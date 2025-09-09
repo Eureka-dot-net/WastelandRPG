@@ -1,4 +1,4 @@
-import { ClientSession } from 'mongoose';
+import { ClientSession, Types } from 'mongoose';
 import {
   getRandomTerrain,
   generateTileLoot,
@@ -7,8 +7,8 @@ import {
   getAdjacentCoordinates,
   getTerrainCatalogue
 } from './gameUtils';
-import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc } from '../models/Server/MapTile';
-import { UserMapTile, UserMapTileDoc } from '../models/Player/UserMapTile';
+import { IEventInfo, ILootInfo, IThreatInfo, MapTile, MapTileDoc, IMapTile } from '../models/Server/MapTile';
+import { UserMapTile, UserMapTileDoc, IUserMapTile } from '../models/Player/UserMapTile';
 import { ColonyDoc } from '../models/Player/Colony';
 import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
 
@@ -197,11 +197,11 @@ export async function createOrUpdateMapTile(
 
   // Create new tile with random terrain and content
   const terrain = colony ? 'colony' : getRandomTerrain();
-  const loot: ILootInfo[] | null = colony ? null : generateTileLoot(terrain);
+  const loot: ILootInfo[] | undefined = colony ? undefined : generateTileLoot(terrain) || undefined;
   const threat: IThreatInfo | null = colony ? null : generateTileThreat(terrain);
   const event: IEventInfo | null = colony ? null : generateTileEvent(terrain);
 
-  const tileData = {
+  const tileData: IMapTile = {
     serverId,
     x,
     y,
@@ -210,7 +210,7 @@ export async function createOrUpdateMapTile(
     loot,
     threat,
     event,
-    colony: colony?._id || null,
+    colony: colony?._id,
   };
 
   const tile = new MapTile(tileData);
@@ -308,8 +308,8 @@ export async function createOrUpdateUserMapTile(
   }
 
   // Create new UserMapTile
-  const userTileData = {
-    serverTile: serverTileId,
+  const userTileData: IUserMapTile = {
+    serverTile: new Types.ObjectId(serverTileId),
     x: mapTile.x,
     y: mapTile.y,
     terrain: mapTile.terrain,

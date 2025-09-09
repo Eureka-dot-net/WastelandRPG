@@ -1,5 +1,5 @@
 import { Types, ClientSession } from "mongoose";
-import { Colony, ColonyDoc } from "../models/Player/Colony";
+import { Colony, ColonyDoc, IColony } from "../models/Player/Colony";
 import { createOrUpdateMapTile } from "../utils/mapUtils";
 import { SpiralCounter } from "../models/Server/SpiralCounter";
 import { IUserMapTile, UserMapTile } from "../models/Player/UserMapTile";
@@ -25,18 +25,27 @@ export async function createColonyWithSpiralLocation(
             const spiralData = calculateSpiralLocationFromIndex(nextIndex, steps);
 
             // Create the colony with the calculated location
-            const colony = new Colony({
+            const colonyData: IColony = {
                 userId,
                 serverId,
                 serverName,
                 colonyName,
                 serverType,
+                level: 1,
+                hasInitialSettlers: false,
+                maxSettlers: 20,
+                notoriety: 0,
+                maxInventory: 100,
+                settlers: [],
+                logs: [],
                 homesteadLocation: { x: spiralData.x, y: spiralData.y },
                 spiralLayer: spiralData.spiralLayer,
                 spiralPosition: spiralData.spiralPosition,
                 spiralDirection: spiralData.spiralDirection,
                 spiralIndex: nextIndex
-            });
+            };
+
+            const colony = new Colony(colonyData);
 
             await colony.save({ session });
 
