@@ -67,7 +67,7 @@ export class SettlerManager {
   get carryingCapacity(): number {
     // strength * 5 = capacity
     // strength 2 -> 10, strength 10 -> 50, strength 20 -> 100
-    return Math.max(10, this.settler.stats.strength * 5);
+    return Math.max(10, this.settler.stats.strength * 10);
   }
 
   // Computed: current weight being carried
