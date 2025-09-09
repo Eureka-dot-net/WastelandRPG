@@ -7,6 +7,7 @@ import { Settler } from "../models/Player/Settler";
 import { generateSettler } from "../services/settlerGenerator";
 import { UserMapTile } from "../models/Player/UserMapTile";
 import { SettlerManager } from "./SettlerManager";
+import { UserMapTileManager } from "./UserMapTileManager";
 
 export class AssignmentManager {
     
@@ -143,12 +144,9 @@ export class AssignmentManager {
         if (this.assignment.type === 'exploration' && this.assignment.location) {
             const { x, y } = this.assignment.location;
 
+            const userMapTileManager = await UserMapTileManager.createIfNotExists(colonyManager, x, y, session);
             // update map tile to mark as colony-explored
-            await UserMapTile.findOneAndUpdate(
-                { colonyId: colonyManager.id, x, y },
-                { isExplored: true, exploredAt: new Date() },
-                { session }
-            );
+            await userMapTileManager.setExplored(session);
         }
 
         this.assignment.actualTransferredItems = actualTransferredItems;
