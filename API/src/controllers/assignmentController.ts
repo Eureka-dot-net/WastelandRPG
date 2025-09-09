@@ -14,29 +14,6 @@ import {
 } from '../utils/gameUtils';
 import { SettlerManager } from '../managers/SettlerManager';
 
-// Use the shared type from gameUtils
-// interface AssignmentAdjustments extends GameAdjustments { }
-
-// function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any): AssignmentAdjustments {
-//   const baseDuration = assignment.duration || 300000; // 5 minutes default
-
-//   // Use SettlerManager for adjustments
-//   const settlerManager = new SettlerManager(settler);
-//   const timeMultiplier = settlerManager.adjustedTimeMultiplier(assignment.type);
-//   const lootMultiplier = settlerManager.adjustedLootMultiplier(assignment.type);
-
-//   const adjustedDuration = Math.round(baseDuration / timeMultiplier);
-
-
-//   return {
-//     adjustedDuration,
-//     effectiveSpeed: 1 / timeMultiplier,
-//     lootMultiplier
-//   };
-// }
-
-// Remove the duplicate functions - now using shared utilities from gameUtils
-
 // GET /api/colonies/:colonyId/assignments
 //GET /api/colonies/123/assignments?type=exploration
 //GET /api/colonies/123/assignments?status=in-progress,completed
