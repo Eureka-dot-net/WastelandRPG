@@ -4,18 +4,12 @@ import { Colony } from '../src/models/Player/Colony';
 
 describe('Session Utils', () => {
   beforeEach(async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
     // Clean up test data
     await Colony.deleteMany({ colonyName: { $regex: /test-session/ } });
   });
 
   describe('withSession', () => {
     it('should create session and handle operation on success', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       const result = await withSession(async (session) => {
         expect(session).toBeDefined();
         
@@ -49,9 +43,6 @@ describe('Session Utils', () => {
     });
 
     it('should handle error correctly', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       let colonyId: mongoose.Types.ObjectId | null = null;
 
       try {
@@ -93,9 +84,6 @@ describe('Session Utils', () => {
     });
 
     it('should reuse existing session without creating nested transaction', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       // Create an external session
       const externalSession = await mongoose.connection.startSession();
       
@@ -142,9 +130,6 @@ describe('Session Utils', () => {
 
   describe('withSessionReadOnly', () => {
     it('should create session without transaction for read operations', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       // First create a test colony
       const colony = new Colony({
         userId: new mongoose.Types.ObjectId(),
@@ -172,11 +157,7 @@ describe('Session Utils', () => {
       expect(result).toBe('test-session-readonly');
     });
 
-    it('should reuse existing session', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
-      
+    it('should reuse existing session', async () => {      
       const externalSession = await mongoose.connection.startSession();
 
       try {

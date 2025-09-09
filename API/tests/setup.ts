@@ -48,6 +48,7 @@ beforeAll(async () => {
         abortTransaction: () => Promise.resolve(),
         endSession: () => Promise.resolve(),
         withTransaction: async (fn: Function) => await fn({}),
+        inTransaction: () => false, // Mock as not in transaction for read-only tests
       }),
       writable: false,
       configurable: true
@@ -133,6 +134,26 @@ beforeAll(async () => {
         result = this.hydrate(data);
       }
       return createMockQuery(this, result);
+    };
+    
+    // Mock deleteMany
+    const originalDeleteMany = mongoose.Model.deleteMany;
+    (mongoose.Model as any).deleteMany = function(this: any, filter: any, options?: any) {
+      const modelName = this.constructor.modelName || this.modelName;
+      const keysToDelete: string[] = [];
+      for (const [key, data] of mockDatabase.entries()) {
+        if (key.startsWith(`${modelName}:`)) {
+          // Simple regex matching for colonyName filter
+          if (filter.colonyName && filter.colonyName.$regex) {
+            const regex = new RegExp(filter.colonyName.$regex);
+            if (regex.test(data.colonyName)) {
+              keysToDelete.push(key);
+            }
+          }
+        }
+      }
+      keysToDelete.forEach(key => mockDatabase.delete(key));
+      return createMockQuery(this, { deletedCount: keysToDelete.length });
     };
   }
 }, 30000);
