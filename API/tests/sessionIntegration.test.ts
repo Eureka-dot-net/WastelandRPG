@@ -8,10 +8,6 @@ describe('Session Integration Tests', () => {
   let testColony: any;
 
   beforeEach(async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-
     // Create a test colony for each test
     testColony = new Colony({
       userId: new mongoose.Types.ObjectId(),
@@ -29,10 +25,6 @@ describe('Session Integration Tests', () => {
   });
 
   afterEach(async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-    
     // Clean up test data
     await Colony.deleteMany({ colonyName: { $regex: /Integration Test/ } });
     if (testColony?._id) {
@@ -43,9 +35,6 @@ describe('Session Integration Tests', () => {
 
   describe('Multi-collection operations', () => {
     it('should handle complex multi-collection writes in a single transaction', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       await withSession(async (session) => {
         // Create a settler
         const settler = new Settler({
@@ -87,6 +76,7 @@ describe('Session Integration Tests', () => {
           taskId: 'clean-debris',
           name: 'Clean Debris',
           description: 'Clean up debris around the colony',
+          duration: 600, // 10 minutes in seconds
           state: 'in-progress',
           startedAt: new Date(),
           completedAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
@@ -114,21 +104,11 @@ describe('Session Integration Tests', () => {
     });
 
     it('should rollback all changes when an error occurs', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
-      
-      // Only run rollback tests if transactions are supported
-      if (!supportsTransactions()) {
-        console.log('⚠️ Skipping rollback test - transactions not supported in this environment');
-        return;
-      }
       let settlerId: mongoose.Types.ObjectId | null = null;
-      let assignmentId: mongoose.Types.ObjectId | null = null;
       
       try {
         await withSession(async (session) => {
-          // Create a settler
+          // Create a settler first
           const settler = new Settler({
             colonyId: testColony._id,
             nameId: 'test-name-2',
@@ -154,54 +134,55 @@ describe('Session Integration Tests', () => {
             spiralIndex: 2
           });
           
-          // Only save if transactions are not supported (to test rollback)
-          if (!supportsTransactions()) {
-            await settler.save({ session });
-            settlerId = settler._id;
-            
-            // Add settler to colony
-            testColony.settlers.push(settler._id);
-            await testColony.save({ session });
-          }
+          await settler.save({ session });
+          settlerId = settler._id;
           
-          // Create assignment but with invalid data to trigger error
+          // Add settler to colony
+          testColony.settlers.push(settler._id);
+          await testColony.save({ session });
+          
+          // Create assignment with missing required 'duration' field to trigger validation error
           const assignment = new Assignment({
             colonyId: testColony._id,
             settlerId: settler._id,
             type: 'quest',
-            // Missing required fields to trigger validation error
+            name: 'Test Assignment'
+            // Missing required 'duration' field - this should cause a validation error
           } as any);
           
+          // This should throw a validation error before save completes
           await assignment.save({ session });
-          assignmentId = assignment._id;
           
           // This should not be reached due to validation error above
-          throw new Error('Test rollback error');
+          throw new Error('Validation error should have been thrown');
         });
-      } catch (error) {
-        // Error is expected
+        
+        // If we get here, the test failed because no error was thrown
+        fail('Expected validation error was not thrown');
+      } catch (error: any) {
+        // Validation error is expected - check for duration field requirement
+        const errorMessage = error?.message || error?.toString() || '';
+        expect(errorMessage).toMatch(/duration.*required|Path.*duration.*required|ValidationError/i);
       }
 
-      // If transactions are supported, verify rollback occurred
+      // Verify rollback behavior based on transaction support
       if (supportsTransactions()) {
+        // With transactions, all changes should be rolled back
         const foundColony = await Colony.findById(testColony._id);
         expect(foundColony!.settlers).toHaveLength(0);
         
         const foundSettler = settlerId ? await Settler.findById(settlerId) : null;
         expect(foundSettler).toBeNull();
-        
-        const foundAssignment = assignmentId ? await Assignment.findById(assignmentId) : null;
-        expect(foundAssignment).toBeNull();
+      } else {
+        // Without transactions (mock environment), some changes might persist
+        // This is expected behavior - we just verify the validation error was caught
+        console.log('ℹ️ Transaction rollback not supported - validation error properly caught in mock environment');
       }
-      // If transactions are not supported, some changes might persist (that's expected in test env)
     });
   });
 
   describe('Session reuse', () => {
     it('should reuse existing sessions in nested operations', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       const result = await withSession(async (outerSession) => {
         expect(outerSession).toBeDefined();
         

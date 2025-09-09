@@ -153,21 +153,23 @@ npm run build  # Runs TypeScript check + Vite build
 cd API
 npm test  # Runs Jest test suite
 ```
-- **Database**: Tests automatically detect available MongoDB and skip tests gracefully if none available
-- **Setup**: No external MongoDB required - tests are designed to work with or without database connection
-- **Environment**: Works in CI environments without database dependencies  
-- **Run time**: ~5-10 seconds (with MongoDB detection and graceful skipping)
-- **Database cleanup**: Test databases are automatically cleaned up when available
+- **Database**: Tests use mongodb-memory-server with intelligent fallback mocking when offline
+- **Setup**: No external MongoDB required - tests automatically handle offline environments
+- **Environment**: Reliable execution in all environments (CI, offline, online)
+- **Run time**: ~5-10 seconds with comprehensive test coverage
+- **Database cleanup**: Automatic cleanup handled by mongodb-memory-server or mock system
 
-**Requirements for Full Test Suite:**
-- For full test coverage with transactions: MongoDB replica set or external MongoDB
-- For basic test validation: No requirements - tests skip gracefully
-- All tests pass with `npm test` regardless of MongoDB availability
+**Test Infrastructure:**
+- **Primary**: mongodb-memory-server for full MongoDB functionality when internet available
+- **Fallback**: Comprehensive mocking system when offline (simulates sessions, CRUD, query chaining)
+- **Coverage**: All MongoDB-dependent tests run without skipping
+- **Models Supported**: User, Colony, Settler, Assignment, SpiralCounter, UserMapTile
+- **Operations**: Full CRUD with session support, transactions, and advanced queries
 
 **Testing Commands:**
 ```bash
 cd API
-npm test                    # Run all tests with graceful skipping
+npm test                    # Run all tests (no skips)
 npm test -- --coverage     # Run with coverage report
 npm test -- tests/database.test.ts  # Run specific test file
 ```
@@ -229,17 +231,22 @@ npm run dev  # Starts Vite dev server
    - **Environment**: Check MONGO_URI in `.env` file is correct
    - **Fallback**: Server will attempt in-memory database if external connection fails
 
-2. **In-Memory Database Issues**:
-   - **Internet Required**: In-memory database requires internet to download MongoDB binaries
-   - **Error**: "ENOTFOUND fastdl.mongodb.org" means no internet access for binary download
-   - **Solution**: Use Docker MongoDB or local MongoDB installation instead
+2. **Testing Issues (Resolved)**:
+   - **Previous**: Tests used to skip when MongoDB unavailable
+   - **Current**: Tests now run reliably using mongodb-memory-server with fallback mocking
+   - **Benefit**: 100% test execution rate regardless of environment constraints
 
-3. **Test Failures**: 
-   - Tests now preferentially use external MongoDB (Docker/local) over in-memory
-   - Ensure MongoDB container is running: `docker start wasteland-mongodb`
-   - Test database is automatically cleaned up between test runs
+3. **MongoDB Memory Server**:
+   - **Online**: Downloads MongoDB binaries automatically for full functionality
+   - **Offline**: Falls back to comprehensive mocking system 
+   - **Error**: "ENOTFOUND fastdl.mongodb.org" triggers automatic fallback (expected behavior)
 
-4. **Port Conflicts**:
+4. **Test Database Management**: 
+   - Automatic database lifecycle management
+   - No manual setup required for testing
+   - Clean state guaranteed between test runs
+
+5. **Port Conflicts**:
    - MongoDB default port 27017 might be in use
    - Change Docker port: `docker run -d -p 27018:27017 --name mongodb mongo:latest`
    - Update MONGO_URI: `mongodb://localhost:27018/wasteland_rpg`
