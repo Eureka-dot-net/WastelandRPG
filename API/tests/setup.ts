@@ -60,6 +60,7 @@ beforeAll(async () => {
     // Create a mock query object that supports chaining
     const createMockQuery = (model: any, result: any) => ({
       session: () => createMockQuery(model, result),
+      populate: (path: string) => createMockQuery(model, result), // Mock populate
       exec: () => Promise.resolve(result),
       then: (resolve: (value: any) => any, reject?: (reason: any) => any) => Promise.resolve(result).then(resolve, reject)
     });
@@ -94,13 +95,18 @@ beforeAll(async () => {
       let result = null;
       for (const [key, data] of mockDatabase.entries()) {
         if (key.startsWith(`${modelName}:`)) {
+          let matches = true;
           // Check for various filter conditions
-          if (filter.email && data.email === filter.email) {
+          if (filter.email && data.email !== filter.email) matches = false;
+          if (filter._id && data._id && data._id.toString() !== filter._id.toString()) matches = false;
+          if (filter.colonyId && data.colonyId && data.colonyId.toString() !== filter.colonyId.toString()) matches = false;
+          
+          if (matches) {
             result = this.hydrate(data);
-            break;
-          }
-          if (filter._id && data._id && data._id.toString() === filter._id.toString()) {
-            result = this.hydrate(data);
+            // For populate, add mock settlers array to colonies
+            if (modelName === 'Colony') {
+              result.settlers = result.settlers || [];
+            }
             break;
           }
         }

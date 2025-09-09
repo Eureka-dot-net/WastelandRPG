@@ -8,10 +8,6 @@ describe('Session Integration Tests', () => {
   let testColony: any;
 
   beforeEach(async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-
     // Create a test colony for each test
     testColony = new Colony({
       userId: new mongoose.Types.ObjectId(),
@@ -29,10 +25,6 @@ describe('Session Integration Tests', () => {
   });
 
   afterEach(async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-    
     // Clean up test data
     await Colony.deleteMany({ colonyName: { $regex: /Integration Test/ } });
     if (testColony?._id) {
@@ -43,9 +35,6 @@ describe('Session Integration Tests', () => {
 
   describe('Multi-collection operations', () => {
     it('should handle complex multi-collection writes in a single transaction', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       await withSession(async (session) => {
         // Create a settler
         const settler = new Settler({
@@ -114,10 +103,6 @@ describe('Session Integration Tests', () => {
     });
 
     it('should rollback all changes when an error occurs', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
-      
       // Only run rollback tests if transactions are supported
       if (!supportsTransactions()) {
         console.log('⚠️ Skipping rollback test - transactions not supported in this environment');
@@ -199,9 +184,6 @@ describe('Session Integration Tests', () => {
 
   describe('Session reuse', () => {
     it('should reuse existing sessions in nested operations', async () => {
-      if ((global as any).skipIfNoMongoDB?.()) {
-        return;
-      }
       const result = await withSession(async (outerSession) => {
         expect(outerSession).toBeDefined();
         
