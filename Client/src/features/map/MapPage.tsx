@@ -211,33 +211,33 @@ function MapPage() {
             background: !tile.explored
               ? tile.canExplore
                 ? `linear-gradient(135deg, 
-                    ${theme.palette.warning.dark}15 0%, 
-                    ${theme.palette.warning.main}25 50%, 
-                    ${theme.palette.warning.dark}15 100%)`
+                    ${theme.palette.warning.light} 0%, 
+                    ${theme.palette.warning.main} 50%, 
+                    ${theme.palette.warning.dark} 100%)`
                 : `linear-gradient(135deg, 
-                    ${theme.palette.grey[600]} 0%, 
-                    ${theme.palette.grey[700]} 50%, 
-                    ${theme.palette.grey[800]} 100%)`
+                    ${theme.palette.grey[500]} 0%, 
+                    ${theme.palette.grey[600]} 50%, 
+                    ${theme.palette.grey[700]} 100%)`
               : tile.terrain?.type === 'ruins' || tile.terrain?.type === 'scrapyard'
                 ? `linear-gradient(135deg, 
-                    ${theme.palette.error.dark}20 0%, 
+                    ${theme.palette.error.light} 0%, 
                     ${theme.palette.background.paper} 30%, 
-                    ${theme.palette.error.dark}10 100%)`
+                    ${theme.palette.error.dark} 100%)`
                 : tile.terrain?.type === 'wasteland' 
                 ? `linear-gradient(135deg, 
-                    ${theme.palette.warning.dark}10 0%, 
+                    ${theme.palette.warning.light} 0%, 
                     ${theme.palette.background.paper} 50%, 
-                    ${theme.palette.grey[100]} 100%)`
+                    ${theme.palette.grey[200]} 100%)`
                 : `linear-gradient(135deg, 
-                    ${theme.palette.success.dark}10 0%, 
+                    ${theme.palette.success.light} 0%, 
                     ${theme.palette.background.paper} 50%, 
-                    ${theme.palette.success.dark}05 100%)`,
+                    ${theme.palette.success.main} 100%)`,
             // Enhanced borders with wasteland theme
             border: tile.canExplore && !tile.explored
-              ? `3px solid ${theme.palette.warning.main}`
+              ? `3px solid ${theme.palette.warning.dark}`
               : tile.explored
-                ? `2px solid ${theme.palette.success.dark}40`
-                : `1px solid ${theme.palette.divider}`,
+                ? `2px solid ${theme.palette.success.main}`
+                : `2px solid ${theme.palette.grey[400]}`,
             borderRadius: '8px',
             opacity: !tile.explored && !tile.canExplore ? 0.4 : 1,
             position: 'relative',
@@ -248,26 +248,15 @@ function MapPage() {
             // Enhanced hover effects
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': canClick ? {
-              transform: 'translateY(-4px) scale(1.05)',
-              boxShadow: `inset 0 2px 4px rgba(0,0,0,0.2), 0 8px 25px rgba(0,0,0,0.25)`,
+              transform: 'translateY(-2px) scale(1.02)',
+              boxShadow: `inset 0 2px 4px rgba(0,0,0,0.1), 0 6px 20px rgba(0,0,0,0.15)`,
               background: `linear-gradient(135deg, 
-                ${theme.palette.warning.main}35 0%, 
-                ${theme.palette.warning.light}45 50%, 
-                ${theme.palette.warning.main}35 100%)`,
-              borderColor: theme.palette.warning.light,
+                ${theme.palette.warning.main} 0%, 
+                ${theme.palette.warning.light} 50%, 
+                ${theme.palette.warning.main} 100%)`,
+              borderColor: theme.palette.warning.dark,
             } : {},
-            // Subtle texture overlay
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'url("data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23000" fill-opacity="0.03"%3E%3Cpolygon points="2.5,0 2.5,10 0,10"%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E")',
-              borderRadius: 'inherit',
-              pointerEvents: 'none',
-            }
+            // Simplified styling
           }}
           onClick={() => handleTileClickCustom(tile)}
         >
@@ -646,9 +635,9 @@ function MapPage() {
           p: 2, 
           mb: 3,
           background: `linear-gradient(135deg, 
-            ${theme.palette.grey[100]} 0%, 
+            ${theme.palette.background.paper} 0%, 
             ${theme.palette.grey[50]} 50%, 
-            ${theme.palette.grey[100]} 100%)`,
+            ${theme.palette.background.paper} 100%)`,
           border: `2px solid ${theme.palette.divider}`,
           borderRadius: '12px',
           position: 'relative',
@@ -815,10 +804,10 @@ function MapPage() {
           p: isMobile ? 1.5 : 3, 
           mb: 3,
           background: `radial-gradient(circle at center, 
-            ${theme.palette.grey[100]} 0%, 
-            ${theme.palette.grey[200]} 70%, 
-            ${theme.palette.grey[300]} 100%)`,
-          border: `3px solid ${theme.palette.grey[400]}`,
+            ${theme.palette.background.paper} 0%, 
+            ${theme.palette.grey[50]} 70%, 
+            ${theme.palette.grey[100]} 100%)`,
+          border: `3px solid ${theme.palette.grey[300]}`,
           borderRadius: '16px',
           position: 'relative',
           overflow: 'hidden',
@@ -830,16 +819,15 @@ function MapPage() {
             right: 0,
             bottom: 0,
             background: `
-              radial-gradient(circle at 20% 20%, rgba(255,165,0,0.1) 0%, transparent 30%),
-              radial-gradient(circle at 80% 80%, rgba(139,69,19,0.1) 0%, transparent 30%),
-              url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23000" fill-opacity="0.05"%3E%3Cpath d="M0 0h60v60H0z"%2F%3E%3Cpath d="M30 30m-20 0a20 20 0 1 1 40 0a20 20 0 1 1-40 0"%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E")
+              radial-gradient(circle at 20% 20%, rgba(255,165,0,0.05) 0%, transparent 30%),
+              radial-gradient(circle at 80% 80%, rgba(139,69,19,0.05) 0%, transparent 30%)
             `,
             pointerEvents: 'none',
           },
           // Add subtle inner shadow
           boxShadow: `
-            inset 0 2px 8px rgba(0,0,0,0.1),
-            0 4px 16px rgba(0,0,0,0.15)
+            inset 0 2px 8px rgba(0,0,0,0.05),
+            0 4px 16px rgba(0,0,0,0.1)
           `
         }}
       >
@@ -849,22 +837,7 @@ function MapPage() {
           sx={{
             position: 'relative',
             zIndex: 1,
-            // Add subtle grid pattern overlay
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage: `
-                linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)
-              `,
-              backgroundSize: '20px 20px',
-              pointerEvents: 'none',
-              opacity: 0.3
-            }
+            // Simplified grid styling
           }}
         >
           {map.grid.tiles.map((row, rowIndex) =>
