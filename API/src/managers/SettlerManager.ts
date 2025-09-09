@@ -107,7 +107,7 @@ export class SettlerManager {
 
     // Speed stat effect (0-20 scale, normalized to 0.5-1.5x)
     // Higher speed = lower time multiplier (faster)
-    const speedMultiplier = 2.0 - (0.5 + (this.settler.stats.speed / 20) * 1.0);
+    const speedMultiplier = 1.5 - (this.settler.stats.speed / 20) * 1.0;
     timeMultiplier *= speedMultiplier;
 
     // Apply trait effects
@@ -192,8 +192,8 @@ export class SettlerManager {
     const lootMultiplier = this.adjustedLootMultiplier(activityType);
 
     return {
-      adjustedDuration: Math.round((baseDuration || 300000) / timeMultiplier),
-      effectiveSpeed: 1 / timeMultiplier,
+      adjustedDuration: Math.round((baseDuration || 300000) * timeMultiplier),
+      effectiveSpeed: timeMultiplier,
       lootMultiplier: lootMultiplier
     };
   }
