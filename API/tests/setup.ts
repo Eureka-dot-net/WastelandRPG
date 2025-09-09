@@ -65,10 +65,37 @@ beforeAll(async () => {
       then: (resolve: (value: any) => any, reject?: (reason: any) => any) => Promise.resolve(result).then(resolve, reject)
     });
     
-    // Mock save operation
+    // Mock save operation with validation
     const originalSave = mongoose.Model.prototype.save;
     (mongoose.Model.prototype as any).save = async function(this: any, options?: any) {
-      // Simulate successful save
+      // Run validation first like Mongoose does
+      try {
+        // For Assignment models, check required fields manually since validateSync might not work in mock
+        if (this.constructor.modelName === 'Assignment') {
+          if (!this.duration && this.duration !== 0) {
+            const error = new Error('Assignment validation failed: duration: Path `duration` is required.');
+            error.name = 'ValidationError';
+            throw error;
+          }
+          if (!this.name) {
+            const error = new Error('Assignment validation failed: name: Path `name` is required.');
+            error.name = 'ValidationError';
+            throw error;
+          }
+        }
+        
+        // Try built-in validation if available
+        if (typeof this.validateSync === 'function') {
+          const validationError = this.validateSync();
+          if (validationError) {
+            throw validationError;
+          }
+        }
+      } catch (validationError) {
+        throw validationError;
+      }
+      
+      // Simulate successful save after validation
       if (!this._id) {
         this._id = new mongoose.Types.ObjectId();
       }
@@ -166,14 +193,22 @@ beforeAll(async () => {
 
 afterAll(async () => {
   try {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close();
-    }
     if (mongoServer) {
+      await mongoose.connection.close();
       await mongoServer.stop();
+    } else {
+      // For mocked connections, just reset the readyState to disconnected
+      if (mongoose.connection && mongoose.connection.readyState !== 0) {
+        // Don't try to close the mock connection as it causes property assignment errors
+        Object.defineProperty(mongoose.connection, 'readyState', { 
+          value: 0, // disconnected
+          writable: false,
+          configurable: true
+        });
+      }
     }
   } catch (error) {
-    // Silent cleanup error
-    console.error('Cleanup error:', error);
+    // Silent cleanup error - this is expected in mock mode
+    // console.error('Cleanup error:', error);
   }
 }, 10000);
