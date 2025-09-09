@@ -5,23 +5,30 @@ import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
-import BuildIcon from '@mui/icons-material/Build'; // Scrap Metal
-import NatureIcon from '@mui/icons-material/Nature'; // Wood
+import BuildIcon from '@mui/icons-material/Build';
+import NatureIcon from '@mui/icons-material/Nature';
 
-import SelfImprovementIcon from '@mui/icons-material/SelfImprovement'; // Idle
-import ShieldIcon from '@mui/icons-material/Shield'; // Shield
-import VisibilityIcon from '@mui/icons-material/Visibility'; // Notoriety
-import WarningAmberIcon from "@mui/icons-material/WarningAmber"; // Alerts
+import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
+import ShieldIcon from '@mui/icons-material/Shield';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import HomeIcon from '@mui/icons-material/Home';
-import FeedIcon from '@mui/icons-material/Feed'; // Events
-import { Box, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, Paper, type SvgIconProps } from "@mui/material";
+import FeedIcon from '@mui/icons-material/Feed';
+import { 
+  Box, Typography, Tooltip, useMediaQuery, Drawer, IconButton, Divider, 
+  List, ListItem, ListItemButton, ListItemText, AppBar, Button, Toolbar, 
+  Paper, Collapse, LinearProgress, type SvgIconProps 
+} from "@mui/material";
 import { useColony } from "../../lib/hooks/useColony";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import ServerSelector from "../../components/ServerSelector/ServerSelector";
 import { useAuth } from "../../lib/hooks/useAuth";
 
 import { GiCorn, GiCrownedSkull, GiHeartBeats, GiHorseshoe, GiPerson, GiRunningNinja, GiShieldEchoes, GiWoodStick, GiChest, GiBackpack } from "react-icons/gi";
+import { BatteryFull } from '@mui/icons-material';
+import type { Settler } from "../../lib/types/settler";
 
 type StatItemProps = {
   icon: ReactElement<SvgIconProps>;
@@ -29,6 +36,8 @@ type StatItemProps = {
   value: string | number;
   color?: string;
   tooltip?: string;
+  onClick?: () => void;
+  clickable?: boolean;
 };
 
 const StatItem: React.FC<StatItemProps> = ({
@@ -37,6 +46,8 @@ const StatItem: React.FC<StatItemProps> = ({
   value,
   color = 'text.primary',
   tooltip,
+  onClick,
+  clickable = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -56,10 +67,12 @@ const StatItem: React.FC<StatItemProps> = ({
         border: '1px solid rgba(255,255,255,0.1)',
         minWidth: 'fit-content',
         position: 'relative',
+        cursor: clickable ? 'pointer' : 'default',
         '&:hover': {
-          bgcolor: 'rgba(255,255,255,0.08)',
+          bgcolor: clickable ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)',
         }
       }}
+      onClick={clickable ? onClick : undefined}
     >
       <Box sx={{
         color,
@@ -97,7 +110,6 @@ const StatItem: React.FC<StatItemProps> = ({
     </Box>
   );
 
-  // On mobile, don't use tooltip since labels are shown
   if (isMobile) {
     return content;
   }
@@ -109,6 +121,98 @@ const StatItem: React.FC<StatItemProps> = ({
   );
 };
 
+type SettlerDetailRowProps = {
+  settler: Settler;
+  getSettlerCurrentEnergy: (index: number) => number;
+  settlerIndex: number;
+};
+
+const SettlerDetailRow: React.FC<SettlerDetailRowProps> = ({ 
+  settler, 
+  getSettlerCurrentEnergy, 
+  settlerIndex 
+}) => {
+  const currentEnergy = getSettlerCurrentEnergy(settlerIndex);
+  
+  const getStatColor = (value: number, isEnergy = false) => {
+    const threshold = isEnergy ? 70 : 60;
+    if (value >= threshold) return 'success';
+    if (value >= (threshold - 20)) return 'warning';
+    return 'error';
+  };
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        py: 1,
+        px: 2,
+        bgcolor: 'rgba(255,255,255,0.03)',
+        borderRadius: 1,
+        border: '1px solid rgba(255,255,255,0.08)',
+      }}
+    >
+      {/* Settler Name */}
+      <Typography
+        variant="body2"
+        sx={{
+          minWidth: 120,
+          fontWeight: 600,
+          color: 'text.primary',
+        }}
+      >
+        {settler.name}
+      </Typography>
+
+      {/* Status */}
+      <Box
+        sx={{
+          minWidth: 80,
+          px: 1,
+          py: 0.25,
+          bgcolor: settler.status === 'idle' ? 'info.main' : 'success.main',
+          borderRadius: 0.5,
+          textAlign: 'center',
+        }}
+      >
+        <Typography variant="caption" sx={{ color: 'white', fontWeight: 600 }}>
+          {settler.status.toUpperCase()}
+        </Typography>
+      </Box>
+
+      {/* Morale */}
+      <Box sx={{ minWidth: 100 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">Morale</Typography>
+          <Typography variant="caption" color="text.secondary">{settler.morale}%</Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={settler.morale}
+          color={getStatColor(settler.morale)}
+          sx={{ height: 4, borderRadius: 2 }}
+        />
+      </Box>
+
+      {/* Energy */}
+      <Box sx={{ minWidth: 100 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">Energy</Typography>
+          <Typography variant="caption" color="text.secondary">{Math.round(currentEnergy)}%</Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={currentEnergy}
+          color={getStatColor(currentEnergy, true)}
+          sx={{ height: 4, borderRadius: 2 }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 const DashboardTopBar: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -116,25 +220,22 @@ const DashboardTopBar: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  const [settlerDetailsOpen, setSettlerDetailsOpen] = useState(false);
   const { logout } = useAuth();
 
-  // Get current server from context
   const { currentServerId } = useServerContext();
 
-  // Reset navigatingTo when route changes
   useEffect(() => {
     if (navigatingTo && location.pathname === navigatingTo) {
       setNavigatingTo(null);
     }
   }, [location.pathname, navigatingTo]);
 
-  // Get dynamic colony data for current server
-  const { colony, colonyLoading } = useColony(currentServerId || undefined);
+  // Use the enhanced useColony hook with energy tracking
+  const { colony, getSettlerCurrentEnergy, colonyLoading } = useColony(currentServerId || undefined);
   
-  // Use colony data from context if available, fallback to API data
   const displayColony = colony;
 
-  // Dynamic navigation based on unlocked features
   const NAV_ITEMS = useMemo(() => {
     if (!displayColony) return [];
 
@@ -160,19 +261,30 @@ const DashboardTopBar: React.FC = () => {
     ];
   }, [displayColony]);
 
-  // Calculate dynamic settler stats
+  // Enhanced settler stats with energy tracking
   const settlerStats = useMemo(() => {
-    if (!displayColony?.settlers) return { idle: 0, working: 0, lowMorale: 0, carrying: 0, total: 0 };
+    if (!displayColony?.settlers) return { 
+      idle: 0, working: 0, lowMorale: 0, carrying: 0, total: 0, 
+      lowestMorale: 100, lowestEnergy: 100 
+    };
 
     const idle = displayColony.settlers.filter(s => s.status === "idle").length;
     const working = displayColony.settlers.filter(s => s.status !== "idle").length;
     const lowMorale = displayColony.settlers.filter(s => (s.morale || 0) < 60).length;
     const carrying = displayColony.settlers.filter(s => s.carry && s.carry.length > 0).length;
 
-    return { idle, working, lowMorale, carrying, total: displayColony.settlers.length };
-  }, [displayColony?.settlers]);
+    // Calculate lowest morale and energy
+    const lowestMorale = Math.min(...displayColony.settlers.map(s => s.morale || 100));
+    const lowestEnergy = Math.min(...displayColony.settlers.map((_, index) => 
+      getSettlerCurrentEnergy ? getSettlerCurrentEnergy(index) : 100
+    ));
 
-  // Get notoriety color
+    return { 
+      idle, working, lowMorale, carrying, total: displayColony.settlers.length,
+      lowestMorale, lowestEnergy
+    };
+  }, [displayColony?.settlers, getSettlerCurrentEnergy]);
+
   const getNotorietyColor = (notoriety: number) => {
     if (notoriety <= 10) return "success.main";
     if (notoriety <= 25) return "success.light";
@@ -181,17 +293,17 @@ const DashboardTopBar: React.FC = () => {
     return "error.main";
   };
 
-  // Get low morale color
-  const getLowMoraleColor = (count: number) => {
-    return count > 0 ? "error.main" : "success.main";
+  const getLowStatColor = (value: number, isEnergy = false) => {
+    const threshold = isEnergy ? 70 : 60;
+    if (value >= threshold) return "success.main";
+    if (value >= (threshold - 20)) return "warning.main";
+    return "error.main";
   };
 
-  // Get carrying color
   const getCarryingColor = (count: number) => {
     return count > 0 ? "warning.main" : "text.secondary";
   };
 
-  // Create unified stats array
   const allStats = useMemo(() => {
     if (!displayColony) return { resources: [], settlers: [], status: [] };
 
@@ -230,6 +342,8 @@ const DashboardTopBar: React.FC = () => {
         label: "Idle",
         value: settlerStats.idle,
         color: "info.main",
+        clickable: true,
+        onClick: () => setSettlerDetailsOpen(!settlerDetailsOpen),
       },
       {
         icon: <GiRunningNinja fontSize="inherit" />,
@@ -237,15 +351,26 @@ const DashboardTopBar: React.FC = () => {
         value: settlerStats.working,
         color: "success.main",
         tooltip: settlerStats.working > 0 ? `${settlerStats.working} settlers working on tasks` : "No settlers currently working",
+        clickable: true,
+        onClick: () => setSettlerDetailsOpen(!settlerDetailsOpen),
       },
       {
         icon: <GiHeartBeats fontSize="inherit" />,
         label: "Low Morale",
-        value: settlerStats.lowMorale,
-        color: getLowMoraleColor(settlerStats.lowMorale),
-        tooltip: settlerStats.lowMorale > 0 
-          ? `${settlerStats.lowMorale} settlers have morale below 60` 
-          : "All settlers have good morale",
+        value: `${settlerStats.lowMorale} (${settlerStats.lowestMorale}%)`,
+        color: getLowStatColor(settlerStats.lowestMorale),
+        tooltip: `${settlerStats.lowMorale} settlers with low morale. Lowest: ${settlerStats.lowestMorale}%`,
+        clickable: true,
+        onClick: () => setSettlerDetailsOpen(!settlerDetailsOpen),
+      },
+      {
+        icon: <BatteryFull fontSize="inherit" />,
+        label: "Low Energy",
+        value: `${Math.round(settlerStats.lowestEnergy)}%`,
+        color: getLowStatColor(settlerStats.lowestEnergy, true),
+        tooltip: `Lowest energy settler: ${Math.round(settlerStats.lowestEnergy)}%`,
+        clickable: true,
+        onClick: () => setSettlerDetailsOpen(!settlerDetailsOpen),
       },
       {
         icon: <GiBackpack fontSize="inherit" />,
@@ -255,6 +380,8 @@ const DashboardTopBar: React.FC = () => {
         tooltip: settlerStats.carrying > 0 
           ? `${settlerStats.carrying} settlers are carrying items` 
           : "No settlers carrying items",
+        clickable: true,
+        onClick: () => setSettlerDetailsOpen(!settlerDetailsOpen),
       },
     ];
 
@@ -276,7 +403,7 @@ const DashboardTopBar: React.FC = () => {
     ];
 
     return { resources, settlers, status };
-  }, [displayColony, settlerStats]);
+  }, [displayColony, settlerStats, settlerDetailsOpen]);
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -289,7 +416,7 @@ const DashboardTopBar: React.FC = () => {
   const handleNavigation = (href: string) => {
     setNavigatingTo(href);
     navigate(href);
-    handleMobileMenuClose(); // Close mobile menu if open
+    handleMobileMenuClose();
   };
 
   if (colonyLoading || !currentServerId) {
@@ -325,7 +452,6 @@ const DashboardTopBar: React.FC = () => {
           </IconButton>
         </Box>
 
-        {/* Server Selector in mobile menu */}
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
             Current Server
@@ -335,7 +461,6 @@ const DashboardTopBar: React.FC = () => {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* Navigation in mobile menu */}
         <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
           Navigation
         </Typography>
@@ -374,7 +499,6 @@ const DashboardTopBar: React.FC = () => {
 
           <Divider sx={{ mb: 2 }} />
           
-          {/* Logout Button */}
           <ListItem disablePadding>
             <ListItemButton
               onClick={() => {
@@ -411,7 +535,6 @@ const DashboardTopBar: React.FC = () => {
 
   const renderStats = () => {
     if (isMobile) {
-      // Mobile: Single scrollable row
       const allStatsFlat = [...allStats.resources, ...allStats.settlers, ...allStats.status];
       
       return (
@@ -436,30 +559,84 @@ const DashboardTopBar: React.FC = () => {
       );
     }
 
-    // Desktop: Horizontal toolbar with sections
     return (
       <Toolbar sx={{ minHeight: { xs: 48, sm: 46 }, px: 1, gap: 0.5, display: 'flex' }}>
-        {/* Resources Section - Left */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           {allStats.resources.map((stat) => (
             <StatItem key={stat.label} {...stat} />
           ))}
         </Box>
 
-        {/* Settlers Section - Center */}
         <Box sx={{ display: 'flex', gap: 0.5, flexGrow: 1, justifyContent: 'center' }}>
           {allStats.settlers.map((stat) => (
             <StatItem key={stat.label} {...stat} />
           ))}
         </Box>
 
-        {/* Status Section - Right */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           {allStats.status.map((stat) => (
             <StatItem key={stat.label} {...stat} />
           ))}
         </Box>
       </Toolbar>
+    );
+  };
+
+  const renderSettlerDetails = () => {
+    if (!displayColony?.settlers || displayColony.settlers.length === 0) return null;
+
+    return (
+      <Collapse in={settlerDetailsOpen}>
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: 'rgba(0,0,0,0.4)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 0,
+            p: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600 }}>
+              Settler Details ({displayColony.settlers.length})
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={() => setSettlerDetailsOpen(false)}
+              sx={{ color: 'text.secondary' }}
+            >
+              <ExpandLessIcon />
+            </IconButton>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 1,
+              maxHeight: isMobile ? '300px' : '200px',
+              overflow: 'auto',
+              flexWrap: isMobile ? 'nowrap' : 'wrap',
+            }}
+          >
+            {displayColony.settlers.map((settler, index) => (
+              <Box
+                key={settler._id}
+                sx={{
+                  minWidth: isMobile ? '100%' : '300px',
+                  maxWidth: isMobile ? '100%' : '400px',
+                }}
+              >
+                <SettlerDetailRow
+                  settler={settler}
+                  getSettlerCurrentEnergy={getSettlerCurrentEnergy}
+                  settlerIndex={index}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Paper>
+      </Collapse>
     );
   };
 
@@ -473,7 +650,6 @@ const DashboardTopBar: React.FC = () => {
           borderBottom: '1px solid #333',
         }}
       >
-        {/* Header Section */}
         <Paper
           elevation={0}
           sx={{
@@ -487,7 +663,6 @@ const DashboardTopBar: React.FC = () => {
             justifyContent: 'space-between',
           }}
         >
-          {/* Title and Server Selector */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography
               variant="h5"
@@ -501,7 +676,6 @@ const DashboardTopBar: React.FC = () => {
             {!isMobile && <ServerSelector />}
           </Box>
 
-          {/* Right side - Navigation or Hamburger */}
           {isMobile ? (
             <IconButton
               color="primary"
@@ -539,7 +713,6 @@ const DashboardTopBar: React.FC = () => {
                 );
               })}
               
-              {/* Logout Button */}
               <Button
                 onClick={logout}
                 variant="outlined"
@@ -563,11 +736,10 @@ const DashboardTopBar: React.FC = () => {
           )}
         </Paper>
 
-        {/* Stats Section - Unified for mobile and desktop */}
         {renderStats()}
+        {renderSettlerDetails()}
       </AppBar>
 
-      {/* Mobile Menu Drawer */}
       {renderMobileMenu}
     </>
   );
