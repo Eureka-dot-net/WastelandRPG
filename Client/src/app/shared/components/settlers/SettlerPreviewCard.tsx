@@ -14,8 +14,7 @@ import {
 import { Speed, TrendingUp, CheckCircle } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
-import type { UnifiedPreview } from '../../../../lib/types/preview';
-import { isAssignmentPreview, isMapExplorationPreview } from '../../../../lib/types/preview';
+import { isAssignmentPreview, isMapExplorationPreview, type BasePreviewResult, type MapExplorationPreviewResult } from '../../../../lib/types/preview';
 import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
 
 const getStatChipColor = (percent: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
@@ -102,7 +101,7 @@ export interface SettlerPreviewCardProps {
   onClick?: () => void;
   confirmPending?: boolean;
   // Preview data - if provided, will skip hook calls
-  preview?: UnifiedPreview;
+  preview?: BasePreviewResult;
   isLoading?: boolean;
   error?: Error | null;
 }
@@ -209,11 +208,11 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                         fontWeight={600}
                         sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
                       >
-                        Task Duration: {formatTaskDuration(preview.baseDuration)} → {formatTaskDuration(preview.duration)}
+                        Task Duration: {formatTaskDuration(preview.baseDuration)} → {formatTaskDuration(preview.adjustments.adjustedDuration)}
                       </Typography>
                     </Box>
                     <EfficiencyBar
-                      percent={getDurationChange(preview.baseDuration, preview.duration)}
+                      percent={getDurationChange(preview.baseDuration, preview.adjustments.adjustedDuration)}
                       type="duration"
                     />
                   </Box>
@@ -236,40 +235,46 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                   </Box>
                 </>
               ) : isMapExplorationPreview(preview) ? (
-                <>
-                  {/* Map Exploration Preview */}
-                  <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
-                    <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
-                      <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
-                      <Typography 
-                        variant="body2" 
-                        fontWeight={600}
-                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
-                      >
-                        Exploration Duration: {formatTaskDuration(preview.duration)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  {/* Terrain Info */}
-                  {preview.terrain && (
-                    <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
-                      <Typography 
-                        variant="body2" 
-                        fontWeight={600}
-                        sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
-                      >
-                        Terrain: {preview.terrain.name}
-                      </Typography>
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary" 
-                        sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
-                      >
-                        {preview.terrain.description}
-                      </Typography>
-                    </Box>
-                  )}
-                </>
+                (() => {
+                  // Type assertion to MapExplorationPreview
+                  const mapPreview = preview as MapExplorationPreviewResult;
+                  return (
+                    <>
+                      {/* Map Exploration Preview */}
+                      <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                        <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                          <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                          >
+                            Exploration Duration: {formatTaskDuration(mapPreview.baseDuration)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {/* Terrain Info */}
+                      {mapPreview.terrain && (
+                        <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                          >
+                            Terrain: {mapPreview.terrain.name}
+                          </Typography>
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary" 
+                            sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
+                          >
+                            {mapPreview.terrain.description}
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  );
+                })()
               ) : null}
             </Box>
           ) : (

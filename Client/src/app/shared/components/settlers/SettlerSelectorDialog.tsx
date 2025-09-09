@@ -12,8 +12,8 @@ import {
 } from '@mui/material';
 import { Person } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
-import type { UnifiedPreview } from '../../../../lib/types/preview';
 import SettlerPreviewCard from './SettlerPreviewCard';
+import type { BasePreviewResult } from '../../../../lib/types/preview';
 
 export interface SettlerSelectorDialogProps {
   open: boolean;
@@ -27,7 +27,7 @@ export interface SettlerSelectorDialogProps {
   showStats?: boolean;
   confirmPending?: boolean;
   // Unified preview data for all settlers - key is settlerId
-  settlerPreviews?: Record<string, UnifiedPreview>;
+  settlerPreviews?: Record<string, BasePreviewResult>;
   previewsLoading?: boolean;
   previewsError?: Error | null;
 }

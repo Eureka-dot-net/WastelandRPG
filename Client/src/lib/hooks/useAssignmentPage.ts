@@ -4,8 +4,7 @@ import { useColony } from "../../lib/hooks/useColony";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import { useSmartBatchPreviewAssignment, useSmartBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
 import type { Settler } from "../../lib/types/settler";
-import type { UnifiedPreview, AssignmentPreviewResult, MapExplorationPreviewResult } from "../../lib/types/preview";
-import { transformAssignmentPreview, transformMapExplorationPreview } from "../../lib/utils/previewTransformers";
+import type { BasePreviewResult } from "../types/preview";
 
 // Generic target type
 export interface GenericTarget {
@@ -32,18 +31,20 @@ export interface AssignmentPageConfig<T extends GenericTarget> {
 
 export function useAssignmentPage<T extends GenericTarget>(
   serverId: string,
-  colonyId: string | undefined,
   allTargets: T[],
   config: AssignmentPageConfig<T>
 ) {
   const [settlerDialogOpen, setSettlerDialogOpen] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<T | null>(null);
   const [startingTargetKey, setStartingTargetKey] = useState<string | null>(null);
-  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, UnifiedPreview>>({});
+  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, BasePreviewResult>>({});
 
   const { colony, colonyLoading } = useColony(serverId);
   const queryClient = useQueryClient();
   const { timers, informingAssignments } = useAssignmentNotifications();
+
+  // Extract colonyId from the colony data
+  const colonyId = colony?._id;
 
   // Get available settlers
   const availableSettlers = useMemo<Settler[]>(() => {
@@ -99,31 +100,23 @@ export function useAssignmentPage<T extends GenericTarget>(
       return;
     }
 
-    const previews: Record<string, UnifiedPreview> = {};
+    const previews: Record<string, BasePreviewResult> = {};
     const targetKey = config.getTargetKey(selectedTarget);
 
     availableSettlers.forEach(settler => {
       const settlerPreview =
         batchPreviewData.results[settler._id!]?.[targetKey];
       if (settlerPreview) {
-        if (config.previewType === 'assignment') {
-          previews[settler._id!] = transformAssignmentPreview(
-            settlerPreview as AssignmentPreviewResult
-          );
-        } else {
-          previews[settler._id!] = transformMapExplorationPreview(
-            settlerPreview as MapExplorationPreviewResult
-          );
-        }
+        previews[settler._id!] = settlerPreview as BasePreviewResult;
       }
     });
 
     setSettlerPreviews(previews);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     batchPreviewData,
     selectedTarget,
     availableSettlers,
-    config,
   ]);
 
   // Invalidate queries when colony changes
@@ -149,15 +142,7 @@ export function useAssignmentPage<T extends GenericTarget>(
       setStartingTargetKey(targetKey);
 
       const settlerPreview = settlerPreviews[settler._id!];
-      let previewDuration: number | undefined;
-
-      if (settlerPreview) {
-        if (settlerPreview.type === 'exploration') {
-          previewDuration = settlerPreview.estimatedDuration;
-        } else {
-          previewDuration = settlerPreview.duration;
-        }
-      }
+      const previewDuration: number | undefined = settlerPreview?.baseDuration;
 
       const baseParams: Record<string, unknown> = {
         settlerId: settler._id,

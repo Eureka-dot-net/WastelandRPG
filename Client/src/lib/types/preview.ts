@@ -47,46 +47,10 @@ export interface PreviewTerrain {
   icon: string;
 }
 
-// Assignment preview extends base with assignment-specific fields
-export interface AssignmentPreview {
-  type: 'assignment';
-  settlerId: string;
-  settlerName: string;
-  duration: number;
-  baseDuration: number;
-  basePlannedRewards: Record<string, number>;
-  adjustments: {
-    adjustedDuration: number;
-    lootMultiplier: number;
-  };
+export function isAssignmentPreview(preview: BasePreviewResult): preview is AssignmentPreviewResult {
+  return !('coordinates' in preview);
 }
 
-// Map exploration preview extends base with exploration-specific fields
-export interface MapExplorationPreview {
-  type: 'exploration';
-  settlerId: string;
-  settlerName: string;
-  duration: number;
-  coordinates: { x: number; y: number };
-  terrain?: PreviewTerrain;
-  loot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
-  adjustedLoot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
-  estimatedLoot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
-  adjustedEstimatedLoot?: Record<string, { amount: number; itemId: string; name: string; type: string; }>;
-  threat?: { type: string; level: number } | null;
-  event?: { type: string; description: string } | null;
-  estimatedDuration?: number;
-  alreadyExplored: boolean;
-}
-
-// Union type for all preview types  
-export type UnifiedPreview = AssignmentPreview | MapExplorationPreview;
-
-// Type guards
-export function isAssignmentPreview(preview: UnifiedPreview): preview is AssignmentPreview {
-  return preview.type === 'assignment';
-}
-
-export function isMapExplorationPreview(preview: UnifiedPreview): preview is MapExplorationPreview {
-  return preview.type === 'exploration';
+export function isMapExplorationPreview(preview: BasePreviewResult): preview is MapExplorationPreviewResult {
+  return 'coordinates' in preview;
 }
