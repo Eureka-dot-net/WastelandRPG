@@ -3,19 +3,11 @@ import { Colony } from '../src/models/Player/Colony';
 
 describe('Database Connection', () => {
   it('should connect to MongoDB', async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-    
     expect(mongoose.connection.readyState).toBe(1); // 1 = connected
     expect(mongoose.connection.db?.databaseName).toContain('test');
   });
 
   it('should be able to create and query documents', async () => {
-    if ((global as any).skipIfNoMongoDB?.()) {
-      return;
-    }
-
     // Create a test colony
     const testColony = new Colony({
       userId: new mongoose.Types.ObjectId(),
