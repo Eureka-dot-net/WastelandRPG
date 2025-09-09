@@ -149,6 +149,7 @@ function QuestPage() {
       {/* Tasks Grid */}
       <Grid container spacing={isMobile ? 1.5 : 3}>
         {assignments.map(assignment => {
+      
           // Determine time remaining
           let timeRemaining: number | undefined;
           if (assignment.state === 'in-progress') {
@@ -166,6 +167,8 @@ function QuestPage() {
               ? 100
               : 0;
 
+
+           
           const assignedSettler = assignment.settlerId
             ? displayColony?.settlers?.find(s => s._id === assignment.settlerId)
             : null;

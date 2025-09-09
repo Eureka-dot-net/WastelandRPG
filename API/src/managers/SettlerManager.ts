@@ -2,14 +2,31 @@ import type { SettlerDoc } from '../models/Player/Settler';
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import traitsCatalogue from '../data/traitsCatalogue.json';
 import statusCatalogue from '../data/statusCatalogue.json';
-import { addRewardsToColonyInventory } from '../services/gameEventsService';
 import { ClientSession } from 'mongoose';
+import { ColonyManager } from './ColonyManager';
+import { Colony } from '../models/Player/Colony';
+import { GameAdjustments } from '../utils/gameUtils';
 
 export class SettlerManager {
-  private settler: SettlerDoc;
+  private _colonyManager?: ColonyManager;
 
-  constructor(settler: SettlerDoc) {
-    this.settler = settler;
+  constructor(
+    private settler: SettlerDoc,
+    colonyManager?: ColonyManager
+  ) {
+    if (colonyManager) {
+      this._colonyManager = colonyManager;
+    }
+  }
+
+  async getColony(): Promise<ColonyManager> {
+    if (this._colonyManager) {
+      return this._colonyManager;
+    }
+    const colony = await Colony.findById(this.settler.colonyId);
+    if (!colony) throw new Error('Colony not found for settler');
+    this._colonyManager = new ColonyManager(colony);
+    return this._colonyManager;
   }
 
   // Computed: speed after all modifiers
@@ -56,7 +73,7 @@ export class SettlerManager {
   // Computed: current weight being carried
   get currentCarriedWeight(): number {
     let totalWeight = 0;
-    
+
     for (const carriedItem of this.settler.carry) {
       const catalogueItem = this.getItemFromCatalogue(carriedItem.itemId);
       if (catalogueItem && catalogueItem.properties?.weight) {
@@ -65,7 +82,7 @@ export class SettlerManager {
         totalWeight += itemWeight * carriedItem.quantity;
       }
     }
-    
+
     return totalWeight;
   }
 
@@ -77,7 +94,7 @@ export class SettlerManager {
     const isPercentage = cleanModifier.includes('%');
     const numericPart = cleanModifier.replace(/[^-+0-9.]/g, '');
     const value = parseFloat(numericPart) || 0;
-    
+
     return { value, isPercentage };
   }
 
@@ -87,7 +104,7 @@ export class SettlerManager {
    */
   adjustedTimeMultiplier(activityType?: string): number {
     let timeMultiplier = 1.0;
-    
+
     // Speed stat effect (0-20 scale, normalized to 0.5-1.5x)
     // Higher speed = lower time multiplier (faster)
     const speedMultiplier = 2.0 - (0.5 + (this.settler.stats.speed / 20) * 1.0);
@@ -103,13 +120,13 @@ export class SettlerManager {
           // Check if this effect applies to tasks/activities
           if (effect.target === 'task') {
             // Check if it applies to all tasks or specific activity type
-            const appliesToActivity = 
-              effect.key === 'all' || 
+            const appliesToActivity =
+              effect.key === 'all' ||
               (activityType && effect.key.split(',').includes(activityType));
-            
+
             if (appliesToActivity) {
               const { value, isPercentage } = this.parseModifier(effect.modifier);
-              
+
               if (isPercentage) {
                 // For time effects, positive percentage = longer time, negative = shorter time
                 timeMultiplier *= (1 + value / 100);
@@ -149,13 +166,13 @@ export class SettlerManager {
           // Check if this effect applies to tasks/activities and mentions yield/loot
           if (effect.target === 'task' && (effect.modifier.includes('yield') || effect.modifier.includes('loot'))) {
             // Check if it applies to all tasks or specific activity type
-            const appliesToActivity = 
-              effect.key === 'all' || 
+            const appliesToActivity =
+              effect.key === 'all' ||
               (activityType && effect.key.split(',').includes(activityType));
-            
+
             if (appliesToActivity) {
               const { value, isPercentage } = this.parseModifier(effect.modifier);
-              
+
               if (isPercentage) {
                 // For loot effects, positive percentage = more loot, negative = less loot
                 lootMultiplier *= (1 + value / 100);
@@ -170,6 +187,17 @@ export class SettlerManager {
     return Math.max(0.1, lootMultiplier); // Ensure positive multiplier
   }
 
+  calculateAdjustments(baseDuration: number, activityType: string): GameAdjustments {
+    const timeMultiplier = this.adjustedTimeMultiplier(activityType);
+    const lootMultiplier = this.adjustedLootMultiplier(activityType);
+
+    return {
+      adjustedDuration: Math.round((baseDuration || 300000) / timeMultiplier),
+      effectiveSpeed: 1 / timeMultiplier,
+      lootMultiplier: lootMultiplier
+    };
+  }
+
   /**
    * Get item details from the catalogue
    */
@@ -181,10 +209,10 @@ export class SettlerManager {
    * Check if settler can carry additional items without exceeding limits
    */
   canCarryItems(
-    itemId: string, 
+    itemId: string,
     quantity: number = 1
   ): { canCarry: boolean; reason?: string; details: { currentSlots: number; maxSlots: number; currentWeight: number; maxWeight: number; itemWeight: number } } {
-    
+
     const catalogueItem = this.getItemFromCatalogue(itemId);
     if (!catalogueItem) {
       return {
@@ -198,14 +226,14 @@ export class SettlerManager {
     const maxWeight = this.carryingCapacity;
     const currentWeight = this.currentCarriedWeight;
     const maxSlots = this.settler.maxCarrySlots;
-    
+
     // Check if item is already being carried (for stackable items)
     const existingItem = this.settler.carry.find(item => item.itemId === itemId);
     const isStackable = catalogueItem.properties?.stackable === true;
-    
+
     let currentSlots = this.settler.carry.length;
     let additionalWeight = itemWeight * quantity;
-    
+
     if (existingItem && isStackable) {
       // Adding to existing stack - no additional slot needed
       // Weight calculation remains the same
@@ -219,7 +247,7 @@ export class SettlerManager {
         };
       }
     }
-    
+
     // Check weight limit
     if (currentWeight + additionalWeight > maxWeight) {
       return {
@@ -228,7 +256,7 @@ export class SettlerManager {
         details: { currentSlots, maxSlots, currentWeight, maxWeight, itemWeight }
       };
     }
-    
+
     return {
       canCarry: true,
       details: { currentSlots, maxSlots, currentWeight, maxWeight, itemWeight }
@@ -243,25 +271,25 @@ export class SettlerManager {
     itemId: string,
     requestedQuantity: number
   ): { added: number; reason?: string } {
-    
+
     const catalogueItem = this.getItemFromCatalogue(itemId);
     if (!catalogueItem) {
       return { added: 0, reason: `Item ${itemId} not found in catalogue` };
     }
-    
+
     const isStackable = catalogueItem.properties?.stackable === true;
     const existingItem = this.settler.carry.find(item => item.itemId === itemId);
-    
+
     if (!isStackable && existingItem) {
       return { added: 0, reason: `Item ${itemId} is not stackable and already carried` };
     }
-    
+
     // For stackable items, try to add all at once if possible
     // For non-stackable items, can only add 1 if no existing item
     if (isStackable && existingItem) {
       // Adding to existing stack - check weight constraint
       const canCarryResult = this.canCarryItems(itemId, requestedQuantity);
-      
+
       if (canCarryResult.canCarry) {
         existingItem.quantity += requestedQuantity;
         return { added: requestedQuantity };
@@ -276,7 +304,7 @@ export class SettlerManager {
             break;
           }
         }
-        
+
         if (quantityAdded > 0) {
           existingItem.quantity += quantityAdded;
           return { added: quantityAdded };
@@ -287,7 +315,7 @@ export class SettlerManager {
     } else {
       // New item or non-stackable item
       const canCarryResult = this.canCarryItems(itemId, requestedQuantity);
-      
+
       if (canCarryResult.canCarry) {
         this.settler.carry.push({ itemId, quantity: requestedQuantity });
         return { added: requestedQuantity };
@@ -303,13 +331,13 @@ export class SettlerManager {
               break;
             }
           }
-          
+
           if (quantityAdded > 0) {
             this.settler.carry.push({ itemId, quantity: quantityAdded });
             return { added: quantityAdded };
           }
         }
-        
+
         return { added: 0, reason: canCarryResult.reason };
       }
     }
@@ -323,78 +351,38 @@ export class SettlerManager {
    * Could be made into a user-controlled action in the future
    */
   async transferItemsToColony(
-    colonyId: string,
-    session: ClientSession
+    session: ClientSession,
   ): Promise<{ transferredItems: Record<string, number>; remainingItems: Record<string, number> }> {
-    
-    const { Inventory } = await import('../models/Player/Inventory');
-    const { Colony } = await import('../models/Player/Colony');
-    
-    // Get colony to check inventory limits
-    const colony = await Colony.findById(colonyId).session(session);
-    if (!colony) {
-      throw new Error(`Colony ${colonyId} not found`);
+    const colonyManager = await this.getColony();
+
+    // Pre-filter valid items with quantities > 0
+    const validItems = this.settler.carry.filter(item => item.quantity > 0);
+    if (validItems.length === 0) {
+      return { transferredItems: {}, remainingItems: {} };
     }
-    
-    // Get current colony inventory
-    let inventory = await Inventory.findOne({ colonyId }).session(session);
-    
-    // If no inventory exists, create one
-    if (!inventory) {
-      inventory = new Inventory({
-        colonyId,
-        items: [],
-      });
-    }
-    
+
     const transferredItems: Record<string, number> = {};
     const remainingItems: Record<string, number> = {};
-    const maxSlots = colony.maxInventory;
-    const currentUniqueItems = inventory.items.length;
-    
-    // Process each carried item
-    for (const carriedItem of this.settler.carry) {
-      if (carriedItem.quantity <= 0) continue;
-      
-      const itemId = carriedItem.itemId;
-      const quantity = carriedItem.quantity;
-      
-      // Check if colony already has this item type
-      const existingColonyItem = inventory.items.find(item => item.itemId === itemId);
-      
-      if (existingColonyItem) {
-        // Colony already has this item type - can always add more quantity
-        transferredItems[itemId] = quantity;
-      } else {
-        // New item type - check if colony has available slots
-        const newItemsBeingAdded = Object.keys(transferredItems).filter(id => 
-          !inventory.items.find(item => item.itemId === id)
-        ).length;
-        
-        if (currentUniqueItems + newItemsBeingAdded < maxSlots) {
-          // Colony has space for this new item type
-          transferredItems[itemId] = quantity;
-        } else {
-          // Colony is full - item stays with settler
-          remainingItems[itemId] = quantity;
-        }
-      }
-    }
-    
-    // Update settler's carry inventory - remove transferred items, keep remaining ones
+
+    // Convert to rewards format for batch processing
+    const itemsToTransfer = validItems.reduce((acc, item) => {
+      acc[item.itemId] = item.quantity;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Get detailed transfer results
+    const transferResult = await colonyManager.addRewardsToColonyInventory(session, itemsToTransfer);
+
+    // Process results
+    Object.assign(transferredItems, transferResult.transferred);
+    Object.assign(remainingItems, transferResult.remaining);
+
+    // Update settler's carry inventory - keep only items that couldn't be transferred
     this.settler.carry = this.settler.carry.filter(carriedItem => {
-      const itemId = carriedItem.itemId;
-      return remainingItems.hasOwnProperty(itemId);
+      return carriedItem.quantity > 0 && remainingItems.hasOwnProperty(carriedItem.itemId);
     });
-    
-    // Save settler changes
+
     await this.settler.save({ session });
-    
-    // Add transferred items to colony inventory
-    if (Object.keys(transferredItems).length > 0) {
-      await addRewardsToColonyInventory(colonyId, session, transferredItems);
-    }
-    
     return { transferredItems, remainingItems };
   }
 
@@ -405,55 +393,50 @@ export class SettlerManager {
    */
   async giveRewards(
     rewards: Record<string, number>,
-    colonyId: string,
     session: ClientSession
   ): Promise<{ settlerItems: Record<string, number>; overflow: Record<string, number> }> {
-    
+
     const settlerItems: Record<string, number> = {};
     const overflow: Record<string, number> = {};
-    
+
     for (const [itemId, quantity] of Object.entries(rewards)) {
       if (quantity <= 0) continue;
-      
+
       // Try to add items to settler
       const result = this.addItems(itemId, quantity);
-      
+
       if (result.added > 0) {
         settlerItems[itemId] = result.added;
       }
-      
+
       // Track overflow (items that couldn't fit)
       const overflow_qty = quantity - result.added;
       if (overflow_qty > 0) {
         overflow[itemId] = overflow_qty;
       }
     }
-    
+
     // Log overflow items to colony
     if (Object.keys(overflow).length > 0) {
-      const { Colony } = await import('../models/Player/Colony');
-      const { ColonyManager } = await import('./ColonyManager');
-      
-      const colony = await Colony.findById(colonyId).session(session);
-      if (colony) {
-        const colonyManager = new ColonyManager(colony);
-        
-        const overflowList = Object.entries(overflow)
-          .map(([itemId, qty]) => `${qty}x ${itemId}`)
-          .join(', ');
-          
-        await colonyManager.addLogEntry(
-          session,
-          'inventory_overflow',
-          `${this.settler.name} found items but their inventory was full. Lost items: ${overflowList}`,
-          { settlerId: this.settler._id.toString(), overflow }
-        );
-      }
+
+      const colonyManager = await this.getColony();
+
+      const overflowList = Object.entries(overflow)
+        .map(([itemId, qty]) => `${qty}x ${itemId}`)
+        .join(', ');
+
+      await colonyManager.addLogEntry(
+        session,
+        'inventory_overflow',
+        `${this.settler.name} found items but their inventory was full. Lost items: ${overflowList}`,
+        { settlerId: this.settler._id.toString(), overflow }
+      );
+
     }
-    
+
     // Save settler changes
     await this.settler.save({ session });
-    
+
     return { settlerItems, overflow };
   }
 
@@ -465,9 +448,9 @@ export class SettlerManager {
     itemId: string,
     session: ClientSession
   ): Promise<{ droppedItems: Record<string, number>; success: boolean; message: string }> {
-    
+
     const itemIndex = this.settler.carry.findIndex(item => item.itemId === itemId);
-    
+
     if (itemIndex === -1) {
       return {
         droppedItems: {},
@@ -475,16 +458,16 @@ export class SettlerManager {
         message: `Settler doesn't have item: ${itemId}`
       };
     }
-    
+
     const droppedItem = this.settler.carry[itemIndex];
     const droppedQuantity = droppedItem.quantity;
-    
+
     // Remove item from settler's inventory
     this.settler.carry.splice(itemIndex, 1);
-    
+
     // Save settler changes
     await this.settler.save({ session });
-    
+
     return {
       droppedItems: { [itemId]: droppedQuantity },
       success: true,
@@ -507,27 +490,26 @@ export class SettlerManager {
    * This should be called before any status changes to ensure energy is up to date
    * @returns The updated energy value
    */
-  updateEnergy(): number {
-    const now = new Date();
-    const lastUpdated = this.settler.energyLastUpdated || this.settler.createdAt || now;
-    
+  updateEnergy(dateToUpdate: Date): number {
+    const lastUpdated = this.settler.energyLastUpdated || this.settler.createdAt || dateToUpdate;
+
     // Calculate hours passed since last energy update
-    const hoursPassed = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-    
+    const hoursPassed = (dateToUpdate.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
     if (hoursPassed > 0) {
       // Get energy delta for current status
       const energyDelta = this.getEnergyDeltaForStatus(this.settler.status);
-      
+
       // Calculate energy change
       const energyChange = energyDelta * hoursPassed;
-      
+
       // Update energy (clamped between 0 and 100)
       this.settler.energy = Math.max(0, Math.min(100, this.settler.energy + energyChange));
-      
+
       // Update the last updated timestamp
-      this.settler.energyLastUpdated = now;
+      this.settler.energyLastUpdated = dateToUpdate;
     }
-    
+
     return this.settler.energy;
   }
 
@@ -537,13 +519,13 @@ export class SettlerManager {
    * @param newStatus - The new status to set
    * @param session - MongoDB session for transaction
    */
-  async changeStatus(newStatus: string, session: ClientSession): Promise<void> {
+  async changeStatus(newStatus: string, dateToUpdate: Date, session: ClientSession): Promise<void> {
     // First update energy based on time in current status
-    this.updateEnergy();
-    
+    this.updateEnergy(dateToUpdate);
+
     // Change the status
     this.settler.status = newStatus as any;
-    
+
     // Save the changes
     await this.settler.save({ session });
   }
@@ -556,24 +538,24 @@ export class SettlerManager {
    */
   canCompleteTask(status: string, durationHours: number): boolean {
     // First ensure energy is up to date
-    this.updateEnergy();
-    
+    this.updateEnergy(new Date());
+
     // Calculate energy that will be consumed during the task
     const energyDelta = this.getEnergyDeltaForStatus(status);
     const energyRequired = Math.abs(energyDelta * durationHours);
-    
+
     // For energy-consuming tasks (negative delta), check if we have enough energy
     if (energyDelta < 0) {
       return this.settler.energy >= energyRequired;
     }
-    
+
     // For energy-gaining tasks (positive delta), always allow
     return true;
   }
 
   toViewModel() {//return the full object to use in controllers.
     return {
-      ...this.settler.toObject(), 
+      ...this.settler.toObject(),
       stats: {
         ...this.settler.stats,
         speed: this.effectiveSpeed

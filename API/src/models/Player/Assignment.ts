@@ -11,18 +11,18 @@ export type AssignmentType =
 
 export interface IAssignment {
   colonyId: Types.ObjectId;
-  taskId: string; // from TaskDefinition
+  taskId?: string; // from TaskDefinition
   type: AssignmentType;
   state: 'available' | 'in-progress' | 'completed' | 'informed';
   settlerId?: Types.ObjectId;
   startedAt?: Date;
   completedAt?: Date;
   dependsOn?: string;
-  name?: string;
+  name: string;
   settlerFoundId?: Types.ObjectId;
   description?: string;
   completionMessage?: string;
-  duration?: number;
+  duration: number;
   unlocks?: string;
   location?: {
     x: number;
@@ -30,17 +30,16 @@ export interface IAssignment {
   };
   plannedRewards?: Record<string, number>;
   actualTransferredItems?: Record<string, number>;
-  actualNewInventoryStacks?: number;
   adjustments?: {
     adjustedDuration: number;
     effectiveSpeed: number;
     lootMultiplier: number;
-    adjustedPlannedRewards: Record<string, number>;
-    effects?: {
-      speedEffects: string[];
-      lootEffects: string[];
-      traitEffects: string[];
-    };
+    // adjustedPlannedRewards: Record<string, number>;
+    // effects?: {
+    //   speedEffects: string[];
+    //   lootEffects: string[];
+    //   traitEffects: string[];
+    // };
   };
 }
 
@@ -56,10 +55,10 @@ const AssignmentSchema = new Schema(
     completionMessage: { type: String, required: false },
     startedAt: { type: Date, required: false },
     completedAt: { type: Date, required: false },
-    name: { type: String, required: false },
+    name: { type: String, required: true },
     settlerFoundId: { type: Schema.Types.ObjectId, ref: 'Settler', required: false },
     description: { type: String, required: false },
-    duration: { type: Number, required: false },
+    duration: { type: Number, required: true },
     unlocks: { type: String, required: false },
     plannedRewards: { type: Schema.Types.Mixed, required: false },
     location: {
@@ -71,8 +70,7 @@ const AssignmentSchema = new Schema(
       default: {}
     },
     adjustments: { type: Schema.Types.Mixed, required: false },
-    actualTransferredItems: { type: Schema.Types.Mixed, required: false },
-    actualNewInventoryStacks: { type: Number, required: false, default: 0 },
+    actualTransferredItems: { type: Schema.Types.Mixed, required: false }
   },
   { timestamps: true, versionKey: false },
 

@@ -9,7 +9,7 @@ export interface IColony {
   colonyName: string;
   level: number;
   hasInitialSettlers: boolean;
-
+  maxSettlers: number;
   notoriety: number;
   maxInventory: number;
   settlers: SettlerDoc[];
@@ -42,6 +42,7 @@ const colonySchema = new Schema({
   level: { type: Number, default: 1, min: 1 },
   notoriety: { type: Number, default: 0, min: 0, max: 100 },
   maxInventory: { type: Number, default: 50, min: 0 },
+  maxSettlers: { type: Number, default: 3, min: 1 },
   settlers: [{ type: Schema.Types.ObjectId, ref: 'Settler' }],
   hasInitialSettlers: { type: Boolean, default: false },
   inventory: { type: Schema.Types.ObjectId, ref: 'Inventory' },

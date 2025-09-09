@@ -1,7 +1,6 @@
 // utils/gameUtils.ts
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import terrainCatalogue from '../data/terrainCatalogue.json';
-import { generateRewardsFromDefinition } from '../services/gameEventsService';
 
 export interface AdjustmentEffects {
   speedEffects: string[];
@@ -13,7 +12,6 @@ export interface GameAdjustments {
   adjustedDuration: number;
   effectiveSpeed: number;
   lootMultiplier: number;
-  adjustedPlannedRewards: Record<string, number>;
 }
 
 /**
@@ -64,6 +62,21 @@ export function generateRewards(rewardTemplate: any): Record<string, number> {
       rewards[key] = Math.floor(Math.random() * (val.max - val.min + 1)) + val.min;
     }
   });
+  return rewards;
+}
+
+export function generateRewardsFromDefinition(rewardsDefinition: Record<string, {min: number, max: number, chance: number}>): Record<string, number> {
+  const rewards: Record<string, number> = {};
+  
+  for (const [itemId, config] of Object.entries(rewardsDefinition)) {
+    // Roll for chance
+    if (Math.random() <= config.chance) {
+      // Generate amount within min/max range
+      const amount = Math.floor(Math.random() * (config.max - config.min + 1)) + config.min;
+      rewards[itemId] = amount;
+    }
+  }
+  
   return rewards;
 }
 

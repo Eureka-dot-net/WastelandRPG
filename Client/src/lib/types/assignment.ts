@@ -23,7 +23,6 @@ export interface AssignmentAdjustments {
   adjustedDuration: number;
   effectiveSpeed: number;
   lootMultiplier: number;
-  adjustedPlannedRewards: Record<string, number>;
 }
 
 export interface Assignment {

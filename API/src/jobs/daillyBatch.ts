@@ -1,8 +1,8 @@
 import { Colony } from '../models/Player/Colony';
-import { completeAssignmentsForColony } from '../services/assignmentService';
 import { processFoodConsumption } from '../services/processDailyFood';
 import { withSession } from '../utils/sessionUtils';
 import { logError, logInfo } from '../utils/logger';
+import { ColonyManager } from '../managers/ColonyManager';
 
 const HUNGER_INCREASE = 20;
 
@@ -13,7 +13,8 @@ export async function dailyBatch() {
   for (const colony of colonies) {
     try {
       await withSession(async (session) => {
-        await completeAssignmentsForColony(colony, session);
+        const colonyManager = new ColonyManager(colony);
+        await colonyManager.completeAssignmentsForColony(session);
 
         for (const settler of colony.settlers) {
           // Increase hunger

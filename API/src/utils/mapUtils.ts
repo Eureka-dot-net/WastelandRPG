@@ -262,43 +262,6 @@ export async function getAssignmentsInArea(
 }
 
 /**
- * Create a UserMapTile when a colony discovers a new location
- * This should be called when exploration starts (isExplored = false)
- */
-export async function createUserMapTile(
-  colonyId: string,
-  mapTileId: string,
-  x: number,
-  y: number,
-  terrain: string,
-  icon: string,
-  distance: number,
-  explorationTime: number,
-  lootMultiplier: number,
-  isExplored: boolean,
-  session: ClientSession
-): Promise<UserMapTileDoc> {
-
-  const userTileData = {
-    colonyId,
-    serverTile: mapTileId,
-    x,
-    y,
-    terrain,
-    icon,
-    distanceFromHomestead: distance,
-    explorationTime,
-    lootMultiplier,
-    isExplored,
-    exploredAt: new Date()
-  };
-
-  const userTile = new UserMapTile(userTileData);
-  return await userTile.save({ session });
-}
-
-
-/**
  * Create or update a UserMapTile for a colony exploring a map location
  * Used for starting exploration - sets isExplored to false initially
  */

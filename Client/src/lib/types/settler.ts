@@ -52,6 +52,7 @@ export interface Settler {
   morale: number;
   hunger: number;
   energy: number;
+  energyDeltaPerHour: number; // Energy change rate per hour
   isFemale: boolean;
   carry: SettlerItem[];
   equipment: Equipment;

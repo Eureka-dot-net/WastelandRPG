@@ -10,7 +10,6 @@ export interface BasePreviewResult {
     adjustedDuration: number;
     effectiveSpeed: number;
     lootMultiplier: number;
-    adjustedPlannedRewards: Record<string, number>;
   };
 }
 

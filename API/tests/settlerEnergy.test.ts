@@ -120,7 +120,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
 
       // Update immediately (no time passed)
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(50); // No change
       expect(mockSettler.energy).toBe(50);
     });
@@ -136,7 +136,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'idle';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(51); // 50 + (1 energy/hour * 1 hour)
       expect(mockSettler.energy).toBe(51);
       
@@ -153,7 +153,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'working';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(42); // 50 + (-8 energy/hour * 1 hour)
       expect(mockSettler.energy).toBe(42);
       
@@ -170,7 +170,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'resting';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(60); // 50 + (10 energy/hour * 1 hour)
       expect(mockSettler.energy).toBe(60);
       
@@ -187,7 +187,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'resting';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(100); // Clamped at 100
       expect(mockSettler.energy).toBe(100);
       
@@ -204,7 +204,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 10;
       mockSettler.status = 'working';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(0); // Clamped at 0
       expect(mockSettler.energy).toBe(0);
       
@@ -219,7 +219,7 @@ describe('Settler Energy System', () => {
       
       mockSettler.energyLastUpdated = oneHourEarlier;
       
-      settlerManager.updateEnergy();
+      settlerManager.updateEnergy(new Date());
       
       expect(mockSettler.energyLastUpdated).toEqual(mockNow);
       
@@ -237,7 +237,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 100;
       mockSettler.status = 'working';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(84); // 100 + (-8 * 2 hours) = 84
       expect(mockSettler.energy).toBe(84);
       
@@ -332,7 +332,7 @@ describe('Settler Energy System', () => {
 
       const mockSession = {} as any;
 
-      await settlerManager.changeStatus('idle', mockSession);
+      await settlerManager.changeStatus('idle', new Date(), mockSession);
 
       // Energy should be updated (50 + 20 = 70) and status changed
       expect(mockSettler.energy).toBe(70);
@@ -354,7 +354,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'working';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(46); // 50 + (-8 * 0.5 hours) = 46
       
       jest.restoreAllMocks();
@@ -367,7 +367,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
       mockSettler.status = 'working';
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       // Very small change: 50 + (-8 * (1/3600) hours) ≈ 49.998
       expect(updatedEnergy).toBeCloseTo(50, 0); // Rounded to nearest integer
     });
@@ -378,7 +378,7 @@ describe('Settler Energy System', () => {
       mockSettler.energyLastUpdated = futureTime;
       mockSettler.energy = 50;
 
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(50); // No change for negative time
     });
 
@@ -388,7 +388,7 @@ describe('Settler Energy System', () => {
       mockSettler.energy = 50;
 
       // Should use current time as fallback
-      const updatedEnergy = settlerManager.updateEnergy();
+      const updatedEnergy = settlerManager.updateEnergy(new Date());
       expect(updatedEnergy).toBe(50); // No time passed
     });
   });

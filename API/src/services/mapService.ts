@@ -1,7 +1,9 @@
 import { Types, ClientSession } from "mongoose";
 import { Colony, ColonyDoc } from "../models/Player/Colony";
-import { createOrUpdateMapTile, createUserMapTile } from "../utils/mapUtils";
+import { createOrUpdateMapTile } from "../utils/mapUtils";
 import { SpiralCounter } from "../models/Server/SpiralCounter";
+import { IUserMapTile, UserMapTile } from "../models/Player/UserMapTile";
+import { UserMapTileManager } from "../managers/UserMapTileManager";
 
 export async function createColonyWithSpiralLocation(
     userId: Types.ObjectId,
@@ -37,29 +39,33 @@ export async function createColonyWithSpiralLocation(
             });
 
             await colony.save({ session });
-            
+
             // Create the homestead tile and assign adjacent terrain
             const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, session, colony);
-            
+
             // Create the initial UserMapTile record for this colony's homestead
-            const homesteadUserTile = await createUserMapTile(
-                colony._id.toString(),
-                homesteadTile._id.toString(), 
-                homesteadTile.x, 
-                homesteadTile.y,
-                'homestead', // terrain type
-                'GiHut',
-                0, // distance is 0 for homestead
-                0, // explorationTime is 0 for homestead
-                1, // lootMultiplier is 1 for homestead
-                true, // isExplored is true for homestead
-                session
-            );
-            
-            // Mark homestead as already explored
-            homesteadUserTile.isExplored = true;
+
+            const userMapTileData: IUserMapTile = {
+                colonyId: colony._id.toString(),
+                serverTile: homesteadTile,
+                x: homesteadTile.x,
+                y: homesteadTile.y,
+                terrain: 'homestead',
+                icon: 'GiHut',
+                distanceFromHomestead: 0, // distance is 0 for homestead
+                explorationTime: 0, // explorationTime is 0 for homestead
+                lootMultiplier: 1, // lootMultiplier is 1 for homestead
+                isExplored: true,
+                exploredAt: new Date()
+            };
+
+            const homesteadUserTile = new UserMapTile(userMapTileData);
+
             await homesteadUserTile.save({ session });
-        
+
+            const homesteadTileManager = new UserMapTileManager(homesteadUserTile);
+            await homesteadTileManager.setExplored(session);
+
             return colony;
 
         } catch (error) {

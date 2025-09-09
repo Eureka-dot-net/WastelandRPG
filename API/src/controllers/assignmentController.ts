@@ -1,7 +1,7 @@
 // controllers/assignmentController.ts
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { Assignment, AssignmentDoc } from '../models/Player/Assignment';
+import { Assignment } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
@@ -15,32 +15,25 @@ import {
 import { SettlerManager } from '../managers/SettlerManager';
 
 // Use the shared type from gameUtils
-interface AssignmentAdjustments extends GameAdjustments { }
+// interface AssignmentAdjustments extends GameAdjustments { }
 
-function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any): AssignmentAdjustments {
-  const baseDuration = assignment.duration || 300000; // 5 minutes default
-  const baseRewards = assignment.plannedRewards || {};
+// function calculateAssignmentAdjustments(assignment: AssignmentDoc, settler: any): AssignmentAdjustments {
+//   const baseDuration = assignment.duration || 300000; // 5 minutes default
 
-  // Use SettlerManager for adjustments
-  const settlerManager = new SettlerManager(settler);
-  const timeMultiplier = settlerManager.adjustedTimeMultiplier(assignment.type);
-  const lootMultiplier = settlerManager.adjustedLootMultiplier(assignment.type);
-  
-  const adjustedDuration = Math.round(baseDuration / timeMultiplier);
-  
-  // Apply loot multiplier to planned rewards
-  const adjustedPlannedRewards: Record<string, number> = {};
-  Object.entries(baseRewards).forEach(([key, amount]) => {
-    adjustedPlannedRewards[key] = Math.max(1, Math.round(amount * lootMultiplier));
-  });
+//   // Use SettlerManager for adjustments
+//   const settlerManager = new SettlerManager(settler);
+//   const timeMultiplier = settlerManager.adjustedTimeMultiplier(assignment.type);
+//   const lootMultiplier = settlerManager.adjustedLootMultiplier(assignment.type);
 
-  return {
-    adjustedDuration,
-    effectiveSpeed: 1 / timeMultiplier,
-    lootMultiplier,
-    adjustedPlannedRewards
-  };
-}
+//   const adjustedDuration = Math.round(baseDuration / timeMultiplier);
+
+
+//   return {
+//     adjustedDuration,
+//     effectiveSpeed: 1 / timeMultiplier,
+//     lootMultiplier
+//   };
+// }
 
 // Remove the duplicate functions - now using shared utilities from gameUtils
 
@@ -170,8 +163,10 @@ export const startAssignment = async (req: Request, res: Response) => {
         throw new Error(`Settler is currently ${settler.status} and cannot be assigned to a new task`);
       }
 
+      const settlerManager = new SettlerManager(settler);
+
       // Calculate adjusted duration and loot based on settler stats/skills/traits
-      const adjustments = calculateAssignmentAdjustments(assignment, settler);
+      const adjustments: GameAdjustments = settlerManager.calculateAdjustments(assignment.duration, assignment.type);
 
       // Set appropriate status based on assignment type
       let settlerStatus: 'working' | 'questing' | 'crafting' = 'working';
@@ -182,27 +177,24 @@ export const startAssignment = async (req: Request, res: Response) => {
       }
 
       // Check if settler has enough energy for the task
-      const settlerManager = new SettlerManager(settler);
       const taskDurationHours = adjustments.adjustedDuration / (1000 * 60 * 60);
       if (!settlerManager.canCompleteTask(settlerStatus, taskDurationHours)) {
         throw new Error('Settler does not have enough energy to complete this assignment');
       }
 
       // Update settler status using SettlerManager to properly handle energy
-      await settlerManager.changeStatus(settlerStatus, session);
+      await settlerManager.changeStatus(settlerStatus, new Date(), session);
 
       assignment.state = 'in-progress';
       assignment.settlerId = settlerId ? new Types.ObjectId(settlerId) : undefined;
       assignment.startedAt = new Date();
       assignment.completedAt = new Date(Date.now() + adjustments.adjustedDuration);
-
-      // Store adjustment calculations for reference
       assignment.adjustments = adjustments;
 
       await assignment.save({ session });
 
       const colonyManager = new ColonyManager(colony);
-      
+
       await colonyManager.addLogEntry(
         session,
         "assignment",
@@ -220,7 +212,7 @@ export const startAssignment = async (req: Request, res: Response) => {
     res.json(result);
   } catch (err) {
     const error = err as Error;
-    
+
     if (error.message === 'Assignment not found') {
       return res.status(404).json({ error: 'Assignment not found' });
     }
@@ -233,11 +225,11 @@ export const startAssignment = async (req: Request, res: Response) => {
     if (error.message.includes('Settler is currently') && error.message.includes('cannot be assigned')) {
       return res.status(400).json({ error: error.message });
     }
-    
-    logError('Failed to start assignment', err, { 
-      colonyId: req.colonyId, 
+
+    logError('Failed to start assignment', err, {
+      colonyId: req.colonyId,
       assignmentId: req.params.assignmentId,
-      settlerId: req.body.settlerId 
+      settlerId: req.body.settlerId
     });
     res.status(500).json({ error: 'Failed to start assignment' });
   }
@@ -261,9 +253,9 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
   // Validate all IDs
   const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
   const invalidAssignmentIds = assignmentIdArray.filter(id => !Types.ObjectId.isValid(id));
-  
+
   if (invalidSettlerIds.length > 0 || invalidAssignmentIds.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Invalid IDs provided',
       invalidSettlerIds,
       invalidAssignmentIds
@@ -300,7 +292,10 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
         }
 
         try {
-          const adjustments = calculateAssignmentAdjustments(assignment, settler);
+          const settlerManager = new SettlerManager(settler);
+
+          const adjustments = settlerManager.calculateAdjustments(assignment.duration, assignment.type);
+          
           results[settlerId][assignmentId] = {
             settlerId: settler._id,
             settlerName: settler.name,
@@ -309,10 +304,10 @@ export const previewAssignmentBatch = async (req: Request, res: Response) => {
             adjustments
           };
         } catch (error) {
-          logError('Error calculating adjustments in batch assignment preview', error, { 
-            settlerId, 
-            assignmentId, 
-            colonyId: req.colonyId 
+          logError('Error calculating adjustments in batch assignment preview', error, {
+            settlerId,
+            assignmentId,
+            colonyId: req.colonyId
           });
           results[settlerId][assignmentId] = { error: 'Failed to calculate preview' };
         }
@@ -362,16 +357,15 @@ export const informAssignment = async (req: Request, res: Response) => {
         _id: assignment._id,
         state: assignment.state,
         foundSettler,
-        actualTransferredItems: assignment.actualTransferredItems || {},
-        actualNewInventoryStacks: assignment.actualNewInventoryStacks || 0
+        actualTransferredItems: assignment.actualTransferredItems || {}
       };
     });
 
     res.json(result);
   } catch (err) {
-    logError('Failed to inform assignment', err, { 
-      colonyId: req.colonyId, 
-      assignmentId: req.params.assignmentId 
+    logError('Failed to inform assignment', err, {
+      colonyId: req.colonyId,
+      assignmentId: req.params.assignmentId
     });
     res.status(500).json({ error: 'Internal server error' });
   }
