@@ -44,9 +44,13 @@ describe('Auth API', () => {
     it('should login a user and return JWT', async () => {
         const res = await request(app)
             .post('/api/auth/login')
-            .send({ email: testUser.email, password: testUser.password })
-            .expect(200);
-
+            .send({ email: testUser.email, password: testUser.password });
+            
+        if (res.status !== 200) {
+            console.log('Login failed:', res.status, res.body);
+        }
+        
+        expect(res.status).toBe(200);
         expect(res.body.token).toBeDefined();
     });
 

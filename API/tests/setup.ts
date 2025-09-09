@@ -27,7 +27,13 @@ beforeAll(async () => {
     });
     Object.defineProperty(mongoose.connection, 'db', { 
       value: { 
-        databaseName: 'test_mock_db'
+        databaseName: 'test_mock_db',
+        collection: (name: string) => ({
+          findOne: () => Promise.resolve(null),
+          insertOne: () => Promise.resolve({ insertedId: new mongoose.Types.ObjectId() }),
+          updateOne: () => Promise.resolve({ modifiedCount: 1 }),
+          deleteOne: () => Promise.resolve({ deletedCount: 1 })
+        })
       }, 
       writable: false,
       configurable: true
@@ -82,18 +88,38 @@ beforeAll(async () => {
     // Mock findOne
     const originalFindOne = mongoose.Model.findOne;
     (mongoose.Model as any).findOne = function(this: any, filter: any, projection?: any, options?: any) {
-      // Simple mock - return first matching document or null
+      // Use constructor.modelName to match save behavior
+      const modelName = this.constructor.modelName || this.modelName;
       let result = null;
       for (const [key, data] of mockDatabase.entries()) {
-        if (key.startsWith(`${this.modelName}:`)) {
-          // Simple filter matching for email
+        if (key.startsWith(`${modelName}:`)) {
+          // Check for various filter conditions
           if (filter.email && data.email === filter.email) {
+            result = this.hydrate(data);
+            break;
+          }
+          if (filter._id && data._id && data._id.toString() === filter._id.toString()) {
             result = this.hydrate(data);
             break;
           }
         }
       }
       return createMockQuery(this, result);
+    };
+    
+    // Mock findOneAndUpdate
+    const originalFindOneAndUpdate = mongoose.Model.findOneAndUpdate;
+    (mongoose.Model as any).findOneAndUpdate = function(this: any, filter: any, update: any, options?: any) {
+      // For spiral counters, return a mock with nextIndex
+      if (this.modelName === 'SpiralCounter' || this.modelName === 'spiralcounters') {
+        const result = this.hydrate({
+          _id: new mongoose.Types.ObjectId(),
+          serverId: filter.serverId || 'mock-server',
+          nextIndex: 2 // Mock incremented value
+        });
+        return createMockQuery(this, result);
+      }
+      return createMockQuery(this, null);
     };
     
     // Mock findByIdAndDelete
