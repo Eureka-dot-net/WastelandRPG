@@ -45,6 +45,7 @@ const createMockSettler = (
     equipment: {},
     foodConsumption: 1,
     maxCarrySlots: 10,
+    energyDeltaPerHour: 0,
     createdAt: new Date().toISOString()
 });
 
