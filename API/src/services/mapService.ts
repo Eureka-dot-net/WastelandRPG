@@ -4,6 +4,7 @@ import { createOrUpdateMapTile } from "../utils/mapUtils";
 import { SpiralCounter } from "../models/Server/SpiralCounter";
 import { IUserMapTile, UserMapTile } from "../models/Player/UserMapTile";
 import { UserMapTileManager } from "../managers/UserMapTileManager";
+import { logInfo } from "../utils/logger";
 
 export async function createColonyWithSpiralLocation(
     userId: Types.ObjectId,
@@ -48,6 +49,14 @@ export async function createColonyWithSpiralLocation(
             const colony = new Colony(colonyData);
 
             await colony.save({ session });
+            
+            logInfo('Colony created successfully', { 
+                colonyId: colony._id, 
+                colonyName: colony.colonyName,
+                userId: userId,
+                serverId: serverId,
+                spiralIndex: nextIndex 
+            });
 
             // Create the homestead tile and assign adjacent terrain
             const homesteadTile = await createOrUpdateMapTile(serverId, spiralData.x, spiralData.y, session, colony);
@@ -71,6 +80,13 @@ export async function createColonyWithSpiralLocation(
             const homesteadUserTile = new UserMapTile(userMapTileData);
 
             await homesteadUserTile.save({ session });
+            
+            logInfo('UserMapTile created successfully', { 
+                userMapTileId: homesteadUserTile._id, 
+                colonyId: colony._id.toString(),
+                x: homesteadTile.x,
+                y: homesteadTile.y 
+            });
 
             const homesteadTileManager = new UserMapTileManager(homesteadUserTile);
             await homesteadTileManager.setExplored(session);
