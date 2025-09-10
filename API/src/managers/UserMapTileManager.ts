@@ -4,6 +4,7 @@ import { IUserMapTile, UserMapTile, UserMapTileDoc } from "../models/Player/User
 import { ColonyManager } from "./ColonyManager";
 import { calculateDistance, calculateDistanceModifiers } from "../utils/gameUtils";
 import { createOrUpdateMapTile } from "../utils/mapUtils";
+import { logInfo, logError } from "../utils/logger";
 
 export class UserMapTileManager {
     private _colonyManager?: ColonyManager;
@@ -17,12 +18,33 @@ export class UserMapTileManager {
         return this.userMapTile._id.toString();
     }
 
-    async getColony(): Promise<ColonyManager> {
+    async getColony(session?: ClientSession): Promise<ColonyManager> {
         if (this._colonyManager) {
             return this._colonyManager;
         }
-        const colony = await Colony.findById(this.userMapTile.colonyId);
-        if (!colony) throw new Error('Colony not found for user map tile');
+        
+        logInfo('UserMapTileManager: Fetching colony', { 
+            colonyId: this.userMapTile.colonyId, 
+            hasSession: !!session,
+            userMapTileId: this.userMapTile._id 
+        });
+        
+        const colony = await Colony.findById(this.userMapTile.colonyId).session(session || null);
+        if (!colony) {
+            logError('Colony not found for user map tile', new Error('Colony not found for user map tile'), { 
+                colonyId: this.userMapTile.colonyId,
+                hasSession: !!session,
+                userMapTileId: this.userMapTile._id,
+                userMapTileColonyId: this.userMapTile.colonyId
+            });
+            throw new Error('Colony not found for user map tile');
+        }
+        
+        logInfo('UserMapTileManager: Colony found successfully', { 
+            colonyId: colony._id, 
+            colonyName: colony.colonyName 
+        });
+        
         this._colonyManager = new ColonyManager(colony);
         return this._colonyManager;
     }
@@ -39,7 +61,7 @@ export class UserMapTileManager {
             { dx: 1, dy: 0 },  // right
             { dx: -1, dy: 0 }  // left
         ];
-        const colony = await this.getColony();
+        const colony = await this.getColony(session);
         // Run all createIfNotExists calls in parallel
         await Promise.all(adjacentOffsets.map(({ dx, dy }) =>
             UserMapTileManager.createIfNotExists(colony, x + dx, y + dy, session)
