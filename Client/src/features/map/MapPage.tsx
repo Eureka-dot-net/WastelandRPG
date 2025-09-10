@@ -21,9 +21,8 @@ function MapPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { currentServerId: serverId } = useServerContext();
-  const { centerX, centerY, moveUp, moveDown, moveLeft, moveRight, zoomOut } = useMapContext();
-
   const { colony } = useColony(serverId);
+  const { centerX, centerY, moveUp, moveDown, moveLeft, moveRight, zoomOut } = useMapContext();
   const { map, loadingMap, startExploration } = useMap(serverId, colony?._id, centerX, centerY);
 
   // Get explorable coordinates for useAssignmentPage - memoize more carefully
@@ -92,7 +91,7 @@ function MapPage() {
     const worldY = centerY + 2 - tile.position.row;
 
     // Create coordinate object that matches our target type
-    const coordinate =  { x: worldX, y: worldY };
+    const coordinate = { x: worldX, y: worldY };
     handleTileClick(coordinate);
   };
 
@@ -209,9 +208,9 @@ function MapPage() {
             position: 'relative',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: 'translateY(0px) scale(1)',
-            boxShadow: tile.explored 
-              ? `0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)` 
-              : tile.canExplore 
+            boxShadow: tile.explored
+              ? `0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)`
+              : tile.canExplore
                 ? `0 2px 8px rgba(${theme.palette.primary.main.replace('#', '').match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ') || '0, 0, 0'}, 0.3)`
                 : '0 1px 3px rgba(0, 0, 0, 0.1)',
             '&:hover': canClick ? {
@@ -260,16 +259,16 @@ function MapPage() {
                 alignItems: 'center',
                 opacity: 0.8
               }}>
-                <Timer 
-                  color="warning" 
-                  sx={{ 
+                <Timer
+                  color="warning"
+                  sx={{
                     animation: 'pulse 2s infinite',
                     '@keyframes pulse': {
                       '0%': { opacity: 1 },
                       '50%': { opacity: 0.5 },
                       '100%': { opacity: 1 }
                     }
-                  }} 
+                  }}
                 />
                 <Typography variant="caption" sx={{ mt: 0.5, textAlign: 'center', color: 'warning.main' }}>
                   Gathering gear...
@@ -283,8 +282,8 @@ function MapPage() {
                 opacity: tile.canExplore ? 0.7 : 0.3
               }}>
                 {tile.canExplore ? (
-                  <Explore 
-                    color="primary" 
+                  <Explore
+                    color="primary"
                     sx={{
                       filter: 'drop-shadow(0 0 4px rgba(25, 118, 210, 0.5))',
                       animation: canClick ? 'glow 2s ease-in-out infinite alternate' : 'none',
@@ -529,10 +528,10 @@ function MapPage() {
       />
 
       {/* Navigation Controls */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: 2, 
+      <Paper
+        elevation={2}
+        sx={{
+          p: 2,
           mb: 3,
           background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.1))',
           backdropFilter: 'blur(10px)',
@@ -564,9 +563,9 @@ function MapPage() {
           )}
 
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <IconButton 
-              onClick={moveUp} 
-              color="primary" 
+            <IconButton
+              onClick={moveUp}
+              color="primary"
               size={isMobile ? "small" : "medium"}
               sx={{
                 transition: 'all 0.2s ease',
@@ -579,9 +578,9 @@ function MapPage() {
               <KeyboardArrowUp />
             </IconButton>
             <Box sx={{ display: 'flex', gap: isMobile ? 0.5 : 1 }}>
-              <IconButton 
-                onClick={moveLeft} 
-                color="primary" 
+              <IconButton
+                onClick={moveLeft}
+                color="primary"
                 size={isMobile ? "small" : "medium"}
                 sx={{
                   transition: 'all 0.2s ease',
@@ -593,17 +592,17 @@ function MapPage() {
               >
                 <KeyboardArrowLeft />
               </IconButton>
-              <IconButton 
-                onClick={zoomOut} 
-                color="secondary" 
-                disabled 
+              <IconButton
+                onClick={zoomOut}
+                color="secondary"
+                disabled
                 size={isMobile ? "small" : "medium"}
               >
                 <ZoomOut />
               </IconButton>
-              <IconButton 
-                onClick={moveRight} 
-                color="primary" 
+              <IconButton
+                onClick={moveRight}
+                color="primary"
                 size={isMobile ? "small" : "medium"}
                 sx={{
                   transition: 'all 0.2s ease',
@@ -616,9 +615,9 @@ function MapPage() {
                 <KeyboardArrowRight />
               </IconButton>
             </Box>
-            <IconButton 
-              onClick={moveDown} 
-              color="primary" 
+            <IconButton
+              onClick={moveDown}
+              color="primary"
               size={isMobile ? "small" : "medium"}
               sx={{
                 transition: 'all 0.2s ease',
@@ -635,10 +634,10 @@ function MapPage() {
       </Paper>
 
       {/* Map Grid */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: isMobile ? 1 : 2, 
+      <Paper
+        elevation={2}
+        sx={{
+          p: isMobile ? 1 : 2,
           mb: 3,
           background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.1))',
           backdropFilter: 'blur(10px)',
@@ -678,10 +677,10 @@ function MapPage() {
       />
 
       {/* Future Features Placeholder */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: isMobile ? 2 : 3, 
+      <Paper
+        elevation={2}
+        sx={{
+          p: isMobile ? 2 : 3,
           opacity: 0.6,
           background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.05))',
           backdropFilter: 'blur(10px)',
@@ -694,9 +693,9 @@ function MapPage() {
           }
         }}
       >
-        <Typography variant="h6" gutterBottom sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <Typography variant="h6" gutterBottom sx={{
+          display: 'flex',
+          alignItems: 'center',
           gap: 1,
           textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)'
         }}>

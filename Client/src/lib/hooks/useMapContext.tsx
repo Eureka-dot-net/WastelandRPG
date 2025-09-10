@@ -1,4 +1,5 @@
 import  { createContext, useContext, useState, type ReactNode } from 'react';
+import type { Colony } from '../types/colony';
 
 interface MapContextType {
   centerX: number;
@@ -15,11 +16,12 @@ const MapContext = createContext<MapContextType | undefined>(undefined);
 
 interface MapProviderProps {
   children: ReactNode;
+  colony: Colony;
 }
 
-export function MapProvider({ children }: MapProviderProps) {
-  const [centerX, setCenterX] = useState(0);
-  const [centerY, setCenterY] = useState(0);
+export function MapProvider({ children, colony }: MapProviderProps) {
+  const [centerX, setCenterX] = useState(colony.homesteadLocation.x);
+  const [centerY, setCenterY] = useState(colony.homesteadLocation.y);
 
   const moveUp = () => {
     setCenterY(prev => prev + 1);

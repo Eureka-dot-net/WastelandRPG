@@ -50,7 +50,7 @@ export const ProtectedRoute = () => {
 
   return (
     <AssignmentNotificationProvider>
-      <MapProvider>
+      <MapProvider colony={colony}>
         <GlobalSettlerDialog />
         <Outlet />
       </MapProvider>
