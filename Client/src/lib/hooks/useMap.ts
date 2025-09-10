@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { agent } from "../api/agent";
 import type { MapResponse } from "../types/mapResponse";
 import type { Colony } from "../types/colony";
+import { useEffect } from "react";
 
 export function useMap(
   serverId: string | null,
@@ -26,6 +27,30 @@ export function useMap(
     },
     enabled: !!colonyId && !!serverId,
   });
+
+  // --- PREFETCH ADJACENT TILES ---
+  useEffect(() => {
+    if (!colonyId || !serverId) return;
+
+    const adjacentCoords = [
+      [centerX - 1, centerY],
+      [centerX + 1, centerY],
+      [centerX, centerY - 1],
+      [centerX, centerY + 1],
+    ];
+
+    adjacentCoords.forEach(([x, y]) => {
+      queryClient.prefetchQuery({
+        queryKey: ["map", colonyId, x, y],
+        queryFn: async () => {
+          const url = `/colonies/${colonyId}/map?x=${x}&y=${y}`;
+          const response = await agent.get(url);
+          return response.data as MapResponse;
+        },
+        staleTime: 60_000, // Cache for 1 minute
+      });
+    });
+  }, [colonyId, serverId, centerX, centerY, queryClient]);
 
   // --- MUTATION: START EXPLORATION ---
   const startExploration = useMutation<

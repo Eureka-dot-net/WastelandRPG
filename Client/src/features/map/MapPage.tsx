@@ -24,6 +24,7 @@ function MapPage() {
   const { colony } = useColony(serverId);
   const { centerX, centerY, moveUp, moveDown, moveLeft, moveRight, zoomOut } = useMapContext();
   const { map, loadingMap, startExploration } = useMap(serverId, colony?._id, centerX, centerY);
+  
 
   // Get explorable coordinates for useAssignmentPage - memoize more carefully
   const mapTiles = map?.grid?.tiles;
@@ -35,7 +36,7 @@ function MapPage() {
       row.forEach((tile, colIndex) => {
         if (tile.canExplore) {
           const worldX = centerX - 2 + colIndex;
-          const worldY = centerY + 2 - rowIndex;
+          const worldY = centerY - 2 + rowIndex;
           coords.push({ x: worldX, y: worldY });
         }
       });
@@ -88,7 +89,7 @@ function MapPage() {
 
     // Calculate world coordinates from grid position
     const worldX = centerX - 2 + tile.position.col;
-    const worldY = centerY + 2 - tile.position.row;
+    const worldY = centerY - 2 + tile.position.row;
 
     // Create coordinate object that matches our target type
     const coordinate = { x: worldX, y: worldY };
@@ -97,7 +98,7 @@ function MapPage() {
 
   const renderTile = (tile: MapTileAPI, rowIndex: number, colIndex: number) => {
     const worldX = centerX - 2 + colIndex;
-    const worldY = centerY + 2 - rowIndex;
+    const worldY = centerY - 2 + rowIndex;
     const coordinate = { x: worldX, y: worldY };
 
     // Get in-progress assignments for this tile

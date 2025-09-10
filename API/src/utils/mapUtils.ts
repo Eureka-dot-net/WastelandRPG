@@ -22,8 +22,6 @@ export async function getMapGrid(
   centerY: number,
   session?: ClientSession
 ): Promise<any> {
-
-
   const gridSize = 5;
   const offset = Math.floor(gridSize / 2);
   const expandedOffset = offset + 1;
@@ -59,14 +57,14 @@ export async function getMapGrid(
     if (isInGrid) {
       tileMap.set(key, {
         position: {
-          row: (centerY + offset) - userTile.y,
+          row: userTile.y - (centerY - offset),
           col: userTile.x - (centerX - offset)
         },
         explored: userTile.isExplored,
         canExplore: true,
         x: userTile.x,
         y: userTile.y,
-        terrain: getTerrainInfo(userTile).terrain,
+        terrain: userTile.isExplored ? getTerrainInfo(userTile).terrain : undefined,
         assignments: []
       });
     }
@@ -86,7 +84,7 @@ export async function getMapGrid(
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
-      const y = centerY + offset - row;
+      const y = centerY - offset + row; 
       const key = `${x},${y}`;
 
       if (!exploredCoords.has(key)) {
@@ -109,14 +107,15 @@ export async function getMapGrid(
     const gridRow = [];
     for (let col = 0; col < gridSize; col++) {
       const x = centerX - offset + col;
-      const y = centerY + offset - row;
+      const y = centerY - offset + row; 
       const key = `${x},${y}`;
 
       const knownTile = tileMap.get(key);
       const tileAssignments = assignmentMap.get(key) || [];
 
       if (knownTile) {
-        if (knownTile.terrain.type === 'homestead') {
+        // <<< guarded access to terrain.type to avoid runtime throw when terrain is undefined
+        if (knownTile.terrain?.type === 'homestead') {
           knownTile.canExplore = false;
         }
         knownTile.assignments = tileAssignments;
@@ -139,6 +138,7 @@ export async function getMapGrid(
 
   return grid;
 }
+
 
 /**
  * Check if a location can be explored

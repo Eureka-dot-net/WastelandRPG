@@ -24,11 +24,11 @@ export function MapProvider({ children, colony }: MapProviderProps) {
   const [centerY, setCenterY] = useState(colony.homesteadLocation.y);
 
   const moveUp = () => {
-    setCenterY(prev => prev + 1);
+    setCenterY(prev => prev - 1);
   };
 
   const moveDown = () => {
-    setCenterY(prev => prev - 1);
+    setCenterY(prev => prev + 1);
   };
 
   const moveLeft = () => {
