@@ -43,7 +43,7 @@ export function useColony(serverId?: string | null) {
             setSettlerEnergies(prevEnergies => {
                 const newEnergies = { ...prevEnergies };
                 colony.settlers.forEach((settler, index) => {
-                    newEnergies[index] = prevEnergies[index] + (settler.energy * timeDeltaHours);
+                    newEnergies[index] = Math.max(0, Math.min(100, prevEnergies[index] + (settler.energy * timeDeltaHours)));
                 });
                 return newEnergies;
             });
