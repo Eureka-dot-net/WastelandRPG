@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import LogoutIcon from "@mui/icons-material/Logout";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import BuildIcon from '@mui/icons-material/Build';
 import NatureIcon from '@mui/icons-material/Nature';
@@ -147,7 +146,7 @@ const SettlerDetailRow: React.FC<SettlerDetailRowProps> = ({
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        py: 1,
+        py: 0.5,
         px: 2,
         bgcolor: 'rgba(255,255,255,0.03)',
         borderRadius: 1,
@@ -158,7 +157,7 @@ const SettlerDetailRow: React.FC<SettlerDetailRowProps> = ({
       <Typography
         variant="body2"
         sx={{
-          minWidth: 120,
+          minWidth: 100,
           fontWeight: 600,
           color: 'text.primary',
         }}
@@ -596,43 +595,22 @@ const DashboardTopBar: React.FC = () => {
             p: 2,
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="subtitle1" sx={{ color: 'text.primary', fontWeight: 600 }}>
-              Settler Details ({displayColony.settlers.length})
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={() => setSettlerDetailsOpen(false)}
-              sx={{ color: 'text.secondary' }}
-            >
-              <ExpandLessIcon />
-            </IconButton>
-          </Box>
-
           <Box
             sx={{
               display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
+              flexDirection: 'column',
               gap: 1,
-              maxHeight: isMobile ? '300px' : '200px',
+              maxHeight: '300px',
               overflow: 'auto',
-              flexWrap: isMobile ? 'nowrap' : 'wrap',
             }}
           >
             {displayColony.settlers.map((settler, index) => (
-              <Box
+              <SettlerDetailRow
                 key={settler._id}
-                sx={{
-                  minWidth: isMobile ? '100%' : '300px',
-                  maxWidth: isMobile ? '100%' : '400px',
-                }}
-              >
-                <SettlerDetailRow
-                  settler={settler}
-                  getSettlerCurrentEnergy={getSettlerCurrentEnergy}
-                  settlerIndex={index}
-                />
-              </Box>
+                settler={settler}
+                getSettlerCurrentEnergy={getSettlerCurrentEnergy}
+                settlerIndex={index}
+              />
             ))}
           </Box>
         </Paper>
