@@ -2,11 +2,6 @@
 import itemsCatalogue from '../data/itemsCatalogue.json';
 import terrainCatalogue from '../data/terrainCatalogue.json';
 
-export interface AdjustmentEffects {
-  speedEffects: string[];
-  lootEffects: string[];
-  traitEffects: string[];
-}
 
 export interface GameAdjustments {
   adjustedDuration: number;
