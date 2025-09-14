@@ -11,6 +11,7 @@ import QuestPage from "../../features/Quests/QuestPage";
 import InventoryPage from "../../features/inventory/InventoryPage";
 import SettlerPage from "../../features/settlers/SettlerPage";
 import EventPage from "../../features/events/EventPage";
+import LodgingPage from "../../features/lodging/LodgingPage";
 import { ServerProvider } from "../../lib/contexts/ServerProvider";
 
 const router = createBrowserRouter([
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
                             { path: "/inventory", element: <InventoryPage /> },
                             { path: "/settlers", element: <SettlerPage /> },
                             { path: "/events", element: <EventPage /> },
+                            { path: "/lodging", element: <LodgingPage /> },
                             { path: "/map", element: <MapPage /> },
                             { path: "/", element: <QuestPage /> },
                              { path: "*", element: <UnderConstruction /> },
