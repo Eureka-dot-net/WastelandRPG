@@ -9,6 +9,8 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { useLodging } from "../../lib/hooks/useLodging";
 import { useColony } from "../../lib/hooks/useColony";
+import { useAssignment } from "../../lib/hooks/useAssignment";
+import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
 import type { Bed } from "../../lib/types/lodgingResponse";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
@@ -18,16 +20,18 @@ import { useServerContext } from "../../lib/contexts/ServerContext";
 import LatestEventCard from "../../components/events/LatestEventCard";
 import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
 import DevTools from "../../app/shared/components/ui/DevTools";
+import { formatTimeRemaining } from "../../lib/utils/timeUtils";
 
 interface BedVisualizationProps {
   bed: Bed;
   index: number;
   settler?: Settler;
   isResting: boolean;
+  timeRemaining?: number;
   onClick: () => void;
 }
 
-const BedVisualization: React.FC<BedVisualizationProps> = ({ bed, index, settler, isResting, onClick }) => {
+const BedVisualization: React.FC<BedVisualizationProps> = ({ bed, index, settler, isResting, timeRemaining, onClick }) => {
   const theme = useTheme();
   
   const getBedColor = (level: number) => {
@@ -68,8 +72,8 @@ const BedVisualization: React.FC<BedVisualizationProps> = ({ bed, index, settler
           {getBedName(bed.level)} #{index + 1}
         </Typography>
         
-        {/* SVG Bed Visualization */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+        {/* SVG Bed Visualization with Sleeping Settler */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2, position: 'relative' }}>
           <svg width="120" height="80" viewBox="0 0 120 80">
             {/* Bed Frame */}
             <rect x="10" y="40" width="100" height="30" fill={getBedColor(bed.level)} rx="5" />
@@ -93,16 +97,43 @@ const BedVisualization: React.FC<BedVisualizationProps> = ({ bed, index, settler
               />
             ))}
           </svg>
+          
+          {/* Sleeping Settler Avatar positioned on top of the bed */}
+          {isResting && settler && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '20%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 2,
+                opacity: 0.8,
+              }}
+            >
+              <SettlerAvatar settler={settler} size={32} />
+            </Box>
+          )}
         </Box>
 
         {/* Settler Status */}
         {isResting && settler ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <SettlerAvatar settler={settler} size={24} />
-            <Typography variant="body2" color="text.secondary">
-              {settler.name} is resting...
-            </Typography>
-            <Timer sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                {settler.name} is resting...
+              </Typography>
+              <Timer sx={{ fontSize: 16, color: theme.palette.warning.main }} />
+            </Box>
+            {timeRemaining !== undefined && timeRemaining > 0 && (
+              <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                {formatTimeRemaining(timeRemaining)} remaining
+              </Typography>
+            )}
+            {timeRemaining !== undefined && timeRemaining <= 0 && (
+              <Typography variant="caption" color="success.main" sx={{ fontWeight: 'bold' }}>
+                Sleep completed - ready to wake up!
+              </Typography>
+            )}
           </Box>
         ) : (
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -127,6 +158,12 @@ function LodgingPage() {
   
   const { colony } = useColony(serverId);
   const { lodging, loadingLodging, startSleep } = useLodging(serverId, colony?._id);
+  
+  // Get resting assignments for time tracking and completion
+  const { assignments: restingAssignments } = useAssignment(serverId, colony?._id, { type: ['resting'] });
+  
+  // Get assignment notification system for time remaining
+  const { timers } = useAssignmentNotifications();
 
   const [selectedBed, setSelectedBed] = useState<{ bed: Bed; index: number } | null>(null);
   const [selectedSettler, setSelectedSettler] = useState<string>('');
@@ -141,19 +178,28 @@ function LodgingPage() {
     );
   }, [colony?.settlers]);
 
-  // Get resting settlers with their assignments
-  const restingSettlers = useMemo(() => {
-    if (!colony?.settlers) return [];
-    return colony.settlers.filter(settler => settler.status === 'resting');
-  }, [colony?.settlers]);
+  // Get resting settlers with their assignments and time remaining
+  const restingSettlersWithTime = useMemo(() => {
+    if (!colony?.settlers || !restingAssignments) return [];
+    
+    return colony.settlers
+      .filter(settler => settler.status === 'resting')
+      .map(settler => {
+        // Find the corresponding resting assignment
+        const assignment = restingAssignments.find(a => a.settlerId === settler._id);
+        const timeRemaining = assignment ? timers[assignment._id] : undefined;
+        
+        return {
+          settler,
+          assignment,
+          timeRemaining
+        };
+      });
+  }, [colony?.settlers, restingAssignments, timers]);
 
   const handleBedClick = (bed: Bed, index: number) => {
-    // Check if bed is occupied
-    const isOccupied = restingSettlers.some(() => {
-      // In a full implementation, we'd need to track which bed each settler is using
-      // For now, we'll just check if there are any resting settlers
-      return false; // Placeholder - beds can always be clicked for now
-    });
+    // Check if bed is occupied by finding matching resting settler
+    const isOccupied = restingSettlersWithTime.some((_, settlerIndex) => settlerIndex === index);
 
     if (!isOccupied) {
       setSelectedBed({ bed, index });
@@ -207,7 +253,7 @@ function LodgingPage() {
     : null;
 
   const totalBeds = lodging.lodging.beds.length;
-  const occupiedBeds = restingSettlers.length;
+  const occupiedBeds = restingSettlersWithTime.length;
 
   return (
     <Container maxWidth="lg" sx={{ px: isMobile ? 0 : 2 }}>
@@ -238,17 +284,18 @@ function LodgingPage() {
       {/* Beds Grid */}
       <Grid container spacing={isMobile ? 2 : 3}>
         {lodging.lodging.beds.map((bed, index) => {
-          // Find if this bed is occupied (simplified - in reality we'd track bed assignments)
-          const restingSettler = index < restingSettlers.length ? restingSettlers[index] : undefined;
-          const isResting = !!restingSettler;
+          // Find if this bed is occupied and get time remaining
+          const restingData = index < restingSettlersWithTime.length ? restingSettlersWithTime[index] : undefined;
+          const isResting = !!restingData;
 
           return (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
               <BedVisualization
                 bed={bed}
                 index={index}
-                settler={restingSettler}
+                settler={restingData?.settler}
                 isResting={isResting}
+                timeRemaining={restingData?.timeRemaining}
                 onClick={() => handleBedClick(bed, index)}
               />
             </Grid>
