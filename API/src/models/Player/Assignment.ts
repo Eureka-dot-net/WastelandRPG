@@ -7,7 +7,8 @@ export type AssignmentType =
   | 'exploration'
   | 'crafting'
   | 'defence'
-  | 'building';
+  | 'building'
+  | 'resting';
 
 export interface IAssignment {
   colonyId: Types.ObjectId;

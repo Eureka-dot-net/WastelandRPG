@@ -1,40 +1,154 @@
-// controllers/assignmentController.ts
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { Assignment } from '../models/Player/Assignment';
+import { Lodging } from '../models/Player/Lodging';
 import { Settler } from '../models/Player/Settler';
+import { Assignment, IAssignment } from '../models/Player/Assignment';
+import { ColonyManager } from '../managers/ColonyManager';
+import { SettlerManager } from '../managers/SettlerManager';
 import { logError, logWarn } from '../utils/logger';
 import { withSession } from '../utils/sessionUtils';
-import { SettlerManager } from '../managers/SettlerManager';
 
-
-// GET /api/colonies/:colonyId/beds
-
+// GET /api/colonies/:colonyId/lodging/beds
 export const getBeds = async (req: Request, res: Response) => {
   const { colonyId } = req.params;
 
   if (!Types.ObjectId.isValid(colonyId)) {
     return res.status(400).json({ error: 'Invalid colonyId' });
   }
+
+  try {
+    const colony = req.colony;
+
+    // Find or create the Lodging document for the colony
+    let lodging = await Lodging.findOne({ colonyId: colony._id });
+
+    if (!lodging) {
+      // Create new lodging with default beds
+      lodging = new Lodging({
+        colonyId: colony._id,
+        maxBeds: 3,
+        beds: [
+          { level: 1 } as any,
+          { level: 1 } as any,
+          { level: 1 } as any
+        ]
+      });
+      await lodging.save();
+    } else {
+      // Ensure beds array matches expected bed count
+      const currentBedCount = lodging.beds.length;
+      const expectedBedCount = lodging.maxBeds;
+
+      if (currentBedCount < expectedBedCount) {
+        // Add missing beds (all level 1 by default)
+        for (let i = currentBedCount; i < expectedBedCount; i++) {
+          lodging.beds.push({ level: 1 } as any);
+        }
+        await lodging.save();
+      }
+    }
+
+    res.json({
+      lodging: {
+        _id: lodging._id,
+        colonyId: lodging.colonyId,
+        maxBeds: lodging.maxBeds,
+        beds: lodging.beds
+      }
+    });
+  } catch (err) {
+    logError('Failed to get beds', err, { colonyId });
+    res.status(500).json({ error: 'Failed to get beds' });
+  }
 };
 
-
-// POST  /api/colonies/:colonyId/beds/:bedId/start
+// POST /api/colonies/:colonyId/lodging/start-sleep
 export const startSleep = async (req: Request, res: Response) => {
-  const { settlerId } = req.body;
+  const { colonyId } = req.params;
+  const { settlerId, bedLevel } = req.body;
 
+  if (!Types.ObjectId.isValid(colonyId)) {
+    return res.status(400).json({ error: 'Invalid colonyId' });
+  }
 
   if (!settlerId) {
     return res.status(400).json({ error: 'settlerId is required' });
   }
 
+  if (!Types.ObjectId.isValid(settlerId)) {
+    return res.status(400).json({ error: 'Invalid settlerId' });
+  }
+
+  if (typeof bedLevel !== 'number' || bedLevel < 1) {
+    return res.status(400).json({ error: 'bedLevel must be a positive number' });
+  }
 
   try {
-    const result = await withSession(async () => {
-     
+    const result = await withSession(async (session) => {
+      const colony = req.colony;
+
+      // Find the settler
+      const settler = await Settler.findById(settlerId).session(session);
+      if (!settler) {
+        throw new Error('Settler not found');
+      }
+
+      if (settler.colonyId.toString() !== colony._id.toString()) {
+        throw new Error('Settler does not belong to this colony');
+      }
+
+      // Check if settler is available (not already on assignment)
+      if (settler.status !== 'idle') {
+        throw new Error(`Settler is currently ${settler.status} and cannot be assigned to sleep`);
+      }
+
+      const settlerManager = new SettlerManager(settler);
+
+      // Calculate sleep duration based on bedLevel
+      const sleepDurationMs = settlerManager.getSleepDuration(bedLevel);
+
+      if (sleepDurationMs === 0) {
+        throw new Error('Settler already has full energy and does not need to sleep');
+      }
+
+      // Create the resting assignment
+      const completedAt = new Date(Date.now() + sleepDurationMs);
+      const assignmentData: IAssignment = {
+        colonyId: colony._id,
+        settlerId: settler._id,
+        name: `Resting (Bed Level ${bedLevel})`,
+        type: 'resting',
+        duration: Math.ceil(sleepDurationMs / (60 * 60 * 1000)), // Convert to hours for duration field
+        description: `${settler.name} is resting to recover energy`,
+        state: 'in-progress',
+        startedAt: new Date(),
+        completedAt,
+        plannedRewards: {} // No item rewards for sleeping
+      };
+
+      const assignment = new Assignment(assignmentData);
+
+      // Change settler status to resting
+      await settlerManager.changeStatus('resting', new Date(), session);
+
+      // Save the assignment
+      await assignment.save({ session });
+
+      // Log sleep start
+      const colonyManager = new ColonyManager(colony);
+      await colonyManager.addLogEntry(
+        session,
+        'resting',
+        `${settler.name} started resting (Bed Level ${bedLevel}).`,
+        { settlerId, bedLevel }
+      );
 
       return {
-        success: true
+        success: true,
+        assignmentId: assignment._id,
+        settlerId,
+        duration: sleepDurationMs,
+        completedAt
       };
     });
 
@@ -42,110 +156,126 @@ export const startSleep = async (req: Request, res: Response) => {
   } catch (err) {
     const error = err as Error;
 
-    if (error.message === 'Assignment not found') {
-      return res.status(404).json({ error: 'Assignment not found' });
-    }
     if (error.message === 'Settler not found') {
       return res.status(404).json({ error: 'Settler not found' });
     }
-    if (error.message === 'Assignment already started or completed') {
-      return res.status(400).json({ error: 'Assignment already started or completed' });
+    if (error.message === 'Settler does not belong to this colony') {
+      return res.status(400).json({ error: 'Settler does not belong to this colony' });
     }
     if (error.message.includes('Settler is currently') && error.message.includes('cannot be assigned')) {
       return res.status(400).json({ error: error.message });
     }
+    if (error.message === 'Settler already has full energy and does not need to sleep') {
+      return res.status(400).json({ error: error.message });
+    }
 
-    logError('Failed to start assignment', err, {
-      colonyId: req.colonyId,
-      assignmentId: req.params.assignmentId,
-      settlerId: req.body.settlerId
+    logError('Failed to start sleep assignment', err, {
+      colonyId,
+      settlerId,
+      bedLevel
     });
-    res.status(500).json({ error: 'Failed to start assignment' });
+    res.status(500).json({ error: 'Failed to start sleep assignment' });
   }
 };
 
-// GET /colonies/:colonyId/assignments/preview-batch?settlerIds=id1,id2&assignmentIds=aid1,aid2
-export const previewAssignmentBatch = async (req: Request, res: Response) => {
-  const { settlerIds, assignmentIds } = req.query as { settlerIds?: string; assignmentIds?: string };
+// POST /api/colonies/:colonyId/lodging/preview-sleep-batch
+export const getSleepPreviewBatch = async (req: Request, res: Response) => {
+  const { colonyId } = req.params;
+  const { settlers } = req.body;
 
-  if (!settlerIds || !assignmentIds) {
-    return res.status(400).json({ error: 'Both settlerIds and assignmentIds are required' });
+  if (!Types.ObjectId.isValid(colonyId)) {
+    return res.status(400).json({ error: 'Invalid colonyId' });
   }
 
-  const settlerIdArray = settlerIds.split(',').filter(id => id.trim());
-  const assignmentIdArray = assignmentIds.split(',').filter(id => id.trim());
-
-  if (settlerIdArray.length === 0 || assignmentIdArray.length === 0) {
-    return res.status(400).json({ error: 'At least one settlerId and one assignmentId required' });
+  if (!Array.isArray(settlers) || settlers.length === 0) {
+    return res.status(400).json({ error: 'settlers array is required and must not be empty' });
   }
 
-  // Validate all IDs
-  const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
-  const invalidAssignmentIds = assignmentIdArray.filter(id => !Types.ObjectId.isValid(id));
-
-  if (invalidSettlerIds.length > 0 || invalidAssignmentIds.length > 0) {
-    return res.status(400).json({
-      error: 'Invalid IDs provided',
-      invalidSettlerIds,
-      invalidAssignmentIds
-    });
+  // Validate settler entries
+  for (const entry of settlers) {
+    if (!entry.settlerId || !Types.ObjectId.isValid(entry.settlerId)) {
+      return res.status(400).json({ error: 'Each settler entry must have a valid settlerId' });
+    }
+    if (typeof entry.bedType !== 'number' || entry.bedType < 1) {
+      return res.status(400).json({ error: 'Each settler entry must have a valid bedType (positive number)' });
+    }
   }
 
   try {
-    // Fetch all assignments and settlers in bulk
-    const [assignments, settlers] = await Promise.all([
-      Assignment.find({ _id: { $in: assignmentIdArray } }),
-      Settler.find({ _id: { $in: settlerIdArray } })
-    ]);
+    const settlerIds = settlers.map(s => s.settlerId);
+    
+    // Fetch all settlers in bulk
+    const foundSettlers = await Settler.find({ _id: { $in: settlerIds } });
+    const settlerMap = new Map(foundSettlers.map(s => [s._id.toString(), s]));
 
-    const assignmentMap = new Map(assignments.map(a => [a._id.toString(), a]));
-    const settlerMap = new Map(settlers.map(s => [s._id.toString(), s]));
+    const results: Array<{
+      settlerId: string;
+      settlerName: string;
+      bedType: number;
+      duration: number;
+      canSleep: boolean;
+      reason?: string;
+    }> = [];
 
-    const results: Record<string, Record<string, any>> = {};
-
-    // Calculate previews for all combinations
-    for (const settlerId of settlerIdArray) {
+    // Calculate preview for each combination
+    for (const { settlerId, bedType } of settlers) {
       const settler = settlerMap.get(settlerId);
       if (!settler) {
-        logWarn('Settler not found in batch assignment preview', { settlerId, colonyId: req.colonyId });
+        logWarn('Settler not found in sleep preview batch', { settlerId, colonyId });
+        results.push({
+          settlerId,
+          settlerName: 'Unknown',
+          bedType,
+          duration: 0,
+          canSleep: false,
+          reason: 'Settler not found'
+        });
         continue;
       }
 
-      results[settlerId] = {};
+      try {
+        const settlerManager = new SettlerManager(settler);
+        const duration = settlerManager.getSleepDuration(bedType);
+        
+        let canSleep = true;
+        let reason: string | undefined;
 
-      for (const assignmentId of assignmentIdArray) {
-        const assignment = assignmentMap.get(assignmentId);
-        if (!assignment) {
-          logWarn('Assignment not found in batch preview', { assignmentId, colonyId: req.colonyId });
-          continue;
+        if (settler.status !== 'idle') {
+          canSleep = false;
+          reason = `Settler is currently ${settler.status}`;
+        } else if (duration === 0) {
+          canSleep = false;
+          reason = 'Settler already has full energy';
         }
 
-        try {
-          const settlerManager = new SettlerManager(settler);
-
-          const adjustments = settlerManager.calculateAdjustments(assignment.duration, assignment.type);
-          
-          results[settlerId][assignmentId] = {
-            settlerId: settler._id,
-            settlerName: settler.name,
-            baseDuration: assignment.duration,
-            basePlannedRewards: assignment.plannedRewards,
-            adjustments
-          };
-        } catch (error) {
-          logError('Error calculating adjustments in batch assignment preview', error, {
-            settlerId,
-            assignmentId,
-            colonyId: req.colonyId
-          });
-          results[settlerId][assignmentId] = { error: 'Failed to calculate preview' };
-        }
+        results.push({
+          settlerId: settler._id.toString(),
+          settlerName: settler.name,
+          bedType,
+          duration,
+          canSleep,
+          reason
+        });
+      } catch (error) {
+        logError('Error calculating sleep duration in batch preview', error, {
+          settlerId,
+          bedType,
+          colonyId
+        });
+        results.push({
+          settlerId,
+          settlerName: settler.name,
+          bedType,
+          duration: 0,
+          canSleep: false,
+          reason: 'Failed to calculate sleep duration'
+        });
       }
     }
 
     res.json({ results });
   } catch (err) {
-    logError('Error in batch assignment preview', err, { colonyId: req.colonyId });
-    res.status(500).json({ error: 'Failed to preview assignments' });
+    logError('Error in batch sleep preview', err, { colonyId });
+    res.status(500).json({ error: 'Failed to preview sleep durations' });
   }
 };
