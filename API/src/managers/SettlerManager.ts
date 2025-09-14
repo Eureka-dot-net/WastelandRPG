@@ -553,6 +553,38 @@ export class SettlerManager {
     return true;
   }
 
+  /**
+   * Calculate the duration required for a settler to reach 100 energy while resting
+   * @param bedLevel - The quality level of the bed (affects sleep efficiency)
+   * @returns Duration in milliseconds required to reach 100 energy
+   */
+  getSleepDuration(bedLevel: number): number {
+    // First ensure energy is up to date
+    this.updateEnergy(new Date());
+
+    // If already at 100 energy, no sleep needed
+    if (this.settler.energy >= 100) {
+      return 0;
+    }
+
+    // Get base energy delta for resting status
+    const baseEnergyDelta = this.getEnergyDeltaForStatus('resting');
+    
+    // Apply bed level multiplier (higher level beds = faster recovery)
+    // Bed level 1 = 1.0x, level 2 = 1.2x, level 3 = 1.5x, etc.
+    const bedMultiplier = 1 + (bedLevel - 1) * 0.3;
+    const effectiveEnergyDelta = baseEnergyDelta * bedMultiplier;
+
+    // Calculate energy needed to reach 100
+    const energyNeeded = 100 - this.settler.energy;
+
+    // Calculate hours needed
+    const hoursNeeded = energyNeeded / effectiveEnergyDelta;
+
+    // Convert to milliseconds
+    return Math.ceil(hoursNeeded * 60 * 60 * 1000);
+  }
+
   toViewModel() {//return the full object to use in controllers.
     return {
       ...this.settler.toObject(),
