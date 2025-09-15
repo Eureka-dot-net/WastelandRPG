@@ -1,6 +1,6 @@
 // routes/assignmentRoutes.ts
 import { Router } from 'express';
-import { getAssignments, startAssignment, informAssignment, previewAssignmentBatch } from '../controllers/assignmentController';
+import { getAssignments, startAssignment, informAssignment } from '../controllers/assignmentController';
 import { updateCompletedTasks } from '../middleware/updateCompletedTasks';
 
 
@@ -10,8 +10,7 @@ const router = Router({ mergeParams: true }); // mergeParams needed for :colonyI
 // Fetch assignments for a colony
 router.get('/', getAssignments);
 
-// Preview assignment effects with a settler (batch version)
-router.get('/preview-batch', previewAssignmentBatch);
+// REMOVED: router.get('/preview-batch', previewAssignmentBatch) - preview functionality moved to frontend
 
 // Start an assignment for a settler
 router.post('/:assignmentId/start', updateCompletedTasks, startAssignment);

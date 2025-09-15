@@ -43,7 +43,7 @@ function QuestPage() {
   }), [startAssignment]);
 
   // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
-  const config = useMemo(() => createQuestPageConfig(startAssignmentWrapper), [startAssignmentWrapper]);
+  const config = useMemo(() => createQuestPageConfig(startAssignmentWrapper, assignments || []), [startAssignmentWrapper, assignments]);
 
   // Use the common assignment page hook
   const {

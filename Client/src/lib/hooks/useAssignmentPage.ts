@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
-import { useSmartBatchPreviewAssignment, useSmartBatchPreviewMapExploration } from "../../lib/hooks/usePreview";
 import type { Settler } from "../../lib/types/settler";
 import type { BasePreviewResult } from "../types/preview";
+import type { Assignment } from "../types/assignment";
 
 // Generic target type
 export interface GenericTarget {
@@ -27,6 +27,31 @@ export interface AssignmentPageConfig<T extends GenericTarget> {
   getTargetKey: (target: T) => string;
   getAvailableTargets: (allTargets: T[]) => T[];
   startAssignment: StartAssignmentMutation;
+  // New: Functions to calculate base duration and rewards for frontend preview
+  getBaseDuration?: (target: T) => number;
+  getBasePlannedRewards?: (target: T) => Record<string, number>;
+}
+
+// Helper function to generate preview data using settler adjustments
+function generatePreviewData(
+  settler: Settler, 
+  baseDuration: number, 
+  basePlannedRewards: Record<string, number>,
+  activityType: string
+): BasePreviewResult {
+  const settlerAdjustments = settler.adjustments[activityType] || { loot: 1, speed: 1 };
+  
+  return {
+    settlerId: settler._id,
+    settlerName: settler.name,
+    baseDuration,
+    basePlannedRewards,
+    adjustments: {
+      adjustedDuration: Math.round(baseDuration * settlerAdjustments.speed),
+      effectiveSpeed: settlerAdjustments.speed,
+      lootMultiplier: settlerAdjustments.loot
+    }
+  };
 }
 
 export function useAssignmentPage<T extends GenericTarget>(
@@ -56,68 +81,31 @@ export function useAssignmentPage<T extends GenericTarget>(
     return config.getAvailableTargets(allTargets);
   }, [allTargets, config]);
 
-  const settlerIds = availableSettlers.map(s => s._id!);
-  const targetIds = availableTargets.map(target => config.getTargetId(target));
-  
-  // Only for map-exploration
-  const coordinates = config.previewType === 'map-exploration' 
-    ? availableTargets.map(t => ({ x: t.x!, y: t.y! }))
-    : [];
-
-  // Use appropriate batch preview hook
-  const assignmentPreviewQuery = useSmartBatchPreviewAssignment(
-    colonyId ?? '',
-    settlerIds,
-    targetIds,
-    config.previewType === 'assignment' && !!(colonyId && settlerIds.length > 0 && targetIds.length > 0)
-  );
-
-  const mapPreviewQuery = useSmartBatchPreviewMapExploration(
-    colonyId ?? '',
-    settlerIds,
-    coordinates,
-    config.previewType === 'map-exploration' && !!(colonyId && settlerIds.length > 0 && coordinates.length > 0)
-  );
-
-  // Select the appropriate query data
-  const batchPreviewData =
-    config.previewType === 'assignment'
-      ? assignmentPreviewQuery.data
-      : mapPreviewQuery.data;
-  const previewsLoading =
-    config.previewType === 'assignment'
-      ? assignmentPreviewQuery.isLoading
-      : mapPreviewQuery.isLoading;
-  const previewsError =
-    config.previewType === 'assignment'
-      ? assignmentPreviewQuery.error
-      : mapPreviewQuery.error;
-
-  // Build unified preview data when batch data is available
+  // Build unified preview data when a target is selected - no more API calls needed
   useEffect(() => {
-    if (!batchPreviewData || !selectedTarget) {
+    if (!selectedTarget || !availableSettlers.length) {
       setSettlerPreviews({});
       return;
     }
 
     const previews: Record<string, BasePreviewResult> = {};
-    const targetKey = config.getTargetKey(selectedTarget);
+    
+    // Get base values for the selected target
+    const baseDuration = config.getBaseDuration?.(selectedTarget) ?? 300000; // 5 minutes default
+    const basePlannedRewards = config.getBasePlannedRewards?.(selectedTarget) ?? {};
+    const activityType = config.previewType === 'assignment' ? 'quest' : 'exploration';
 
     availableSettlers.forEach(settler => {
-      const settlerPreview =
-        batchPreviewData.results[settler._id!]?.[targetKey];
-      if (settlerPreview) {
-        previews[settler._id!] = settlerPreview as BasePreviewResult;
-      }
+      previews[settler._id!] = generatePreviewData(
+        settler,
+        baseDuration,
+        basePlannedRewards,
+        activityType
+      );
     });
 
     setSettlerPreviews(previews);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    batchPreviewData,
-    selectedTarget,
-    availableSettlers,
-  ]);
+  }, [selectedTarget, availableSettlers, config]);
 
   // Invalidate queries when colony changes
   useEffect(() => {
@@ -200,8 +188,8 @@ export function useAssignmentPage<T extends GenericTarget>(
     settlerDialogOpen,
     startingTargetKey,
     settlerPreviews,
-    previewsLoading,
-    previewsError,
+    previewsLoading: false, // No longer needed since we calculate on frontend
+    previewsError: null,   // No longer needed since we calculate on frontend
     timers,
 
     // Actions
@@ -221,31 +209,63 @@ export function useAssignmentPage<T extends GenericTarget>(
 
 // Quest page configuration
 export const createQuestPageConfig = (
-  startAssignment: StartAssignmentMutation
+  startAssignment: StartAssignmentMutation,
+  assignments: Assignment[] = []
 ): AssignmentPageConfig<{ _id: string; state: string; dependsOn?: string; taskId?: string }> => ({
   previewType: 'assignment',
   getTargetId: assignment => assignment._id,
   getTargetKey: assignment => assignment._id,
-  getAvailableTargets: assignments =>
-    assignments?.filter(a =>
+  getAvailableTargets: allAssignments =>
+    allAssignments?.filter(a =>
       a.state === "available" &&
       (!a.dependsOn ||
         ["informed", "completed"].includes(
-          assignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
+          allAssignments.find(d => d.taskId === a.dependsOn)?.state ?? ""
         ))
     ) || [],
   startAssignment,
+  getBaseDuration: assignment => {
+    const fullAssignment = assignments.find(a => a._id === assignment._id);
+    return fullAssignment?.duration ?? 300000; // 5 minutes default
+  },
+  getBasePlannedRewards: assignment => {
+    const fullAssignment = assignments.find(a => a._id === assignment._id);
+    const rewards: Record<string, number> = {};
+    if (fullAssignment?.plannedRewards) {
+      Object.entries(fullAssignment.plannedRewards).forEach(([key, item]) => {
+        rewards[key] = item.amount || 1;
+      });
+    }
+    return rewards;
+  }
 });
 
 // Map exploration page configuration
 export const createMapExplorationConfig = (
-  startExploration: StartAssignmentMutation
+  startExploration: StartAssignmentMutation,
+  homesteadLocation?: { x: number; y: number }
 ): AssignmentPageConfig<{ x: number; y: number }> => ({
   previewType: 'map-exploration',
   getTargetId: coord => `${coord.x}:${coord.y}`,
   getTargetKey: coord => `${coord.x}:${coord.y}`,
   getAvailableTargets: coordinates => coordinates,
   startAssignment: startExploration,
+  getBaseDuration: coord => {
+    if (!homesteadLocation) return 300000; // 5 minutes default
+    
+    // Calculate Manhattan distance from homestead
+    const distance = Math.abs(coord.x - homesteadLocation.x) + Math.abs(coord.y - homesteadLocation.y);
+    
+    // Base 5 minutes + 2 minutes per distance unit (same as server logic)
+    const baseDurationMs = 300000; // 5 minutes
+    const additionalTime = distance * 120000; // 2 minutes per distance unit
+    
+    return baseDurationMs + additionalTime;
+  },
+  getBasePlannedRewards: () => ({
+    // Map exploration rewards are dynamic based on terrain, 
+    // for preview we'll just show base loot multiplier effects
+  })
 });
 
 // Usage example for quest page:

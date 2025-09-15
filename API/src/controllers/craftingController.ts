@@ -238,78 +238,8 @@ export const startRecipe = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/crafting/preview-crafting
-export const previewCrafting = async (req: Request, res: Response) => {
-  const { colonyId } = req.params;
-  const { settlerId, itemId } = req.body;
-
-  if (!Types.ObjectId.isValid(colonyId)) {
-    return res.status(400).json({ error: 'Invalid colonyId' });
-  }
-
-  if (!settlerId) {
-    return res.status(400).json({ error: 'settlerId is required' });
-  }
-
-  if (!Types.ObjectId.isValid(settlerId)) {
-    return res.status(400).json({ error: 'Invalid settlerId' });
-  }
-
-  if (!itemId) {
-    return res.status(400).json({ error: 'itemId is required' });
-  }
-
-  try {
-    // Find the item and its recipe
-    const craftableItem = itemsCatalogue.find(item => item.itemId === itemId);
-    if (!craftableItem || !craftableItem.recipe) {
-      return res.status(400).json({ error: 'Item not found or not craftable' });
-    }
-
-    // Find the settler
-    const settler = await Settler.findById(settlerId);
-    if (!settler) {
-      return res.status(404).json({ error: 'Settler not found' });
-    }
-
-    if (settler.colonyId.toString() !== colonyId) {
-      return res.status(400).json({ error: 'Settler does not belong to this colony' });
-    }
-
-    const settlerManager = new SettlerManager(settler);
-
-    // Calculate crafting duration
-    const baseDurationMinutes = craftableItem.craftingTime || 60;
-    const baseDurationMs = baseDurationMinutes * 60 * 1000;
-    
-    const adjustments = settlerManager.calculateAdjustments(baseDurationMs, 'crafting');
-
-    // Check if settler can complete the task
-    const taskDurationHours = adjustments.adjustedDuration / (1000 * 60 * 60);
-    const canCraft = settler.status === 'idle' && settlerManager.canCompleteTask('crafting', taskDurationHours);
-
-    let reason: string | undefined;
-    if (settler.status !== 'idle') {
-      reason = `Settler is currently ${settler.status}`;
-    } else if (!settlerManager.canCompleteTask('crafting', taskDurationHours)) {
-      reason = 'Settler does not have enough energy';
-    }
-
-    const preview = {
-      settlerId: settler._id.toString(),
-      settlerName: settler.name,
-      itemId,
-      itemName: craftableItem.name,
-      baseDuration: baseDurationMs,
-      adjustments,
-      canCraft,
-      reason,
-      recipe: craftableItem.recipe
-    };
-
-    res.json(preview);
-  } catch (err) {
-    logError('Failed to preview crafting', err, { colonyId, settlerId, itemId });
-    res.status(500).json({ error: 'Failed to preview crafting' });
-  }
-};
+// REMOVED: previewCrafting function
+// It returned: { settlerId, settlerName, itemId, itemName, baseDuration, adjustments, canCraft, reason?, recipe }
+// The adjustments included: { adjustedDuration, effectiveSpeed, lootMultiplier }
+// The baseDuration was calculated from craftableItem.craftingTime
+// This data can now be calculated on frontend using settler.adjustments and crafting time from items catalogue

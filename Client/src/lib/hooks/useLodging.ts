@@ -3,9 +3,7 @@ import { agent } from "../api/agent";
 import type { 
   LodgingResponse, 
   StartSleepRequest, 
-  StartSleepResponse,
-  BatchSleepPreviewResult,
-  SleepPreviewBatchRequest 
+  StartSleepResponse
 } from "../types/lodgingResponse";
 import type { Colony } from "../types/colony";
 
@@ -88,25 +86,11 @@ export function useLodging(
     },
   });
 
-  // --- MUTATION: BATCH SLEEP PREVIEW ---
-  const previewSleepBatch = useMutation<
-    BatchSleepPreviewResult,
-    Error,
-    SleepPreviewBatchRequest
-  >({
-    mutationFn: async (request) => {
-      const url = `/colonies/${colonyId}/lodging/preview-sleep-batch`;
-      const response = await agent.post(url, request);
-      return response.data;
-    },
-  });
-
   return {
     lodging,
     errorLodging,
     loadingLodging,
     startSleep,
-    previewSleepBatch,
     refetch,
   };
 }

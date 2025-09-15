@@ -59,4 +59,7 @@ export interface Settler {
   foodConsumption: number;
   maxCarrySlots: number;
   createdAt: string;               // ISO date string
+  
+  // New: Adjustments for different activity types
+  adjustments: Record<string, { loot: number; speed: number }>;
 }

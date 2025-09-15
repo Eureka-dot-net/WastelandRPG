@@ -2,8 +2,7 @@
 import { Router } from 'express';
 import { 
   getMapGrid5x5, 
-  startExploration, 
-  previewExplorationBatch,
+  startExploration
 } from '../controllers/mapController';
 
 const router = Router({ mergeParams: true }); // mergeParams needed for :colonyId
@@ -14,8 +13,7 @@ router.get('/', getMapGrid5x5);
 // POST /api/colonies/:colonyId/map/start - starts exploring or scouting a tile
 router.post('/start', startExploration);
 
-// GET /api/colonies/:colonyId/map/preview-batch?settlerIds=...&coordinates=... - batch preview
-router.get('/preview-batch', previewExplorationBatch);
+// REMOVED: router.get('/preview-batch', previewExplorationBatch) - preview functionality moved to frontend
 
 
 export default router;

@@ -88,6 +88,11 @@ export function useSettler(serverId: string | null, colonyId?: string | null) {
         equipment: {},
         foodConsumption: 1,
         maxCarrySlots: 10,
+        adjustments: {
+          quest: { loot: 1.0, speed: 1.0 },
+          exploration: { loot: 1.0, speed: 1.0 },
+          crafting: { loot: 1.0, speed: 1.0 }
+        },
         createdAt: new Date().toISOString()
       };
       

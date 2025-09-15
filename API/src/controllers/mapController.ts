@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { logError, logWarn } from '../utils/logger';
+import { logError } from '../utils/logger';
 import { withSession, withSessionReadOnly } from '../utils/sessionUtils';
 import {
   getMapGrid,
@@ -50,113 +49,10 @@ export const getMapGrid5x5 = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/colonies/:colonyId/map/preview-batch?settlerIds=id1,id2&coordinates=x1:y1,x2:y2
-export const previewExplorationBatch = async (req: Request, res: Response) => {
-  const { settlerIds, coordinates } = req.query as { settlerIds?: string; coordinates?: string };
-  const colony = req.colony;
-
-  if (!settlerIds || !coordinates) {
-    return res.status(400).json({ error: 'Both settlerIds and coordinates are required' });
-  }
-
-  const settlerIdArray = settlerIds.split(',').filter(id => id.trim());
-  const coordinateArray = coordinates.split(',').filter(coord => coord.trim());
-
-  if (settlerIdArray.length === 0 || coordinateArray.length === 0) {
-    return res.status(400).json({ error: 'At least one settlerId and one coordinate required' });
-  }
-
-  // Validate all settler IDs
-  const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
-
-  if (invalidSettlerIds.length > 0) {
-    return res.status(400).json({
-      error: 'Invalid settler IDs provided',
-      invalidSettlerIds
-    });
-  }
-
-  // Parse and validate coordinates
-  const parsedCoordinates: Array<{ x: number; y: number; coordKey: string }> = [];
-  const invalidCoordinates: string[] = [];
-
-  for (const coord of coordinateArray) {
-    const parts = coord.split(':');
-    if (parts.length !== 2) {
-      invalidCoordinates.push(coord);
-      continue;
-    }
-
-    const x = parseInt(parts[0]);
-    const y = parseInt(parts[1]);
-
-    if (isNaN(x) || isNaN(y)) {
-      invalidCoordinates.push(coord);
-      continue;
-    }
-
-    parsedCoordinates.push({ x, y, coordKey: coord });
-  }
-
-  if (invalidCoordinates.length > 0) {
-    return res.status(400).json({
-      error: 'Invalid coordinates provided',
-      invalidCoordinates
-    });
-  }
-
-  try {
-    // Fetch all settlers in bulk
-    const settlers = await Settler.find({ _id: { $in: settlerIdArray } });
-    const settlerMap = new Map(settlers.map(s => [s._id.toString(), s]));
-
-    const results: Record<string, Record<string, any>> = {};
-
-    // Calculate previews for all combinations
-    for (const settlerId of settlerIdArray) {
-      const settler = settlerMap.get(settlerId);
-      if (!settler) {
-        logWarn('Settler not found in batch exploration preview', { settlerId, colonyId: req.colonyId });
-        continue;
-      }
-
-      results[settlerId] = {};
-
-      for (const { x, y, coordKey } of parsedCoordinates) {
-        try {
-          const userMapTile = await UserMapTile.findOne({ colonyId: colony._id, x, y });
-          if (!userMapTile) {
-            throw new Error('UserMapTile not found for preview');
-          }
-          const settlerManager = new SettlerManager(settler);
-          const adjustments = settlerManager.calculateAdjustments(userMapTile.explorationTime, 'exploration');
-
-          // Get base duration from adjustments (this includes distance calculations)
-          const baseDuration = Math.round(adjustments.adjustedDuration / adjustments.effectiveSpeed);
-
-          results[settlerId][coordKey] = {
-            settlerId: settler._id,
-            settlerName: settler.name,
-            baseDuration,
-            adjustments
-          };
-        } catch (error) {
-          logError('Error calculating adjustments in batch exploration preview', error, {
-            settlerId,
-            coordinates: { x, y },
-            colonyId: req.colonyId
-          });
-          results[settlerId][coordKey] = { error: 'Failed to calculate preview' };
-        }
-      }
-    }
-
-    res.json({ results });
-  } catch (err) {
-    logError('Error in batch exploration preview', err, { colonyId: req.colonyId });
-    res.status(500).json({ error: 'Failed to preview explorations' });
-  }
-};
+// REMOVED: previewExplorationBatch function  
+// It returned: { results: Record<settlerId, Record<coordKey, { settlerId, settlerName, baseDuration, adjustments }>> }
+// The adjustments included: { adjustedDuration, effectiveSpeed, lootMultiplier }
+// The baseDuration was calculated from distance. This data is now available via settler.adjustments in colony GET endpoint
 
 // POST /api/colonies/:colonyId/map/start?x=...&y=...&settlerId=...
 export const startExploration = async (req: Request, res: Response) => {
