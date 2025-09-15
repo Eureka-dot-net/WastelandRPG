@@ -289,6 +289,30 @@ const {
 } = useAssignmentPage(serverId, colonyId, assignments || [], config);
 */
 
+// Lodging/sleep page configuration
+export const createLodgingPageConfig = (
+  startSleep: StartAssignmentMutation
+): AssignmentPageConfig<{ level: number; index: number; _id: string }> => ({
+  previewType: 'assignment', 
+  getTargetId: bed => bed._id,
+  getTargetKey: bed => bed._id,
+  getAvailableTargets: allBeds => allBeds, // All beds are available for selection
+  startAssignment: startSleep,
+  getBaseDuration: bed => {
+    // Calculate base sleep duration for a settler with 0 energy using bed level
+    const baseEnergyDelta = 10; // 10 energy per hour for resting
+    const bedMultiplier = 1 + (bed.level - 1) * 0.3; // Higher level beds = faster recovery
+    const effectiveEnergyDelta = baseEnergyDelta * bedMultiplier;
+    const energyNeeded = 100; // Assume worst case scenario for preview
+    const hoursNeeded = energyNeeded / effectiveEnergyDelta;
+    return Math.ceil(hoursNeeded * 60 * 60 * 1000); // Convert to milliseconds
+  },
+  getBasePlannedRewards: () => ({
+    // Sleep doesn't provide item rewards, just energy recovery
+    energy: 100
+  })
+});
+
 // Usage example for map page:
 /*
 const explorableCoordinates: { x: number; y: number }[] = getExplorableCoordinates();

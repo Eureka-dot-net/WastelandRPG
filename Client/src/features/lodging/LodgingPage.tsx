@@ -4,16 +4,15 @@ import {
 import {
   Container, Paper, Typography, Grid, useTheme, useMediaQuery, Box, Card, CardContent
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useLodging } from "../../lib/hooks/useLodging";
 import { useColony } from "../../lib/hooks/useColony";
 import { useAssignment } from "../../lib/hooks/useAssignment";
-import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
+import { useAssignmentPage, createLodgingPageConfig } from "../../lib/hooks/useAssignmentPage";
 import type { Settler } from "../../lib/types/settler";
 import type { Bed } from "../../lib/types/lodgingResponse";
-import type { BasePreviewResult } from "../../lib/types/preview";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
@@ -163,81 +162,57 @@ function LodgingPage() {
   
   // Get resting assignments for time tracking and completion
   const { assignments: restingAssignments } = useAssignment(serverId, colony?._id, { type: ['resting'] });
-  
-  // Get assignment notification system for time remaining
-  const { timers } = useAssignmentNotifications();
 
-  const [selectedBed, setSelectedBed] = useState<{ bed: Bed; index: number } | null>(null);
-  const [sleepDialogOpen, setSleepDialogOpen] = useState(false);
-  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, BasePreviewResult>>({});
-  const [previewsLoading, setPreviewsLoading] = useState(false);
-  const [previewsError, setPreviewsError] = useState<Error | null>(null);
+  // Create a wrapper for the sleep mutation to match StartAssignmentMutation interface
+  const startSleepWrapper = useMemo(() => ({
+    mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
+      const { settlerId, bedLevel } = params;
+      startSleep.mutate(
+        { settlerId: settlerId as string, bedLevel: bedLevel as number },
+        options
+      );
+    },
+    isPending: startSleep.isPending,
+  }), [startSleep]);
 
-  // Get available settlers (idle ones with less than 100 energy)
-  const availableSettlers = useMemo(() => {
-    if (!colony?.settlers) return [];
-    return colony.settlers.filter(settler => 
-      settler.status === 'idle' && 
-      (settler.energy ?? 0) < 100
-    );
-  }, [colony?.settlers]);
+  // Create bed targets for useAssignmentPage
+  const bedTargets = useMemo(() => {
+    if (!lodging?.lodging?.beds) return [];
+    return lodging.lodging.beds.map((bed, index) => ({
+      level: bed.level,
+      index,
+      _id: `bed-${index}-level-${bed.level}`
+    }));
+  }, [lodging?.lodging?.beds]);
 
-  // Calculate sleep duration for a settler and bed level on frontend
-  const calculateSleepDuration = (settler: Settler, bedLevel: number): number => {
-    if (settler.energy >= 100) return 0;
-    
-    // Base energy delta for resting (this would come from server originally)
-    const baseEnergyDelta = 10; // 10 energy per hour for resting
-    
-    // Apply bed level multiplier (higher level beds = faster recovery)
-    const bedMultiplier = 1 + (bedLevel - 1) * 0.3;
-    const effectiveEnergyDelta = baseEnergyDelta * bedMultiplier;
-    
-    // Calculate energy needed and hours needed
-    const energyNeeded = 100 - settler.energy;
-    const hoursNeeded = energyNeeded / effectiveEnergyDelta;
-    
-    // Convert to milliseconds
-    return Math.ceil(hoursNeeded * 60 * 60 * 1000);
-  };
+  // Create configuration for useAssignmentPage hook
+  const config = useMemo(() => createLodgingPageConfig(startSleepWrapper), [startSleepWrapper]);
 
-  // Load previews when dialog opens - now calculated on frontend
-  const loadPreviews = async (bedLevel: number) => {
-    if (availableSettlers.length === 0) return;
+  // Use the common assignment page hook for bed assignments
+  const {
+    availableSettlers,
+    handleTargetSelect,
+    handleSettlerSelect: originalHandleSettlerSelect,
+    handleDialogClose,
+    settlerDialogOpen,
+    selectedTarget: selectedBedTarget,
+    settlerPreviews,
+    previewsLoading,
+    previewsError,
+    timers
+  } = useAssignmentPage(serverId || '', bedTargets, config);
 
-    setPreviewsLoading(true);
-    setPreviewsError(null);
-
-    try {
-      const previews: Record<string, BasePreviewResult> = {};
-      
-      availableSettlers.forEach(settler => {
-        const duration = calculateSleepDuration(settler, bedLevel);
-        
-        // Note: We could add validation here later if needed
-        // const canSleep = settler.status === 'idle' && duration > 0;
-        // const reason = settler.status !== 'idle' ? `Settler is currently ${settler.status}` : undefined;
-
-        previews[settler._id] = {
-          settlerId: settler._id,
-          settlerName: settler.name,
-          baseDuration: duration,
-          basePlannedRewards: {},
-          adjustments: {
-            adjustedDuration: duration,
-            effectiveSpeed: 1,
-            lootMultiplier: 1
-          }
-        };
-      });
-
-      setSettlerPreviews(previews);
-    } catch (error) {
-      setPreviewsError(error as Error);
-    } finally {
-      setPreviewsLoading(false);
+  // Custom settler select handler to pass bedLevel
+  const handleSettlerSelect = (settler: Settler) => {
+    if (selectedBedTarget) {
+      originalHandleSettlerSelect(settler, { bedLevel: selectedBedTarget.level });
     }
   };
+
+  // Filter available settlers to only those with less than 100 energy
+  const availableSettlersForSleep = useMemo(() => {
+    return availableSettlers.filter(settler => (settler.energy ?? 0) < 100);
+  }, [availableSettlers]);
 
   // Get resting settlers with their assignments and time remaining
   const restingSettlersWithTime = useMemo(() => {
@@ -262,32 +237,11 @@ function LodgingPage() {
     // Check if bed is occupied by finding matching resting settler
     const isOccupied = restingSettlersWithTime.some((_, settlerIndex) => settlerIndex === index);
 
-    if (!isOccupied && availableSettlers.length > 0) {
-      setSelectedBed({ bed, index });
-      setSleepDialogOpen(true);
-      loadPreviews(bed.level);
+    if (!isOccupied && availableSettlersForSleep.length > 0) {
+      // Create bed target for useAssignmentPage
+      const bedTarget = { level: bed.level, index, _id: `bed-${index}-level-${bed.level}` };
+      handleTargetSelect(bedTarget);
     }
-  };
-
-  const handleSettlerSelect = (settler: Settler) => {
-    if (selectedBed) {
-      startSleep.mutate({
-        settlerId: settler._id,
-        bedLevel: selectedBed.bed.level
-      }, {
-        onSuccess: () => {
-          setSleepDialogOpen(false);
-          setSelectedBed(null);
-          setSettlerPreviews({});
-        }
-      });
-    }
-  };
-
-  const handleDialogClose = () => {
-    setSleepDialogOpen(false);
-    setSelectedBed(null);
-    setSettlerPreviews({});
   };
 
   if (loadingLodging || !serverId) {
@@ -334,7 +288,7 @@ function LodgingPage() {
       <LatestEventCard event={latestEvent} />
 
       {/* Available Settlers Warning */}
-      {availableSettlers.length === 0 && (
+      {availableSettlersForSleep.length === 0 && (
         <Paper elevation={2} sx={{ p: 2, mb: 3, bgcolor: theme.palette.warning.light, color: theme.palette.warning.contrastText }}>
           <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Warning />
@@ -367,11 +321,11 @@ function LodgingPage() {
 
       {/* Sleep Assignment Dialog */}
       <SettlerSelectorDialog
-        open={sleepDialogOpen}
+        open={settlerDialogOpen}
         onClose={handleDialogClose}
         onSelect={handleSettlerSelect}
-        settlers={availableSettlers}
-        title={`Assign Settler to Sleep - ${selectedBed ? `Bed Level ${selectedBed.bed.level}` : ''}`}
+        settlers={availableSettlersForSleep}
+        title={`Assign Settler to Sleep - ${selectedBedTarget ? `Bed Level ${selectedBedTarget.level}` : ''}`}
         emptyStateMessage="No available settlers"
         emptyStateSubMessage="All settlers are currently assigned to other tasks or have full energy."
         showSkills={true}
