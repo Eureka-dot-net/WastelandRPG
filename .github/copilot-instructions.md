@@ -503,8 +503,76 @@ Session behavior is validated through:
    - Support for skills/stats display configuration
    - Loading states and error handling
    - **Example Usage**: Quest page (`QuestPage.tsx`) and Map page (`MapPage.tsx`) show the correct implementation pattern. Follow these examples exactly.
-8. **NO BACKWARD COMPATIBILITY - ZERO TOLERANCE**: This project is in active development/alpha phase. **NEVER** maintain backward compatibility with deprecated functions, data structures, or legacy patterns. **ALWAYS** completely remove old/deprecated code and update ALL references to use the current implementation. **DO NOT** create wrapper functions, compatibility layers, transition code, or keep deprecated functions "just in case". **IMMEDIATELY** delete old implementations when creating new ones. Clean, maintainable code is the only priority - backward compatibility is strictly forbidden during this prototyping phase.
+8. **Standard Assignment Page Pattern**: **ALWAYS** use the `useAssignmentPage` hook from `Client/src/lib/hooks/useAssignmentPage.ts` for any page that handles assignments. **DO NOT** manually implement preview calculations, state management for dialogs, or settler selection logic. The hook provides:
+   - Unified state management for dialogs and previews
+   - Standardized settler selection workflow
+   - Automatic preview calculation with settler adjustments
+   - Proper integration with SettlerSelectorDialog
+   - **Configuration Functions**: Use or create configuration functions like `createQuestPageConfig`, `createMapExplorationConfig`, or `createLodgingPageConfig`
+   - **Example Usage**: Quest page (`QuestPage.tsx`), Map page (`MapPage.tsx`), and Lodging page (`LodgingPage.tsx`) show the correct implementation patterns. Follow these examples exactly.
+9. **NO BACKWARD COMPATIBILITY - ZERO TOLERANCE**: This project is in active development/alpha phase. **NEVER** maintain backward compatibility with deprecated functions, data structures, or legacy patterns. **ALWAYS** completely remove old/deprecated code and update ALL references to use the current implementation. **DO NOT** create wrapper functions, compatibility layers, transition code, or keep deprecated functions "just in case". **IMMEDIATELY** delete old implementations when creating new ones. Clean, maintainable code is the only priority - backward compatibility is strictly forbidden during this prototyping phase.
 
 ## Trust These Instructions
 
 These instructions have been validated by exploring the codebase and testing all build processes. Only search for additional information if these instructions are incomplete or found to be incorrect. The build commands, file locations, and architectural descriptions are accurate as of the last update.
+
+## TODO: How to Create New Frontend Pages with Assignments
+
+When creating new frontend pages that involve assignments (tasks that settlers can be assigned to), follow this pattern:
+
+1. **Use useAssignmentPage Hook**: Always use the `useAssignmentPage` hook instead of manually implementing assignment functionality.
+
+2. **Create Configuration Function**: Add a new configuration function to `useAssignmentPage.ts` following the pattern:
+   ```typescript
+   export const createYourPageConfig = (
+     startYourMutation: StartAssignmentMutation
+   ): AssignmentPageConfig<YourTargetType> => ({
+     previewType: 'assignment', // or 'map-exploration' for location-based
+     getTargetId: target => target._id, // or generate unique ID
+     getTargetKey: target => target._id, // for tracking state
+     getAvailableTargets: allTargets => allTargets.filter(/* your logic */),
+     startAssignment: startYourMutation,
+     getBaseDuration: target => /* calculate base duration in ms */,
+     getBasePlannedRewards: target => /* return reward object */
+   });
+   ```
+
+3. **Target Type Requirements**: Your target type must extend `GenericTarget` interface (require `_id`, `id`, `x`, or `y` properties).
+
+4. **Page Implementation Pattern**:
+   ```typescript
+   // Import the hook and your config
+   import { useAssignmentPage, createYourPageConfig } from '../../lib/hooks/useAssignmentPage';
+   
+   // In your component:
+   const startMutationWrapper = useMemo(() => ({
+     mutate: (params: Record<string, unknown>, options?: { onSettled?: () => void }) => {
+       // Extract params and call your actual mutation
+       yourMutation.mutate(/* params */, options);
+     },
+     isPending: yourMutation.isPending,
+   }), [yourMutation]);
+   
+   const config = useMemo(() => createYourPageConfig(startMutationWrapper), [startMutationWrapper]);
+   
+   const {
+     availableSettlers,
+     handleTargetSelect,
+     handleSettlerSelect,
+     handleDialogClose,
+     settlerDialogOpen,
+     selectedTarget,
+     settlerPreviews,
+     previewsLoading,
+     previewsError,
+   } = useAssignmentPage(serverId || '', yourTargets, config);
+   ```
+
+5. **Use Standard Dialog**: Always use `SettlerSelectorDialog` with the props from the hook.
+
+6. **Examples to Follow**: 
+   - Quest page (`QuestPage.tsx`) - for assignment-based tasks
+   - Map page (`MapPage.tsx`) - for location-based exploration
+   - Lodging page (`LodgingPage.tsx`) - for resource/facility-based assignments
+
+This pattern ensures consistency across all assignment pages and avoids code duplication.
