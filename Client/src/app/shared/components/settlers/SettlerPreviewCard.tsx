@@ -14,7 +14,7 @@ import {
 import { Speed, TrendingUp, CheckCircle } from '@mui/icons-material';
 import type { Settler } from '../../../../lib/types/settler';
 import { formatTaskDuration } from '../../../../lib/utils/timeUtils';
-import { isAssignmentPreview, isMapExplorationPreview, type BasePreviewResult, type MapExplorationPreviewResult } from '../../../../lib/types/preview';
+import { isAssignmentPreview, isMapExplorationPreview, isSleepPreview, type BasePreviewResult, type MapExplorationPreviewResult, type SleepPreviewResult } from '../../../../lib/types/preview';
 import SettlerAvatar from '../../../../lib/avatars/SettlerAvatar';
 
 const getStatChipColor = (percent: number): "error" | "warning" | "secondary" | "primary" | "info" | "success" => {
@@ -269,6 +269,57 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                             sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
                           >
                             {mapPreview.terrain.description}
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  );
+                })()
+              ) : isSleepPreview(preview) ? (
+                (() => {
+                  // Type assertion to SleepPreview
+                  const sleepPreview = preview as SleepPreviewResult;
+                  return (
+                    <>
+                      {/* Sleep Preview */}
+                      <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                        <Box display="flex" alignItems="center" gap={1.5} mb={0.4}>
+                          <Speed sx={{ fontSize: isMobile ? '0.9rem' : '1rem' }} color="primary" />
+                          <Typography 
+                            variant="body2" 
+                            fontWeight={600}
+                            sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                          >
+                            Sleep Duration: {formatTaskDuration(sleepPreview.baseDuration)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {/* Current Energy */}
+                      <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                        <Typography 
+                          variant="body2" 
+                          fontWeight={600}
+                          sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                        >
+                          Current Energy: {sleepPreview.currentEnergy}/100
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary" 
+                          sx={{ fontSize: isMobile ? '0.65rem' : '0.7rem' }}
+                        >
+                          Bed Level {sleepPreview.bedLevel} (Energy recovery rate: {sleepPreview.bedLevel === 1 ? '1.0x' : sleepPreview.bedLevel === 2 ? '1.3x' : '1.6x'})
+                        </Typography>
+                      </Box>
+                      {/* Sleep Status */}
+                      {!sleepPreview.canSleep && sleepPreview.reason && (
+                        <Box sx={{ mb: isMobile ? 1 : 1.25 }}>
+                          <Typography 
+                            variant="body2" 
+                            color="warning.main"
+                            sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
+                          >
+                            Cannot sleep: {sleepPreview.reason}
                           </Typography>
                         </Box>
                       )}

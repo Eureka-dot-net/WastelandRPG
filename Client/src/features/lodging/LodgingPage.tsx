@@ -2,7 +2,7 @@ import {
   Hotel, SingleBed, Timer, Warning
 } from "@mui/icons-material";
 import {
-  Container, Paper, Typography, Grid, useTheme, useMediaQuery, Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel, Card, CardContent
+  Container, Paper, Typography, Grid, useTheme, useMediaQuery, Box, Button, Card, CardContent
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,9 +13,12 @@ import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
 import type { Bed } from "../../lib/types/lodgingResponse";
+import type { SleepPreviewResult as LodgingSleepPreviewResult } from "../../lib/types/lodgingResponse";
+import type { SleepPreviewResult, BasePreviewResult } from "../../lib/types/preview";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
+import SettlerSelectorDialog from "../../app/shared/components/settlers/SettlerSelectorDialog";
 import { useServerContext } from "../../lib/contexts/ServerContext";
 import LatestEventCard from "../../components/events/LatestEventCard";
 import SettlerAvatar from "../../lib/avatars/SettlerAvatar";
@@ -157,7 +160,7 @@ function LodgingPage() {
   const { currentServerId: serverId } = useServerContext();
   
   const { colony } = useColony(serverId);
-  const { lodging, loadingLodging, startSleep } = useLodging(serverId, colony?._id);
+  const { lodging, loadingLodging, startSleep, previewSleepBatch } = useLodging(serverId, colony?._id);
   
   // Get resting assignments for time tracking and completion
   const { assignments: restingAssignments } = useAssignment(serverId, colony?._id, { type: ['resting'] });
@@ -166,8 +169,11 @@ function LodgingPage() {
   const { timers } = useAssignmentNotifications();
 
   const [selectedBed, setSelectedBed] = useState<{ bed: Bed; index: number } | null>(null);
-  const [selectedSettler, setSelectedSettler] = useState<string>('');
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false);
+  const [settlerPreviews, setSettlerPreviews] = useState<Record<string, BasePreviewResult>>({});
+  const [previewsLoading, setPreviewsLoading] = useState(false);
+  const [previewsError, setPreviewsError] = useState<Error | null>(null);
+  const [freezeEnergy, setFreezeEnergy] = useState(false);
 
   // Get available settlers (idle ones with less than 100 energy)
   const availableSettlers = useMemo(() => {
@@ -177,6 +183,56 @@ function LodgingPage() {
       (settler.energy ?? 0) < 100
     );
   }, [colony?.settlers]);
+
+  // Convert lodging sleep preview to standard preview format
+  const convertToSleepPreview = (lodgingPreview: LodgingSleepPreviewResult): SleepPreviewResult => {
+    return {
+      settlerId: lodgingPreview.settlerId,
+      settlerName: lodgingPreview.settlerName,
+      baseDuration: lodgingPreview.duration,
+      basePlannedRewards: {}, // No rewards for sleeping
+      adjustments: {
+        adjustedDuration: lodgingPreview.duration,
+        effectiveSpeed: 1,
+        lootMultiplier: 1
+      },
+      bedLevel: lodgingPreview.bedType,
+      canSleep: lodgingPreview.canSleep,
+      reason: lodgingPreview.reason,
+      currentEnergy: lodgingPreview.currentEnergy || 0
+    };
+  };
+
+  // Load previews when dialog opens
+  const loadPreviews = async (bedLevel: number) => {
+    if (availableSettlers.length === 0) return;
+
+    setPreviewsLoading(true);
+    setPreviewsError(null);
+
+    try {
+      const settlers = availableSettlers.map(settler => ({
+        settlerId: settler._id,
+        bedType: bedLevel
+      }));
+
+      const result = await previewSleepBatch.mutateAsync({
+        settlers,
+        freezeEnergy
+      });
+
+      const previews: Record<string, BasePreviewResult> = {};
+      result.results.forEach(lodgingPreview => {
+        previews[lodgingPreview.settlerId] = convertToSleepPreview(lodgingPreview);
+      });
+
+      setSettlerPreviews(previews);
+    } catch (error) {
+      setPreviewsError(error as Error);
+    } finally {
+      setPreviewsLoading(false);
+    }
+  };
 
   // Get resting settlers with their assignments and time remaining
   const restingSettlersWithTime = useMemo(() => {
@@ -201,22 +257,24 @@ function LodgingPage() {
     // Check if bed is occupied by finding matching resting settler
     const isOccupied = restingSettlersWithTime.some((_, settlerIndex) => settlerIndex === index);
 
-    if (!isOccupied) {
+    if (!isOccupied && availableSettlers.length > 0) {
       setSelectedBed({ bed, index });
       setSleepDialogOpen(true);
+      loadPreviews(bed.level);
     }
   };
 
-  const handleStartSleep = () => {
-    if (selectedBed && selectedSettler) {
+  const handleSettlerSelect = (settler: Settler) => {
+    if (selectedBed) {
       startSleep.mutate({
-        settlerId: selectedSettler,
-        bedLevel: selectedBed.bed.level
+        settlerId: settler._id,
+        bedLevel: selectedBed.bed.level,
+        freezeEnergy
       }, {
         onSuccess: () => {
           setSleepDialogOpen(false);
           setSelectedBed(null);
-          setSelectedSettler('');
+          setSettlerPreviews({});
         }
       });
     }
@@ -225,7 +283,7 @@ function LodgingPage() {
   const handleDialogClose = () => {
     setSleepDialogOpen(false);
     setSelectedBed(null);
-    setSelectedSettler('');
+    setSettlerPreviews({});
   };
 
   if (loadingLodging || !serverId) {
@@ -304,54 +362,48 @@ function LodgingPage() {
       </Grid>
 
       {/* Sleep Assignment Dialog */}
-      <Dialog open={sleepDialogOpen} onClose={handleDialogClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Assign Settler to Sleep
-        </DialogTitle>
-        <DialogContent>
-          {selectedBed && (
-            <>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Bed Level {selectedBed.bed.level} - {selectedBed.bed.level === 1 ? 'Basic' : selectedBed.bed.level === 2 ? 'Comfortable' : 'Luxury'} Bed
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-                Energy recovery rate: {selectedBed.bed.level === 1 ? '1.0x' : selectedBed.bed.level === 2 ? '1.3x' : '1.6x'}
-              </Typography>
-
-              <FormControl fullWidth>
-                <InputLabel>Select Settler</InputLabel>
-                <Select
-                  value={selectedSettler}
-                  label="Select Settler"
-                  onChange={(e) => setSelectedSettler(e.target.value)}
-                >
-                  {availableSettlers.map(settler => (
-                    <MenuItem key={settler._id} value={settler._id}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <SettlerAvatar settler={settler} size={24} />
-                        {settler.name} (Energy: {settler.energy ?? 0}/100)
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button 
-            onClick={handleStartSleep} 
-            variant="contained"
-            disabled={!selectedSettler || startSleep.isPending}
-          >
-            {startSleep.isPending ? 'Starting...' : 'Start Sleep'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <SettlerSelectorDialog
+        open={sleepDialogOpen}
+        onClose={handleDialogClose}
+        onSelect={handleSettlerSelect}
+        settlers={availableSettlers}
+        title={`Assign Settler to Sleep - ${selectedBed ? `Bed Level ${selectedBed.bed.level}` : ''}`}
+        emptyStateMessage="No available settlers"
+        emptyStateSubMessage="All settlers are currently assigned to other tasks or have full energy."
+        showSkills={true}
+        showStats={false}
+        confirmPending={startSleep.isPending}
+        settlerPreviews={settlerPreviews}
+        previewsLoading={previewsLoading}
+        previewsError={previewsError}
+      />
 
       {/* Dev Tools */}
       <DevTools settlers={colony.settlers || []} />
+      
+      {/* Dev Controls for Energy Freeze (only in development) */}
+      {import.meta.env.MODE === 'development' && (
+        <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mt: isMobile ? 2 : 4, bgcolor: 'action.hover' }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            🔧 Dev Controls
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant={freezeEnergy ? "contained" : "outlined"}
+              onClick={() => setFreezeEnergy(!freezeEnergy)}
+              color={freezeEnergy ? "warning" : "primary"}
+            >
+              {freezeEnergy ? "Energy Frozen" : "Freeze Energy"}
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              {freezeEnergy 
+                ? "Energy updates are disabled for testing sleep calculations" 
+                : "Click to freeze energy for testing sleep functionality"
+              }
+            </Typography>
+          </Box>
+        </Paper>
+      )}
 
       {/* Future Features */}
       <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mt: isMobile ? 2 : 4, opacity: 0.6 }}>

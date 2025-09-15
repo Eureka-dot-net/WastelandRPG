@@ -65,7 +65,7 @@ export const getBeds = async (req: Request, res: Response) => {
 // POST /api/colonies/:colonyId/lodging/start-sleep
 export const startSleep = async (req: Request, res: Response) => {
   const { colonyId } = req.params;
-  const { settlerId, bedLevel } = req.body;
+  const { settlerId, bedLevel, freezeEnergy } = req.body;
 
   if (!Types.ObjectId.isValid(colonyId)) {
     return res.status(400).json({ error: 'Invalid colonyId' });
@@ -104,8 +104,8 @@ export const startSleep = async (req: Request, res: Response) => {
 
       const settlerManager = new SettlerManager(settler);
 
-      // Calculate sleep duration based on bedLevel
-      const sleepDurationMs = settlerManager.getSleepDuration(bedLevel);
+      // Calculate sleep duration based on bedLevel with optional freeze energy flag
+      const sleepDurationMs = settlerManager.getSleepDuration(bedLevel, freezeEnergy || false);
 
       if (sleepDurationMs === 0) {
         throw new Error('Settler already has full energy and does not need to sleep');
@@ -181,7 +181,7 @@ export const startSleep = async (req: Request, res: Response) => {
 // POST /api/colonies/:colonyId/lodging/preview-sleep-batch
 export const getSleepPreviewBatch = async (req: Request, res: Response) => {
   const { colonyId } = req.params;
-  const { settlers } = req.body;
+  const { settlers, freezeEnergy } = req.body;
 
   if (!Types.ObjectId.isValid(colonyId)) {
     return res.status(400).json({ error: 'Invalid colonyId' });
@@ -215,6 +215,7 @@ export const getSleepPreviewBatch = async (req: Request, res: Response) => {
       duration: number;
       canSleep: boolean;
       reason?: string;
+      currentEnergy?: number;
     }> = [];
 
     // Calculate preview for each combination
@@ -235,7 +236,7 @@ export const getSleepPreviewBatch = async (req: Request, res: Response) => {
 
       try {
         const settlerManager = new SettlerManager(settler);
-        const duration = settlerManager.getSleepDuration(bedType);
+        const duration = settlerManager.getSleepDuration(bedType, freezeEnergy || false);
         
         let canSleep = true;
         let reason: string | undefined;
@@ -254,7 +255,8 @@ export const getSleepPreviewBatch = async (req: Request, res: Response) => {
           bedType,
           duration,
           canSleep,
-          reason
+          reason,
+          currentEnergy: Math.round(settler.energy * 10) / 10 // Round to 1 decimal place
         });
       } catch (error) {
         logError('Error calculating sleep duration in batch preview', error, {

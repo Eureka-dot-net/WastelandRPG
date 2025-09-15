@@ -556,11 +556,14 @@ export class SettlerManager {
   /**
    * Calculate the duration required for a settler to reach 100 energy while resting
    * @param bedLevel - The quality level of the bed (affects sleep efficiency)
+   * @param freezeEnergy - If true, do not update energy before calculation (for testing)
    * @returns Duration in milliseconds required to reach 100 energy
    */
-  getSleepDuration(bedLevel: number): number {
-    // First ensure energy is up to date
-    this.updateEnergy(new Date());
+  getSleepDuration(bedLevel: number, freezeEnergy: boolean = false): number {
+    // Update energy unless frozen (for testing)
+    if (!freezeEnergy) {
+      this.updateEnergy(new Date());
+    }
 
     // If already at 100 energy, no sleep needed
     if (this.settler.energy >= 100) {

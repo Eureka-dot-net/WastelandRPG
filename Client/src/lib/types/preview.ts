@@ -30,6 +30,15 @@ export interface MapExplorationPreviewResult extends BasePreviewResult {
   };
 }
 
+// Sleep-specific preview result
+export interface SleepPreviewResult extends BasePreviewResult {
+  // Sleep-specific fields
+  bedLevel: number;
+  canSleep: boolean;
+  reason?: string;
+  currentEnergy: number;
+}
+
 // Batch results
 export interface BatchAssignmentPreviewResult {
   results: Record<string, Record<string, AssignmentPreviewResult>>;
@@ -47,9 +56,13 @@ export interface PreviewTerrain {
 }
 
 export function isAssignmentPreview(preview: BasePreviewResult): preview is AssignmentPreviewResult {
-  return !('coordinates' in preview);
+  return !('coordinates' in preview) && !('bedLevel' in preview);
 }
 
 export function isMapExplorationPreview(preview: BasePreviewResult): preview is MapExplorationPreviewResult {
   return 'coordinates' in preview;
+}
+
+export function isSleepPreview(preview: BasePreviewResult): preview is SleepPreviewResult {
+  return 'bedLevel' in preview;
 }
