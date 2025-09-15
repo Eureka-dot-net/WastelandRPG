@@ -10,6 +10,7 @@ import assignmentRoutes from './routes/assignment';
 import inventoryRoutes from './routes/inventory';
 import mapRoutes from './routes/map';
 import lodgingRoutes from './routes/lodging';
+import craftingRoutes from './routes/crafting';
 import devRoutes from './routes/dev';
 
 import { authenticate } from './middleware/auth';
@@ -72,6 +73,7 @@ app.use('/api/colonies/:colonyId/assignments', authenticate, requireColonyOwners
 app.use('/api/colonies/:colonyId/inventory', authenticate, requireColonyOwnership, updateCompletedTasks, inventoryRoutes);
 app.use('/api/colonies/:colonyId/map', authenticate, requireColonyOwnership, updateCompletedTasks, mapRoutes);
 app.use('/api/colonies/:colonyId/lodging', authenticate, requireColonyOwnership, updateCompletedTasks, lodgingRoutes);
+app.use('/api/colonies/:colonyId/crafting', authenticate, requireColonyOwnership, updateCompletedTasks, craftingRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
