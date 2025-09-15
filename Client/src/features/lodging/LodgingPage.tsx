@@ -13,8 +13,7 @@ import { useAssignment } from "../../lib/hooks/useAssignment";
 import { useAssignmentNotifications } from "../../lib/hooks/useAssignmentNotifications";
 import type { Settler } from "../../lib/types/settler";
 import type { Bed } from "../../lib/types/lodgingResponse";
-import type { SleepPreviewResult as LodgingSleepPreviewResult } from "../../lib/types/lodgingResponse";
-import type { SleepPreviewResult, BasePreviewResult } from "../../lib/types/preview";
+import type { BasePreviewResult } from "../../lib/types/preview";
 import ErrorDisplay from "../../app/shared/components/ui/ErrorDisplay";
 import LoadingDisplay from "../../app/shared/components/ui/LoadingDisplay";
 import ProgressHeader from "../../app/shared/components/ui/ProgressHeader";
@@ -160,7 +159,7 @@ function LodgingPage() {
   const { currentServerId: serverId } = useServerContext();
   
   const { colony } = useColony(serverId);
-  const { lodging, loadingLodging, startSleep, previewSleepBatch } = useLodging(serverId, colony?._id);
+  const { lodging, loadingLodging, startSleep } = useLodging(serverId, colony?._id);
   
   // Get resting assignments for time tracking and completion
   const { assignments: restingAssignments } = useAssignment(serverId, colony?._id, { type: ['resting'] });
@@ -183,25 +182,26 @@ function LodgingPage() {
     );
   }, [colony?.settlers]);
 
-  // Convert lodging sleep preview to standard preview format
-  const convertToSleepPreview = (lodgingPreview: LodgingSleepPreviewResult): SleepPreviewResult => {
-    return {
-      settlerId: lodgingPreview.settlerId,
-      settlerName: lodgingPreview.settlerName,
-      baseDuration: lodgingPreview.duration,
-      basePlannedRewards: {}, // No rewards for sleeping
-      adjustments: {
-        adjustedDuration: lodgingPreview.duration,
-        effectiveSpeed: 1,
-        lootMultiplier: 1
-      },
-      bedLevel: lodgingPreview.bedType,
-      canSleep: lodgingPreview.canSleep,
-      reason: lodgingPreview.reason
-    };
+  // Calculate sleep duration for a settler and bed level on frontend
+  const calculateSleepDuration = (settler: Settler, bedLevel: number): number => {
+    if (settler.energy >= 100) return 0;
+    
+    // Base energy delta for resting (this would come from server originally)
+    const baseEnergyDelta = 10; // 10 energy per hour for resting
+    
+    // Apply bed level multiplier (higher level beds = faster recovery)
+    const bedMultiplier = 1 + (bedLevel - 1) * 0.3;
+    const effectiveEnergyDelta = baseEnergyDelta * bedMultiplier;
+    
+    // Calculate energy needed and hours needed
+    const energyNeeded = 100 - settler.energy;
+    const hoursNeeded = energyNeeded / effectiveEnergyDelta;
+    
+    // Convert to milliseconds
+    return Math.ceil(hoursNeeded * 60 * 60 * 1000);
   };
 
-  // Load previews when dialog opens
+  // Load previews when dialog opens - now calculated on frontend
   const loadPreviews = async (bedLevel: number) => {
     if (availableSettlers.length === 0) return;
 
@@ -209,18 +209,26 @@ function LodgingPage() {
     setPreviewsError(null);
 
     try {
-      const settlers = availableSettlers.map(settler => ({
-        settlerId: settler._id,
-        bedType: bedLevel
-      }));
-
-      const result = await previewSleepBatch.mutateAsync({
-        settlers
-      });
-
       const previews: Record<string, BasePreviewResult> = {};
-      result.results.forEach(lodgingPreview => {
-        previews[lodgingPreview.settlerId] = convertToSleepPreview(lodgingPreview);
+      
+      availableSettlers.forEach(settler => {
+        const duration = calculateSleepDuration(settler, bedLevel);
+        
+        // Note: We could add validation here later if needed
+        // const canSleep = settler.status === 'idle' && duration > 0;
+        // const reason = settler.status !== 'idle' ? `Settler is currently ${settler.status}` : undefined;
+
+        previews[settler._id] = {
+          settlerId: settler._id,
+          settlerName: settler.name,
+          baseDuration: duration,
+          basePlannedRewards: {},
+          adjustments: {
+            adjustedDuration: duration,
+            effectiveSpeed: 1,
+            lootMultiplier: 1
+          }
+        };
       });
 
       setSettlerPreviews(previews);

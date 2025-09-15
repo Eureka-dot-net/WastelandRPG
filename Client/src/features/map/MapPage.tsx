@@ -62,7 +62,7 @@ function MapPage() {
   }), [startExploration]);
 
   // Create configuration for useAssignmentPage hook - memoized to prevent infinite loops
-  const config = useMemo(() => createMapExplorationConfig(startExplorationWrapper), [startExplorationWrapper]);
+  const config = useMemo(() => createMapExplorationConfig(startExplorationWrapper, colony?.homesteadLocation), [startExplorationWrapper, colony?.homesteadLocation]);
 
   // Use the common assignment page hook
   const {
