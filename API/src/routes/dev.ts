@@ -53,7 +53,7 @@ if (process.env.NODE_ENV === 'development') {
         settlerId,
         { 
           energy,
-          lastUpdate: new Date()
+          energyLastUpdated: new Date()
         },
         { new: true }
       );

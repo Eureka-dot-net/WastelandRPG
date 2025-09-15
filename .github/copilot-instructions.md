@@ -495,7 +495,15 @@ Session behavior is validated through:
 4. **Mobile-First Design**: All design decisions must consider mobile user experience
 5. **API Authority**: The API is the version of truth - client is only for display and user interaction
 6. **Session Consistency**: Always use MongoDB sessions for multi-collection write operations
-7. **NO BACKWARD COMPATIBILITY - ZERO TOLERANCE**: This project is in active development/alpha phase. **NEVER** maintain backward compatibility with deprecated functions, data structures, or legacy patterns. **ALWAYS** completely remove old/deprecated code and update ALL references to use the current implementation. **DO NOT** create wrapper functions, compatibility layers, transition code, or keep deprecated functions "just in case". **IMMEDIATELY** delete old implementations when creating new ones. Clean, maintainable code is the only priority - backward compatibility is strictly forbidden during this prototyping phase.
+7. **Standard Dialog Pattern**: **ALWAYS** use the standard `SettlerSelectorDialog` from `Client/src/app/shared/components/settlers/SettlerSelectorDialog.tsx` for any settler selection functionality. **DO NOT** create custom dialogs, dropdowns, or selection UI. The standard dialog provides:
+   - Side-by-side settler display (single or multiple)
+   - Preview system integration with assignment effects
+   - Consistent mobile-responsive design
+   - Proper accessibility features
+   - Support for skills/stats display configuration
+   - Loading states and error handling
+   - **Example Usage**: Quest page (`QuestPage.tsx`) and Map page (`MapPage.tsx`) show the correct implementation pattern. Follow these examples exactly.
+8. **NO BACKWARD COMPATIBILITY - ZERO TOLERANCE**: This project is in active development/alpha phase. **NEVER** maintain backward compatibility with deprecated functions, data structures, or legacy patterns. **ALWAYS** completely remove old/deprecated code and update ALL references to use the current implementation. **DO NOT** create wrapper functions, compatibility layers, transition code, or keep deprecated functions "just in case". **IMMEDIATELY** delete old implementations when creating new ones. Clean, maintainable code is the only priority - backward compatibility is strictly forbidden during this prototyping phase.
 
 ## Trust These Instructions
 
