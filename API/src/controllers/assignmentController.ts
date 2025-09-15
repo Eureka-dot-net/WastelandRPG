@@ -5,7 +5,7 @@ import { Assignment } from '../models/Player/Assignment';
 import cleaningTasksCatalogue from '../data/cleaningTasksCatalogue.json';
 import { Settler } from '../models/Player/Settler';
 import { ColonyManager } from '../managers/ColonyManager';
-import { logError, logWarn } from '../utils/logger';
+import { logError } from '../utils/logger';
 import { withSession } from '../utils/sessionUtils';
 import {
   generateRewards,
@@ -212,92 +212,10 @@ export const startAssignment = async (req: Request, res: Response) => {
   }
 };
 
-// GET /colonies/:colonyId/assignments/preview-batch?settlerIds=id1,id2&assignmentIds=aid1,aid2
-export const previewAssignmentBatch = async (req: Request, res: Response) => {
-  const { settlerIds, assignmentIds } = req.query as { settlerIds?: string; assignmentIds?: string };
-
-  if (!settlerIds || !assignmentIds) {
-    return res.status(400).json({ error: 'Both settlerIds and assignmentIds are required' });
-  }
-
-  const settlerIdArray = settlerIds.split(',').filter(id => id.trim());
-  const assignmentIdArray = assignmentIds.split(',').filter(id => id.trim());
-
-  if (settlerIdArray.length === 0 || assignmentIdArray.length === 0) {
-    return res.status(400).json({ error: 'At least one settlerId and one assignmentId required' });
-  }
-
-  // Validate all IDs
-  const invalidSettlerIds = settlerIdArray.filter(id => !Types.ObjectId.isValid(id));
-  const invalidAssignmentIds = assignmentIdArray.filter(id => !Types.ObjectId.isValid(id));
-
-  if (invalidSettlerIds.length > 0 || invalidAssignmentIds.length > 0) {
-    return res.status(400).json({
-      error: 'Invalid IDs provided',
-      invalidSettlerIds,
-      invalidAssignmentIds
-    });
-  }
-
-  try {
-    // Fetch all assignments and settlers in bulk
-    const [assignments, settlers] = await Promise.all([
-      Assignment.find({ _id: { $in: assignmentIdArray } }),
-      Settler.find({ _id: { $in: settlerIdArray } })
-    ]);
-
-    const assignmentMap = new Map(assignments.map(a => [a._id.toString(), a]));
-    const settlerMap = new Map(settlers.map(s => [s._id.toString(), s]));
-
-    const results: Record<string, Record<string, any>> = {};
-
-    // Calculate previews for all combinations
-    for (const settlerId of settlerIdArray) {
-      const settler = settlerMap.get(settlerId);
-      if (!settler) {
-        logWarn('Settler not found in batch assignment preview', { settlerId, colonyId: req.colonyId });
-        continue;
-      }
-
-      results[settlerId] = {};
-
-      for (const assignmentId of assignmentIdArray) {
-        const assignment = assignmentMap.get(assignmentId);
-        if (!assignment) {
-          logWarn('Assignment not found in batch preview', { assignmentId, colonyId: req.colonyId });
-          continue;
-        }
-
-        try {
-          const settlerManager = new SettlerManager(settler);
-
-          const adjustments = settlerManager.calculateAdjustments(assignment.duration, assignment.type);
-          
-          results[settlerId][assignmentId] = {
-            settlerId: settler._id,
-            settlerName: settler.name,
-            baseDuration: assignment.duration,
-            basePlannedRewards: assignment.plannedRewards,
-            adjustments
-          };
-        } catch (error) {
-          logError('Error calculating adjustments in batch assignment preview', error, {
-            settlerId,
-            assignmentId,
-            colonyId: req.colonyId
-          });
-          results[settlerId][assignmentId] = { error: 'Failed to calculate preview' };
-        }
-      }
-    }
-
-    res.json({ results });
-  } catch (err) {
-    logError('Error in batch assignment preview', err, { colonyId: req.colonyId });
-    res.status(500).json({ error: 'Failed to preview assignments' });
-  }
-};
-
+// REMOVED: previewAssignmentBatch function
+// It returned: { results: Record<settlerId, Record<assignmentId, { settlerId, settlerName, baseDuration, basePlannedRewards, adjustments }>> }
+// The adjustments included: { adjustedDuration, effectiveSpeed, lootMultiplier }
+// This data is now available via settler.adjustments in colony GET endpoint
 
 export const informAssignment = async (req: Request, res: Response) => {
   const { assignmentId } = req.params;

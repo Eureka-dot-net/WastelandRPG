@@ -199,6 +199,37 @@ export class SettlerManager {
   }
 
   /**
+   * Get all adjustments for different activity types
+   * Returns loot and speed adjustments for common activity types
+   */
+  getAllAdjustments(): Record<string, { loot: number; speed: number }> {
+    const activityTypes = [
+      'quest',
+      'exploration', 
+      'crafting',
+      'sleep',
+      'cleanup',
+      'farming',
+      'medical',
+      'engineering'
+    ];
+
+    const adjustments: Record<string, { loot: number; speed: number }> = {};
+
+    for (const activityType of activityTypes) {
+      const timeMultiplier = this.adjustedTimeMultiplier(activityType);
+      const lootMultiplier = this.adjustedLootMultiplier(activityType);
+      
+      adjustments[activityType] = {
+        loot: lootMultiplier,
+        speed: timeMultiplier
+      };
+    }
+
+    return adjustments;
+  }
+
+  /**
    * Get item details from the catalogue
    */
   private getItemFromCatalogue(itemId: string) {
@@ -595,7 +626,8 @@ export class SettlerManager {
       foodSatiationRate: this.foodSatiationRate,
       carryingCapacity: this.carryingCapacity,
       currentCarriedWeight: this.currentCarriedWeight,
-      energyDeltaPerHour: this.getEnergyDeltaForStatus(this.settler.status)
+      energyDeltaPerHour: this.getEnergyDeltaForStatus(this.settler.status),
+      adjustments: this.getAllAdjustments()
     };
   }
 

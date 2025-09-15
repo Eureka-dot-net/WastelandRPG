@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getRecipes, startRecipe, previewCrafting } from '../controllers/craftingController';
+import { getRecipes, startRecipe } from '../controllers/craftingController';
 
 const router = Router();
 
@@ -9,7 +9,6 @@ router.get('/recipes', getRecipes);
 // POST /api/colonies/:colonyId/crafting/start-recipe
 router.post('/start-recipe', startRecipe);
 
-// POST /api/colonies/:colonyId/crafting/preview-crafting
-router.post('/preview-crafting', previewCrafting);
+// REMOVED: router.post('/preview-crafting', previewCrafting) - preview functionality moved to frontend
 
 export default router;

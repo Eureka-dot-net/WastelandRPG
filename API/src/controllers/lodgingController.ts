@@ -5,7 +5,7 @@ import { Settler } from '../models/Player/Settler';
 import { Assignment, IAssignment } from '../models/Player/Assignment';
 import { ColonyManager } from '../managers/ColonyManager';
 import { SettlerManager } from '../managers/SettlerManager';
-import { logError, logWarn } from '../utils/logger';
+import { logError } from '../utils/logger';
 import { withSession } from '../utils/sessionUtils';
 
 // GET /api/colonies/:colonyId/lodging/beds
@@ -178,104 +178,7 @@ export const startSleep = async (req: Request, res: Response) => {
   }
 };
 
-// POST /api/colonies/:colonyId/lodging/preview-sleep-batch
-export const getSleepPreviewBatch = async (req: Request, res: Response) => {
-  const { colonyId } = req.params;
-  const { settlers } = req.body;
-
-  if (!Types.ObjectId.isValid(colonyId)) {
-    return res.status(400).json({ error: 'Invalid colonyId' });
-  }
-
-  if (!Array.isArray(settlers) || settlers.length === 0) {
-    return res.status(400).json({ error: 'settlers array is required and must not be empty' });
-  }
-
-  // Validate settler entries
-  for (const entry of settlers) {
-    if (!entry.settlerId || !Types.ObjectId.isValid(entry.settlerId)) {
-      return res.status(400).json({ error: 'Each settler entry must have a valid settlerId' });
-    }
-    if (typeof entry.bedType !== 'number' || entry.bedType < 1) {
-      return res.status(400).json({ error: 'Each settler entry must have a valid bedType (positive number)' });
-    }
-  }
-
-  try {
-    const settlerIds = settlers.map(s => s.settlerId);
-    
-    // Fetch all settlers in bulk
-    const foundSettlers = await Settler.find({ _id: { $in: settlerIds } });
-    const settlerMap = new Map(foundSettlers.map(s => [s._id.toString(), s]));
-
-    const results: Array<{
-      settlerId: string;
-      settlerName: string;
-      bedType: number;
-      duration: number;
-      canSleep: boolean;
-      reason?: string;
-    }> = [];
-
-    // Calculate preview for each combination
-    for (const { settlerId, bedType } of settlers) {
-      const settler = settlerMap.get(settlerId);
-      if (!settler) {
-        logWarn('Settler not found in sleep preview batch', { settlerId, colonyId });
-        results.push({
-          settlerId,
-          settlerName: 'Unknown',
-          bedType,
-          duration: 0,
-          canSleep: false,
-          reason: 'Settler not found'
-        });
-        continue;
-      }
-
-      try {
-        const settlerManager = new SettlerManager(settler);
-        const duration = settlerManager.getSleepDuration(bedType);
-        
-        let canSleep = true;
-        let reason: string | undefined;
-
-        if (settler.status !== 'idle') {
-          canSleep = false;
-          reason = `Settler is currently ${settler.status}`;
-        } else if (duration === 0) {
-          canSleep = false;
-          reason = 'Settler already has full energy';
-        }
-
-        results.push({
-          settlerId: settler._id.toString(),
-          settlerName: settler.name,
-          bedType,
-          duration,
-          canSleep,
-          reason
-        });
-      } catch (error) {
-        logError('Error calculating sleep duration in batch preview', error, {
-          settlerId,
-          bedType,
-          colonyId
-        });
-        results.push({
-          settlerId,
-          settlerName: settler.name,
-          bedType,
-          duration: 0,
-          canSleep: false,
-          reason: 'Failed to calculate sleep duration'
-        });
-      }
-    }
-
-    res.json({ results });
-  } catch (err) {
-    logError('Error in batch sleep preview', err, { colonyId });
-    res.status(500).json({ error: 'Failed to preview sleep durations' });
-  }
-};
+// REMOVED: getSleepPreviewBatch function
+// It returned: { results: Array<{ settlerId, settlerName, bedType, duration, canSleep, reason? }> }
+// The duration was calculated using SettlerManager.getSleepDuration(bedType)
+// This data can now be calculated on frontend using settler.adjustments and bed info

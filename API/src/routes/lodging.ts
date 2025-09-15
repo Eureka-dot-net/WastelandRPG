@@ -2,8 +2,7 @@
 import { Router } from 'express';
 import { 
   getBeds, 
-  startSleep, 
-  getSleepPreviewBatch 
+  startSleep 
 } from '../controllers/lodgingController';
 
 const router = Router({ mergeParams: true }); // mergeParams needed for :colonyId
@@ -14,7 +13,6 @@ router.get('/beds', getBeds);
 // POST /api/colonies/:colonyId/lodging/start-sleep - starts a sleep assignment
 router.post('/start-sleep', startSleep);
 
-// POST /api/colonies/:colonyId/lodging/preview-sleep-batch - batch preview sleep durations
-router.post('/preview-sleep-batch', getSleepPreviewBatch);
+// REMOVED: router.post('/preview-sleep-batch', getSleepPreviewBatch) - preview functionality moved to frontend
 
 export default router;
