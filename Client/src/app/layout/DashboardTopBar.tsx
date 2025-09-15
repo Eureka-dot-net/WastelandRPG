@@ -249,7 +249,7 @@ const DashboardTopBar: React.FC = () => {
       { label: "Map", href: "/map", condition: displayColony.unlocks.map, icon: <VisibilityIcon /> },
       { label: "Inventory", href: "/inventory", condition: displayColony.unlocks.inventory, icon: <BuildIcon /> },
       { label: "Crafting", href: "/crafting", condition: displayColony.unlocks.crafting, icon: <BuildIcon /> },
-      { label: "Lodgings", href: "/lodgings", condition: displayColony.unlocks.lodgings, icon: <HomeIcon /> },
+      { label: "Lodging", href: "/lodging", condition: displayColony.unlocks.lodgings, icon: <HomeIcon /> },
       { label: "Farming", href: "/farming", condition: displayColony.unlocks.farming, icon: <NatureIcon /> },
       { label: "Defence", href: "/defence", condition: displayColony.unlocks.defence, icon: <ShieldIcon /> },
     ];
