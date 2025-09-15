@@ -2,7 +2,7 @@ import {
   Hotel, SingleBed, Timer, Warning
 } from "@mui/icons-material";
 import {
-  Container, Paper, Typography, Grid, useTheme, useMediaQuery, Box, Button, Card, CardContent
+  Container, Paper, Typography, Grid, useTheme, useMediaQuery, Box, Card, CardContent
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import "react-toastify/dist/ReactToastify.css";
@@ -173,7 +173,6 @@ function LodgingPage() {
   const [settlerPreviews, setSettlerPreviews] = useState<Record<string, BasePreviewResult>>({});
   const [previewsLoading, setPreviewsLoading] = useState(false);
   const [previewsError, setPreviewsError] = useState<Error | null>(null);
-  const [freezeEnergy, setFreezeEnergy] = useState(false);
 
   // Get available settlers (idle ones with less than 100 energy)
   const availableSettlers = useMemo(() => {
@@ -198,8 +197,7 @@ function LodgingPage() {
       },
       bedLevel: lodgingPreview.bedType,
       canSleep: lodgingPreview.canSleep,
-      reason: lodgingPreview.reason,
-      currentEnergy: lodgingPreview.currentEnergy || 0
+      reason: lodgingPreview.reason
     };
   };
 
@@ -217,8 +215,7 @@ function LodgingPage() {
       }));
 
       const result = await previewSleepBatch.mutateAsync({
-        settlers,
-        freezeEnergy
+        settlers
       });
 
       const previews: Record<string, BasePreviewResult> = {};
@@ -268,8 +265,7 @@ function LodgingPage() {
     if (selectedBed) {
       startSleep.mutate({
         settlerId: settler._id,
-        bedLevel: selectedBed.bed.level,
-        freezeEnergy
+        bedLevel: selectedBed.bed.level
       }, {
         onSuccess: () => {
           setSleepDialogOpen(false);
@@ -380,30 +376,6 @@ function LodgingPage() {
 
       {/* Dev Tools */}
       <DevTools settlers={colony.settlers || []} />
-      
-      {/* Dev Controls for Energy Freeze (only in development) */}
-      {import.meta.env.MODE === 'development' && (
-        <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mt: isMobile ? 2 : 4, bgcolor: 'action.hover' }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            🔧 Dev Controls
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant={freezeEnergy ? "contained" : "outlined"}
-              onClick={() => setFreezeEnergy(!freezeEnergy)}
-              color={freezeEnergy ? "warning" : "primary"}
-            >
-              {freezeEnergy ? "Energy Frozen" : "Freeze Energy"}
-            </Button>
-            <Typography variant="body2" color="text.secondary">
-              {freezeEnergy 
-                ? "Energy updates are disabled for testing sleep calculations" 
-                : "Click to freeze energy for testing sleep functionality"
-              }
-            </Typography>
-          </Box>
-        </Paper>
-      )}
 
       {/* Future Features */}
       <Paper elevation={2} sx={{ p: isMobile ? 2 : 3, mt: isMobile ? 2 : 4, opacity: 0.6 }}>

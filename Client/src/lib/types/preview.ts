@@ -36,7 +36,6 @@ export interface SleepPreviewResult extends BasePreviewResult {
   bedLevel: number;
   canSleep: boolean;
   reason?: string;
-  currentEnergy: number;
 }
 
 // Batch results

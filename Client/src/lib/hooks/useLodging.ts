@@ -38,9 +38,9 @@ export function useLodging(
     StartSleepRequest,
     { prevColony: Colony | undefined }
   >({
-    mutationFn: async ({ settlerId, bedLevel, freezeEnergy }) => {
+    mutationFn: async ({ settlerId, bedLevel }) => {
       const url = `/colonies/${colonyId}/lodging/start-sleep`;
-      const response = await agent.post(url, { settlerId, bedLevel, freezeEnergy });
+      const response = await agent.post(url, { settlerId, bedLevel });
       return response.data;
     },
     onMutate: async ({ settlerId }) => {

@@ -301,7 +301,7 @@ const SettlerPreviewCard: React.FC<SettlerPreviewCardProps> = ({
                           fontWeight={600}
                           sx={{ fontSize: isMobile ? '0.75rem' : '0.8rem' }}
                         >
-                          Current Energy: {sleepPreview.currentEnergy}/100
+                          Current Energy: {Math.round((settler.energy ?? 0) * 10) / 10}/100
                         </Typography>
                         <Typography 
                           variant="caption" 

@@ -20,7 +20,6 @@ export interface SleepPreviewResult {
   duration: number;
   canSleep: boolean;
   reason?: string;
-  currentEnergy?: number;
 }
 
 export interface BatchSleepPreviewResult {
@@ -30,7 +29,6 @@ export interface BatchSleepPreviewResult {
 export interface StartSleepRequest {
   settlerId: string;
   bedLevel: number;
-  freezeEnergy?: boolean;
 }
 
 export interface StartSleepResponse {
@@ -48,5 +46,4 @@ export interface BedTypePreview {
 
 export interface SleepPreviewBatchRequest {
   settlers: BedTypePreview[];
-  freezeEnergy?: boolean;
 }
